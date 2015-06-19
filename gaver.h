@@ -20,14 +20,16 @@
 
 #include <types.h>
 
-
+/*
+ * GaVer Header
+ */
 struct gvhdr {
-    u_int16_t src_port;
-    u_int16_t dst_port;
+    u_int16_t src_port;		/* Virtual Source Port */
+    u_int16_t dst_port;		/* Virtual Destination Port */
     u_int16_t payload_len;
     u_int8_t  version;
     u_int8_t  type;
-    u_int64_t seq;
+    u_int64_t seq;		/* Data/Ctrl seq */
 };
 
 #define DATA		0x00
@@ -49,7 +51,9 @@ struct gvhdr {
 #define SPEED_MBIT	0x02
 #define SPEED_GBIT	0x03
 
-
+/*
+ * GaVer Syn Payload
+ */
 struct gvsyn {
     u_int64_t ts_sec;
     u_int64_t ts_nsec;
@@ -67,6 +71,9 @@ struct gvsyn {
 #define SPEED_FIX	0x01
 
 
+/*
+ * GaVer Connect Payload
+ */
 struct gvconnect {
     u_int16_t upload_speed;
     u_int16_t download_speed;
@@ -80,7 +87,9 @@ struct gvconnect {
     u_int64_t ts_nsec;
 };
 
-
+/*
+ * GaVer Accept Payload
+ */
 struct gvaccept {
     u_int16_t upload_speed;
     u_int16_t download_speed;
@@ -96,12 +105,35 @@ struct gvaccept {
     u_int64_t ts_nsec;
 };
 
+/*
+ * GaVer Finish Payload
+ */
 
 struct gvfinish {
     u_int64_t ctrl_end_seq;
     u_int64_t data_end_seq;
 };
 
+/*
+ * Protocol state
+ */
+enum {
+    GV_ESTABLISHED = 1,
+    GV_CONNECT_RCVD,
+    GV_CONNECT_SENT,
+    GV_CLOSE,
+    GV_LISTEN,
+    GV_FINISH_SENT,
+    GV_CLOSE_WAIT,
+};
 
+
+#define IP_HDRSIZE 20
+#define IP_OPTSIZE 40
+#define UDP_HDRSIZE 8
+
+#define DFL_MTU 1500
+#define PAYLOAD_SIZE (FL_MTU-IP_HDRSIZE-IP_OPTSIZE-UDP_HDRSIZE)
 
 #endif /* _GAVER_H */
+
