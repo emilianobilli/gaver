@@ -14,18 +14,16 @@
     You should have received a copy of the GNU General Public License
     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _GLO_H
-#define _GLO_H
+#include "mbuff.h"
 
-#include "types.h"
-#ifdef _TABLE
-#undef EXTERN
-#define EXTERN
-#endif
+/*
+ * ToDo: mbuff_insert()
+ */
+
+void mbuff_enqueue (struct mb_queue *queue, struct mbuff *mb);
+struct mbuff *mbuff_dequeue(struct mb_queue *queue);
+
+void pktbuff_enqueue (struct pkt_queue *queue, struct pktbuff *pkt);
+struct pktbuff *pktbuff_dequeue(struct pkt_queue *queue);
 
 
-#include "heap_var.h"
-
-
-
-#endif /* _GLO_H */

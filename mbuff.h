@@ -17,6 +17,7 @@
 #ifndef _MBUFF_H
 #define _MBUFF_H
 
+#include <sys/types.h>
 #include <netinet/in.h>
 #include "gaver.h"
 
@@ -26,10 +27,8 @@ struct sounaddr {
     int socket;
 };
 
-struct mbuff
-{
+struct mbuff {
     struct m_buff     *m_next;
-    struct m_buff     *m_prev;
 #define ADDR_TYPE_INSISE  0x01
 #define ADDR_TYPE_OUTSIDE 0x02
 #define ADDR_TYPE_EMPTY   0x03
@@ -38,23 +37,24 @@ struct mbuff
 	struct sounaddr    inside_addr;	
 	struct sockaddr_in outsize_addr;
     } m_addr;
-    struct gaverhdr    m_hdr;
+    struct gvhdr       m_hdr;
     size_t	       m_datalen;
     unsigned char      m_payload[PAYLOAD_SIZE];
 };
 
-struct pktbuff
-{
+struct pktbuff {
     struct pktbuff    *p_next;
     struct mbuff      *p_mbuff;
 };
 
-
-struct pktqueue
-{
-    struct pkbuff     *pq_head;
-    struct pkbuff     *pq_tail;
+struct pkt_queue {
+    struct pkbuff *pq_head;
+    struct pkbuff *pq_tail;
 };
 
+struct mb_queue {
+    struct mbuff *mb_head;
+    struct mbuff *mb_tail;
+};
 
 #endif

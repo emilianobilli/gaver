@@ -18,7 +18,7 @@
 #ifndef _GAVER_H
 #define _GAVER_H
 
-#include <types.h>
+#include <sys/types.h>
 
 /*
  * GaVer Header
@@ -133,7 +133,7 @@ enum {
 #define UDP_HDRSIZE 8
 
 #define DFL_MTU 1500
-#define PAYLOAD_SIZE (FL_MTU-IP_HDRSIZE-IP_OPTSIZE-UDP_HDRSIZE)
+#define PAYLOAD_SIZE (DFL_MTU-IP_HDRSIZE-IP_OPTSIZE-UDP_HDRSIZE)
 
 #endif /* _GAVER_H */
 

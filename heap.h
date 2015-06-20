@@ -14,18 +14,24 @@
     You should have received a copy of the GNU General Public License
     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _GLO_H
-#define _GLO_H
-
-#include "types.h"
-#ifdef _TABLE
-#undef EXTERN
-#define EXTERN
-#endif
-
-
+#ifndef _HEAP_H
+#define _HEAP_H
 #include "heap_var.h"
 
+EXTERN void free_mbuff(struct mbuff *m);
+EXTERN void free_mbuff_locking(struct mbuff *m);
 
+EXTERN void free_pkt(struct pktbuff *p);
+EXTERN void free_pkt_locking(struct pktbuff *p);
 
-#endif /* _GLO_H */
+EXTERN struct mbuff *alloc_mbuff(void);
+EXTERN struct mbuff *alloc_mbuff_locking(void);
+EXTERN int alloc_mbuff_chain( struct pktqueue *queue, size_t len);
+
+EXTERN struct pktbuff *alloc_pkt(void);
+EXTERN struct pktbuff *alloc_pkt_locking(void);
+
+EXTERN void init_heap(void);
+
+#endif
+
