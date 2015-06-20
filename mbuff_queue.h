@@ -25,23 +25,16 @@
  * ToDo: mbuff_insert()
  */
 
-EXTERN void 
-mbuff_enqueue (struct mb_queue *queue, struct mbuff *mb);
+EXTERN void mbuff_enqueue (struct mb_queue *queue, struct mbuff *mb);
 
-EXTERN struct mbuff *
-mbuff_dequeue(struct mb_queue *queue);
+EXTERN struct mbuff *mbuff_dequeue(struct mb_queue *queue);
 
-EXTERN void 
-mbuffqcat (struct mb_queue *dst, struct mb_queue *src);
+EXTERN void mbuffqcat (struct mb_queue *dst, struct mb_queue *src);
 
+EXTERN void pktbuff_enqueue (struct pkt_queue *queue, struct pktbuff *pkt);
 
-EXTERN void 
-pktbuff_enqueue (struct pkt_queue *queue, struct pktbuff *pkt);
+EXTERN struct pktbuff *pktbuff_dequeue(struct pkt_queue *queue);
 
-EXTERN struct pktbuff *
-pktbuff_dequeue(struct pkt_queue *queue);
-
-EXTERN void 
-pktbuffqcat (struct pkt_queue *dst, struct pkt_queue *src);
+EXTERN void pktbuffqcat (struct pkt_queue *dst, struct pkt_queue *src);
 
 #endif

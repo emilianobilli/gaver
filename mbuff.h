@@ -28,7 +28,7 @@ struct sounaddr {
 };
 
 struct mbuff {
-    struct m_buff     *m_next;
+    struct mbuff      *m_next;
 #define ADDR_TYPE_INSISE  0x01
 #define ADDR_TYPE_OUTSIDE 0x02
 #define ADDR_TYPE_EMPTY   0x03
@@ -48,13 +48,13 @@ struct pktbuff {
 };
 
 struct pkt_queue {
-    struct pkbuff *pq_head;
-    struct pkbuff *pq_tail;
+    struct pktbuff *head;
+    struct pktbuff *tail;
 };
 
 struct mb_queue {
-    struct mbuff *mb_head;
-    struct mbuff *mb_tail;
+    struct mbuff *head;
+    struct mbuff *tail;
 };
 
 #endif

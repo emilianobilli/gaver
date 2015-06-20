@@ -23,7 +23,47 @@ static void init_heap_mbuff(void);
 static void init_heap_pkt(void);
 
 
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * init_heap()										    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+struct pktbuff *alloc_pkt(void)
+{
+    struct pktbuff *pkt;
+
+    if (heap_pktbuff.head == NULL && heap_pktbuff.tail == NULL) {
+	pkt = (struct pktbuff *)calloc(1, sizeof(struct pktbuff));
+	heap_mem += (pkt == NULL) ? 0 : sizeof(struct pktbuff);
+    }
+    else
+	pkt = pktbuff_dequeue(&heap_pktbuff);
+
+    return pkt;
+}
+
+struct pktbuff *alloc_pkt_locking(void)
+{
+    struct pktbuff *ret;
+
+    pthread_mutex_lock(&heap_pkt_mutex);
+
+    ret = alloc_pkt();
+
+    pthread_mutex_unlock(&heap_pkt_mutex);
+    return ret;
+}
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * init_heap()										    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
 void free_mbuff(struct mbuff *m)
+{
+    mbuff_enqueue(&heap_mbuff, m);	
+    return;
+}
+
 void free_mbuff_locking(struct mbuff *m)
 {
     pthread_mutex_lock(&heap_mbuff_mutex);
@@ -33,6 +73,11 @@ void free_mbuff_locking(struct mbuff *m)
 }
 
 void free_pkt(struct pktbuff *p)
+{
+    pktbuff_enqueue(&heap_pktbuff, p);
+    return;
+}
+
 void free_pkt_locking(struct pktbuff *p)
 {
     pthread_mutex_lock(&heap_pkt_mutex);
@@ -43,6 +88,18 @@ void free_pkt_locking(struct pktbuff *p)
 
 
 struct mbuff *alloc_mbuff(void)
+{
+    struct mbuff *mb;
+    if (heap_mbuff.head == NULL && heap_mbuff.tail == NULL) {
+	mb = (struct mbuff *) calloc(1, sizeof(struct mbuff));
+	heap_mem += (mb == NULL) ? 0 : sizeof(struct mbuff);
+    }
+    else
+	mb = mbuff_dequeue(&heap_mbuff);
+
+    return mb;
+}
+
 struct mbuff *alloc_mbuff_locking(void)
 {
     struct mbuff *ret;
@@ -58,7 +115,7 @@ struct mbuff *alloc_mbuff_locking(void)
 }
 
 
-int alloc_mbuff_chain( struct pktqueue *queue, size_t len)
+int alloc_mbuff_chain( struct pkt_queue *queue, size_t len)
 {
     struct pktbuff *p_buff;
     struct mbuff   *m_buff;
@@ -70,9 +127,6 @@ int alloc_mbuff_chain( struct pktqueue *queue, size_t len)
      * 4- Create n pkbuff elements
      * 5- Unblock mutex mbuff
      * 6- Unblock mutex pkt
-     */
-    /*
-     * 1, 2
      */
     pthread_mutex_lock(&heap_pkt_mutex);
     pthread_mutex_lock(&heap_mbuff_mutex);
@@ -94,40 +148,18 @@ int alloc_mbuff_chain( struct pktqueue *queue, size_t len)
 	else
 	    break;
     }
-    /*
-     * 5, 6
-     */
     pthread_mutex_unlock(&heap_mbuff_mutex);
     pthread_mutex_unlock(&heap_pkt_mutex);
 
     return i;
 }
 
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * init_heap()										    *
- *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-struct pktbuff *alloc_pkt(void)
-struct pktbuff *alloc_pkt_locking(void)
-{
-    struct pktbuff *ret;
-
-    pthread_mutex_lock(&heap_pkt_mutex);
-
-    ret = alloc_pkt();
-
-    pthread_mutex_unlock(&heap_pkt_mutex);
-    return ret;
-}
-
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * init_heap()										    *
- *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 void init_heap_mbuff(void)
 {
     heap_mbuff.head = NULL;
     heap_mbuff.tail = NULL;
-    heap_mbuff_mutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_init(&heap_mbuff_mutex,NULL);
 
     return;
 }
@@ -137,9 +169,9 @@ void init_heap_mbuff(void)
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 void init_heap_pkt(void)
 {
-    heap_pkt.head = NULL;
-    heap_pkt.tail = NULL;
-    heap_pkt_mutex = PTHREAD_MUTEX_INITIALIZER;
+    heap_pktbuff.head = NULL;
+    heap_pktbuff.tail = NULL;
+    pthread_mutex_init(&heap_pkt_mutex,NULL);
 
     return;
 }

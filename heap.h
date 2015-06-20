@@ -17,6 +17,7 @@
 #ifndef _HEAP_H
 #define _HEAP_H
 #include "heap_var.h"
+#include "mbuff.h"
 
 EXTERN void free_mbuff(struct mbuff *m);
 EXTERN void free_mbuff_locking(struct mbuff *m);
@@ -26,7 +27,7 @@ EXTERN void free_pkt_locking(struct pktbuff *p);
 
 EXTERN struct mbuff *alloc_mbuff(void);
 EXTERN struct mbuff *alloc_mbuff_locking(void);
-EXTERN int alloc_mbuff_chain( struct pktqueue *queue, size_t len);
+EXTERN int alloc_mbuff_chain( struct pkt_queue *queue, size_t len);
 
 EXTERN struct pktbuff *alloc_pkt(void);
 EXTERN struct pktbuff *alloc_pkt_locking(void);
