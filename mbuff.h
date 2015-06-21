@@ -42,14 +42,14 @@ struct mbuff {
     unsigned char      m_payload[PAYLOAD_SIZE];
 };
 
-struct pktbuff {
-    struct pktbuff    *p_next;
+struct msg {
+    struct msg    *p_next;
     struct mbuff      *p_mbuff;
 };
 
-struct pkt_queue {
-    struct pktbuff *head;
-    struct pktbuff *tail;
+struct msg_queue {
+    struct msg *head;
+    struct msg *tail;
 };
 
 struct mb_queue {

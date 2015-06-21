@@ -20,50 +20,59 @@
 #include "mbuff_queue.h"
 
 static void init_heap_mbuff(void);
-static void init_heap_pkt(void);
+static void init_heap_msg(void);
 
 
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * init_heap()										    *
+ * alloc_msg(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-struct pktbuff *alloc_pkt(void)
+struct msg *alloc_msg(void)
 {
-    struct pktbuff *pkt;
+    struct msg *msg;
 
-    if (heap_pktbuff.head == NULL && heap_pktbuff.tail == NULL) {
-	pkt = (struct pktbuff *)calloc(1, sizeof(struct pktbuff));
-	heap_mem += (pkt == NULL) ? 0 : sizeof(struct pktbuff);
+    if (heap_msg.head == NULL && heap_msg.tail == NULL) {
+	msg = (struct msg *)calloc(1, sizeof(struct msg));
+	heap_mem += (msg == NULL) ? 0 : sizeof(struct msg);
     }
     else
-	pkt = pktbuff_dequeue(&heap_pktbuff);
+	msg = msg_dequeue(&heap_msg);
 
-    return pkt;
+    return msg;
 }
 
-struct pktbuff *alloc_pkt_locking(void)
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * alloc_msg_locking():									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+struct msg *alloc_msg_locking(void)
 {
-    struct pktbuff *ret;
+    struct msg *ret;
 
-    pthread_mutex_lock(&heap_pkt_mutex);
+    pthread_mutex_lock(&heap_msg_mutex);
 
-    ret = alloc_pkt();
+    ret = alloc_msg();
 
-    pthread_mutex_unlock(&heap_pkt_mutex);
+    pthread_mutex_unlock(&heap_msg_mutex);
     return ret;
 }
 
+
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * init_heap()										    *
+ * free_mbuff()										    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
-
 void free_mbuff(struct mbuff *m)
 {
+    /*
+     * Falta borrar estructura
+     */
+
     mbuff_enqueue(&heap_mbuff, m);	
     return;
 }
 
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * free_mbuff_locking()									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 void free_mbuff_locking(struct mbuff *m)
 {
     pthread_mutex_lock(&heap_mbuff_mutex);
@@ -72,21 +81,34 @@ void free_mbuff_locking(struct mbuff *m)
     return;
 }
 
-void free_pkt(struct pktbuff *p)
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * free_msg()										    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+void free_msg(struct msg *p)
 {
-    pktbuff_enqueue(&heap_pktbuff, p);
+    /*
+     * Falta borrar estructura
+     */
+
+    msg_enqueue(&heap_msg, p);
     return;
 }
 
-void free_pkt_locking(struct pktbuff *p)
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * free_msg()										    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+void free_msg_locking(struct msg *p)
 {
-    pthread_mutex_lock(&heap_pkt_mutex);
-    free_pkt(p);
-    pthread_mutex_unlock(&heap_pkt_mutex);
+    pthread_mutex_lock(&heap_msg_mutex);
+    free_msg(p);
+    pthread_mutex_unlock(&heap_msg_mutex);
     return;
 }
 
 
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * alloc_mbuff()									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 struct mbuff *alloc_mbuff(void)
 {
     struct mbuff *mb;
@@ -100,6 +122,9 @@ struct mbuff *alloc_mbuff(void)
     return mb;
 }
 
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * alloc_mbuff_locking()								    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 struct mbuff *alloc_mbuff_locking(void)
 {
     struct mbuff *ret;
@@ -114,31 +139,58 @@ struct mbuff *alloc_mbuff_locking(void)
     return ret;
 }
 
-
-int alloc_mbuff_chain( struct pkt_queue *queue, size_t len)
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * alloc_msg_chain()									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+int alloc_msg_chain( struct msg_queue *queue, size_t len)
 {
-    struct pktbuff *p_buff;
+    struct msg *p_buff;
+    size_t i;
+
+    pthread_mutex_lock(&heap_msg_mutex);
+
+    for ( i = 0; i <= len -1; i++ ) {
+	p_buff = alloc_msg();
+	if ( p_buff != NULL ) {
+	    p_buff->p_next = NULL;
+	    p_buff->p_mbuff = NULL;
+	    msg_enqueue(queue, p_buff);
+	}
+	else
+	    break;
+    }
+    
+    pthread_mutex_unlock(&heap_msg_mutex);
+    return i;
+}
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * alloc_mbuff_chain()									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+int alloc_mbuff_chain( struct msg_queue *queue, size_t len)
+{
+    struct msg *p_buff;
     struct mbuff   *m_buff;
     size_t i;
     /*
-     * 1- Block mutex pkt
+     * 1- Block mutex msg
      * 2- Block mutex mbuff
      * 3- Create n mbuff elements
      * 4- Create n pkbuff elements
      * 5- Unblock mutex mbuff
-     * 6- Unblock mutex pkt
+     * 6- Unblock mutex msg
      */
-    pthread_mutex_lock(&heap_pkt_mutex);
+    pthread_mutex_lock(&heap_msg_mutex);
     pthread_mutex_lock(&heap_mbuff_mutex);
 
     for ( i = 0; i <= len-1 ; i++ ) {
 	m_buff = alloc_mbuff();
 	if (m_buff != NULL) {
-	    p_buff = alloc_pkt();
+	    p_buff = alloc_msg();
 	    if (p_buff != NULL) {
 		p_buff->p_next = NULL;
 	        p_buff->p_mbuff = m_buff;
-		pktbuff_enqueue(queue, p_buff);
+		msg_enqueue(queue, p_buff);
 	    }
 	    else {
 		free_mbuff(m_buff);
@@ -149,12 +201,14 @@ int alloc_mbuff_chain( struct pkt_queue *queue, size_t len)
 	    break;
     }
     pthread_mutex_unlock(&heap_mbuff_mutex);
-    pthread_mutex_unlock(&heap_pkt_mutex);
+    pthread_mutex_unlock(&heap_msg_mutex);
 
     return i;
 }
 
-
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * init_heap_mbuff()									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 void init_heap_mbuff(void)
 {
     heap_mbuff.head = NULL;
@@ -165,13 +219,13 @@ void init_heap_mbuff(void)
 }
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * init_heap()										    *
+ * init_heap_msg()									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-void init_heap_pkt(void)
+void init_heap_msg(void)
 {
-    heap_pktbuff.head = NULL;
-    heap_pktbuff.tail = NULL;
-    pthread_mutex_init(&heap_pkt_mutex,NULL);
+    heap_msg.head = NULL;
+    heap_msg.tail = NULL;
+    pthread_mutex_init(&heap_msg_mutex,NULL);
 
     return;
 }
@@ -183,7 +237,7 @@ void init_heap(void)
 {
     heap_mem = 0;
     init_heap_mbuff();
-    init_heap_pkt();
+    init_heap_msg();
 
     return;
 }

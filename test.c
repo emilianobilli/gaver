@@ -7,29 +7,31 @@
 
 int main(void)
 {
-    struct pkt_queue pktq, other;
-    struct pktbuff *p_ptr;
+    struct msg_queue msgq, other;
+    struct msg *p_ptr;
     struct mbuff *m_ptr;
     size_t n;
 
-    pktq.head = NULL;
-    pktq.tail = NULL;
+    msgq.head = NULL;
+    msgq.tail = NULL;
     other.head = NULL;
     other.tail = NULL;
 
-    n = alloc_mbuff_chain(&pktq, 20);
+    init_heap();
 
-    while (pktq.head != NULL)
+    n = alloc_mbuff_chain(&msgq, 20);
+
+    while (msgq.head != NULL)
     {
-	p_ptr = pktbuff_dequeue(&pktq);
+	p_ptr = msg_dequeue(&msgq);
 	m_ptr = p_ptr->p_mbuff;
 	free_mbuff(m_ptr);
-	free_pkt(p_ptr);
+	free_msg(p_ptr);
     }
-    n = alloc_mbuff_chain(&pktq, 20);
+    n = alloc_mbuff_chain(&msgq, 20);
     n += alloc_mbuff_chain(&other, 10);
 
-    pktbuffqcat(&other, &pktq);
+    msgqcat(&other, &msgq);
 
     
     printf("%d\n", heap_mem);
@@ -37,7 +39,7 @@ int main(void)
 
     while (other.head != NULL)
     {
-	p_ptr = pktbuff_dequeue(&other);
+	p_ptr = msg_dequeue(&other);
 	printf("%x\n", p_ptr);
     }
 

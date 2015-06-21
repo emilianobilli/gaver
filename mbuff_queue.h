@@ -31,10 +31,10 @@ EXTERN struct mbuff *mbuff_dequeue(struct mb_queue *queue);
 
 EXTERN void mbuffqcat (struct mb_queue *dst, struct mb_queue *src);
 
-EXTERN void pktbuff_enqueue (struct pkt_queue *queue, struct pktbuff *pkt);
+EXTERN void msg_enqueue (struct msg_queue *queue, struct msg *msg);
 
-EXTERN struct pktbuff *pktbuff_dequeue(struct pkt_queue *queue);
+EXTERN struct msg *msg_dequeue(struct msg_queue *queue);
 
-EXTERN void pktbuffqcat (struct pkt_queue *dst, struct pkt_queue *src);
+EXTERN void msgqcat (struct msg_queue *dst, struct msg_queue *src);
 
 #endif

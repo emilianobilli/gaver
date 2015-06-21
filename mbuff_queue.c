@@ -50,28 +50,28 @@ void mbuffqcat (struct mb_queue *dst, struct mb_queue *src)
     return;
 }
 
-void pktbuff_enqueue (struct pkt_queue *queue, struct pktbuff *pkt)
+void msg_enqueue (struct msg_queue *queue, struct msg *msg)
 {
-    pkt->p_next = NULL;
+    msg->p_next = NULL;
     if (queue->tail == NULL && queue->head == NULL)
-	queue->head = pkt;
+	queue->head = msg;
     else
-	queue->tail->p_next = pkt;
-    queue->tail = pkt;
+	queue->tail->p_next = msg;
+    queue->tail = msg;
 }
 
-struct pktbuff *pktbuff_dequeue(struct pkt_queue *queue)
+struct msg *msg_dequeue(struct msg_queue *queue)
 {
-    struct pktbuff *pkt;
-    pkt = queue->head;
-    if (pkt != NULL) {
-	queue->head = pkt->p_next;
+    struct msg *msg;
+    msg = queue->head;
+    if (msg != NULL) {
+	queue->head = msg->p_next;
 	if (queue->head == NULL)
 	    queue->tail = NULL;
     }
-    return pkt;
+    return msg;
 }
-void pktbuffqcat (struct pkt_queue *dst, struct pkt_queue *src)
+void msgqcat (struct msg_queue *dst, struct msg_queue *src)
 {
     if (dst->tail == NULL && dst->head == NULL)
 	dst->head = src->head;
