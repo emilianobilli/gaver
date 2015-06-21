@@ -20,7 +20,7 @@
 
 
 #define EXTERN extern
-
+#define PRIVATE static
 
 
 #endif /* _TYPES_H */

@@ -14,18 +14,17 @@
     You should have received a copy of the GNU General Public License
     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _GLO_H
-#define _GLO_H
+#ifndef _ITC_VAR_H
+#define _ITC_VAR_H
 
-#include "types.h"
-#ifdef _TABLE
-#undef EXTERN
-#define EXTERN
-#endif
+#include "itc.h"
 
+EXTERN struct itc_msg_queue appdio_kernel_queue;	/* Messages FROM App TO Kernel */
+EXTERN struct itc_msg_queue kernel_appdio_queue;	/* Messages FROM Kernel TO App */	
+EXTERN struct itc_msg_queue kernel_netout_queue[3];	/* Messages FROM Kernel TO Network Output */	
+EXTERN struct itc_msg_queue netinp_kernel_queue;	/* Messages FROM Network Input to Kernel */
 
-#include "heap_var.h"
-#include "itc_var.h"
+EXTERN pthread_t thread_table[THREAD_TABLE_SZ];
 
+#endif /* itc_var.h */
 
-#endif /* _GLO_H */
