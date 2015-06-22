@@ -1,3 +1,12 @@
+
+/*
+ * ToDo: 
+ *	- Modificar la estructra msg y agregar, direccion de origen (socket)
+ *	- Agregar contador de elementos en cadena
+ *	- Reemplazar puntero a mbuff por cola de mbuff
+ *	- Modificar todo heap para estos ultimos cambios
+ */
+
 /*
     This file is part of GaVer
 
@@ -44,7 +53,9 @@ struct mbuff {
 
 struct msg {
     struct msg    *p_next;
-    struct mbuff      *p_mbuff;
+    struct mbuff  *p_mbuff;
+    /* struct mb_queue *mbq; */
+    
 };
 
 struct msg_queue {

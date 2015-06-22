@@ -227,7 +227,7 @@ int itc_wr_msgqueue ( int other, struct msg_queue *q, int prio, int opt )
 
 	    break;
 	case NETINP_LAYER_THREAD:
-	    if (other == KERNEL_LAYER_THREAD && WR_OPT_WRITE)
+	    if (other == KERNEL_LAYER_THREAD && opt == WR_OPT_WRITE)
 	    {
 		wropt.src  = NETIMP_LAYER_THREAD;
 		wropt.dst  = KERNEL_LAYER_THREAD;
@@ -240,7 +240,7 @@ int itc_wr_msgqueue ( int other, struct msg_queue *q, int prio, int opt )
 	    }
 	    break;
 	case NETOUT_LAYER_THREAD:
-	    if (other == KERNEL_LAYER_THREAD && WR_OPT_READ)
+	    if (other == KERNEL_LAYER_THREAD && opt == WR_OPT_READ)
 	    {
 		wropt.src  = NETINP_LAYER_THREAD;
 		wropt.dst  = KERNEL_LAYER_THREAD;
