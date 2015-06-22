@@ -76,6 +76,7 @@ int itc_block_signal (void)
 /*----------------------------------------------------------------------------------------------*
  * itc_read_event(fd, info): Lee el evento (msg) que recibio el hilo.				*
  *			     La estructura info trae la informacion del hilo emisor y la prio	*
+ * 												*
  *----------------------------------------------------------------------------------------------*/
 int itc_read_event(int fd, itc_event_info *info)
 {
@@ -112,7 +113,7 @@ int itc_getmsgprio(int sig)
 }
 
 /*----------------------------------------------------------------------------------------------*
- * itc_self(): Retorna el indice con el Rol del thread que hace la invoca			*
+ * itc_self(): Retorna el indice con el Rol del thread que hace la invocacion			*
  *----------------------------------------------------------------------------------------------*/
 int itc_self(void)
 {
@@ -274,6 +275,7 @@ int itc_writemsg (struct wrmsg *opt)
 	 * Solamente se envia la signal si el hilo receptor tiene la cola vacia
 	 * tener datos en la cola implica que ya se envio una signal y el hilo
 	 * todavia no consumio los datos
+	 * El mensaje se envia silenciosamente 
 	 */
 	pthread_sigqueue(thread_table[opt->dst],opt->signal, sval);
 
