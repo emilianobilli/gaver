@@ -48,12 +48,20 @@ struct wrmsg {
     int signal;
 };
 
+/*
+ * int read_itc_event(struct itc_event_info *info)
+ */
+struct itc_event_info {
+    int src;
+    int prio;
+};
+
+
 #define THREAD_TABLE_SZ 4
 #define APPDIO_LAYER_THREAD	0	/* Application Data Input/Output */
 #define KERNEL_LAYER_THREAD	1	/* Core of Gaver */
 #define NETOUT_LAYER_THREAD	2	/* Net Output (UDP Layer) */
 #define NETINP_LAYER_THREAD	3	/* Net Input  (UDP Layer) */
-
 
 /* Signal Events */
 #define SE_KERTOAPP   SIGRTMIN		/* Signal Event: Message from KERNEL -> APP */
@@ -68,3 +76,4 @@ struct wrmsg {
 #define WR_OPT_WRITE	1
 
 #endif /* itc.h */
+
