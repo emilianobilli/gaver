@@ -32,6 +32,7 @@ struct gvhdr {
     u_int64_t seq;		/* Data/Ctrl seq */
 };
 
+
 #define DATA		0x00
 #define SYN		0x01
 #define ACK		0x02

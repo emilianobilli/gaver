@@ -66,6 +66,8 @@ int gv_connect(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t len)
     cntmsg.un.connect.ip = addr->sin_addr.s_addr;
     cntmsg.un.connect.port = GV_PORT;
     cntmsg.un.connect.vport = addr->sin_port;
+
+    /* Para esto hay que usar memcpy() */
     cntmsg.un.connect.path = sd->so_addr;
 
     /* Envio mensaje connect por so_ctrl de gaver */
@@ -95,6 +97,9 @@ int gv_connect(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t len)
     /* Acepto conexion de datos de Gaver con su nuevo socket descriptor */
     if ((sd_new = accept(sd->so_data, NULL, NULL )) == -1)
 	return -1
+
+    /* Falta close */
+
     sd->so_data = sd_new;
     return 0;
 }
