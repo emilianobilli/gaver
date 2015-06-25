@@ -11,6 +11,36 @@ int getgvsocketunix(char *su_path)
     return 0;
 }
 
+/* Funciona para intercambiar mensaje con GaVer. Actios: r-->recibe, s-->envia */
+int iomessage(gv_socket_t *sd ,gv_msgapi_t *msg, char action)
+{
+    int bytes_transfd, ret;
+    char *ptr
+    
+    ptr = &msg;
+    bytes_transfd = 0;
+
+    if (action == 'r'){
+	while(bytes_transfd < GV_MSGSIZE){
+	    ret = recv(sd->so_ctrl, &ptr[bytes_transfd], GV_MSGSIZE - bytes_transfd, 0);
+	    if (ret == -1)
+		return -1;
+	    bytes_transfd += ret;
+	}
+    }
+
+    if (action == 's'){
+	while(bytes_transfd < GV_MSGSIZE){
+	    ret = send(sd->so_ctrl, &ptr[bytes_transfd], GV_MSGSIZE - bytes_transfd, 0);
+	    if (ret == -1)
+		return -1;
+	    bytes_transfd += ret;
+	}
+    }
+
+    return 0;
+}
+
 int gv_socket(gv_socket_t *sdgv)
 {
     int sd;
@@ -59,7 +89,7 @@ int gv_connect(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t len)
 {
     int ret, bytes_transfd, sd_new;
     char *ptr;
-    /* Creo estructura para mensaje de tipo connect */
+    /* Creo estructura para mensaje de tipo connect y reply */
     gv_msgapi_t cntmsg, repmsg;
 
     cntmsg.type = GV_CONNECT_API;
@@ -68,27 +98,16 @@ int gv_connect(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t len)
     cntmsg.un.connect.vport = addr->sin_port;
 
     /* Para esto hay que usar memcpy() */
-    cntmsg.un.connect.path = sd->so_addr;
-
+    memcpy(&(sd->so_addr), &cntmsg.un.connect.path, SU_PATH_SIZE);
+    
     /* Envio mensaje connect por so_ctrl de gaver */
-    ptr = &cntmsg;
-    bytes_transfd = 0;
-    while(bytes_transfd < GV_MSGSIZE){
-	ret = send(sd->so_ctrl, &ptr[bytes_transfd], GV_MSGSIZE - bytes_transfd, 0);
-	if (ret == -1)
-	    return -1;
-	bytes_transfd += ret;
-    }
+    if (iomessage(sd, &cntmsg, 's') == -1)
+	return -1;
 
     /* Leo mensaje de reply */
-    ptr = &repmsg;
-    bytes_transfd = 0;
-    while(bytes_transfd < GV_MSGSIZE){
-	ret = recv(sd->so_ctrl, &ptr[bytes_transfd], GV_MSGSIZE - bytes_transfd, 0);
-	if (ret == -1)
-	    return -1;
-	bytes_transfd += ret;
-    }
+    if (iomessage(sd, &repmsg, 'r') == -1)
+	return -1;
+
     /* Verifico que el mensaje sea de tipo reply y el codigo de respuesta */
     if (repmsg.type != GV_REPLY_API)
 	return -1;
@@ -98,7 +117,8 @@ int gv_connect(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t len)
     if ((sd_new = accept(sd->so_data, NULL, NULL )) == -1)
 	return -1
 
-    /* Falta close */
+    /* Cierro el viejo socket de data */
+    close(sd->so_data);
 
     sd->so_data = sd_new;
     return 0;
@@ -106,12 +126,58 @@ int gv_connect(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t len)
 
 int gv_bind(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t len)
 {
+    int ret, bytes_transfd;
+    char *ptr;
+    
+    /* Creo estructura para mensaje de tipo bind y reply */
+    gv_msgapi_t bindmsg, repmsg;
 
+    
+    bindmsg.type = GV_BIND_API;
+    bindmsg.un.bind.ip = addr->sin_addr.s_addr;
+    bindmsg.un.bind.port = GV_PORT;
+    bindmsg.un.bind.vport = addr->sin_port;
+
+    /* Envio mensaje bind por so_ctrl de gaver */
+    if (iomessage(sd, &bindmsg, 's') == -1)
+	return -1;
+
+    /* Leo mensaje de reply */
+    if (iomessage(sd, &repmsg, 'r') == -1)
+	return -1;
+    
+    /* Verifico que el mensaje sea de tipo reply y el codigo de respuesta */
+    if (repmsg.type != GV_REPLY_API)
+	return -1;
+    if (repmsg.un.reply.code != GV_REP_CODE_OK)
+	return -1;
+
+    return 0;
 }
 
 int gv_listen(gv_socker_t *sd, int backlog)
 {
+    /* Creo estructura para mensaje de tipo listen y reply */
+    gv_msgapi_t listenmsg, repmsg;
 
+    listenmsg.type = GV_LISTEN_API;
+    listenmsg.un.listen.backlog = backlog;
+
+    /* Envio mensaje bind por so_ctrl de gaver */
+    if (iomessage(sd, &listenmsg, 's') == -1)
+	return -1;
+
+    /* Leo mensaje de reply */
+    if (iomessage(sd, &repmsg, 'r') == -1)
+	return -1;
+
+    /* Verifico que el mensaje sea de tipo reply y el codigo de respuesta */
+    if (repmsg.type != GV_REPLY_API)
+	return -1;
+    if (repmsg.un.reply.code != GV_REP_CODE_OK)
+	return -1;
+
+    return 0;
 }
 
 int gv_accept(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t *len)

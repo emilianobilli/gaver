@@ -16,6 +16,7 @@
 
 #define GV_PORT 55000
 #define GV_MSGSIZE 128
+#define SU_PATH_SIZE 108
 
 #define GV_REP_CODE_OK 0
 #define GV_REP_CODE_FAIL 1
@@ -31,9 +32,9 @@ typedef struct {
     u_int8_t type;
     union {
 	gv_cntapi_t connect;
-	gv_rplapi_t reply;
+	gv_replyapi_t reply;
 	gv_bindapi_t bind;
-	gv_ltnapi_t listen;
+	gv_listenapi_t listen;
 	gv_acptapi_t accept;
 	gv_clsapi_t close;
     } un;
@@ -55,7 +56,7 @@ typedef struct {
     u_int16_t port;
     u_int16_t vport;
     u_int8_t msg[118];
-} gv_rplapi_t;
+} gv_replyapi_t;
 
 /* Mensaje de tipo bind para la API */
 typedef struct {
@@ -69,7 +70,7 @@ typedef struct {
 typedef struct {
     u_int8_t backlog;
     u_int8_t res[126];
-} gv_ltnapi_t;
+} gv_listenapi_t;
 
 /* Mensaje de tipo accept para la API */
 typedef struct {
