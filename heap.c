@@ -210,6 +210,7 @@ int alloc_mbuff_chain( struct msg_queue *queue, size_t len)
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 void init_heap_mbuff(void)
 {
+    heap_mbuff.size = 0;
     heap_mbuff.head = NULL;
     heap_mbuff.tail = NULL;
     pthread_mutex_init(&heap_mbuff_mutex,NULL);
@@ -222,6 +223,7 @@ void init_heap_mbuff(void)
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 void init_heap_msg(void)
 {
+    heap_msg.size = 0;
     heap_msg.head = NULL;
     heap_msg.tail = NULL;
     pthread_mutex_init(&heap_msg_mutex,NULL);

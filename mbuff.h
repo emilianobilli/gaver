@@ -59,11 +59,13 @@ struct msg {
 };
 
 struct msg_queue {
+    size_t     size;
     struct msg *head;
     struct msg *tail;
 };
 
 struct mb_queue {
+    size_t	 size;
     struct mbuff *head;
     struct mbuff *tail;
 };

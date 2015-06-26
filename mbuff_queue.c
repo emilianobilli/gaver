@@ -25,6 +25,7 @@ void mbuff_enqueue (struct mb_queue *queue, struct mbuff *mb)
     else
         queue->tail->m_next = mb;	
     queue->tail = mb;
+    queue->size++;
 }
 
 struct mbuff *mbuff_dequeue(struct mb_queue *queue)
@@ -36,6 +37,7 @@ struct mbuff *mbuff_dequeue(struct mb_queue *queue)
 	queue->head = mb->m_next;
 	if (queue->head == NULL)
 	    queue->tail = NULL;
+	queue->size--;
     }
     return mb;
 }
@@ -47,6 +49,7 @@ void mbuffqcat (struct mb_queue *dst, struct mb_queue *src)
     else 
 	dst->tail->m_next = src->head;
     dst->tail	  = src->tail;
+    dst->size += src->size;
     return;
 }
 
@@ -58,6 +61,7 @@ void msg_enqueue (struct msg_queue *queue, struct msg *msg)
     else
 	queue->tail->p_next = msg;
     queue->tail = msg;
+    queue->size++;
 }
 
 struct msg *msg_dequeue(struct msg_queue *queue)
@@ -68,6 +72,7 @@ struct msg *msg_dequeue(struct msg_queue *queue)
 	queue->head = msg->p_next;
 	if (queue->head == NULL)
 	    queue->tail = NULL;
+	queue->size--;
     }
     return msg;
 }
@@ -78,5 +83,6 @@ void msgqcat (struct msg_queue *dst, struct msg_queue *src)
     else
 	dst->tail->p_next = src->head;
     dst->tail = src->tail;
+    dst->size += src->size;
     return;
 }
