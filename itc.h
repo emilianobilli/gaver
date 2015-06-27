@@ -19,6 +19,7 @@
 
 #include <pthread.h>
 #include <signal.h>
+#include "types.h"
 #include "mbuff.h"
 
 /* 
@@ -57,23 +58,32 @@ struct itc_event_info {
 };
 
 
-#define THREAD_TABLE_SZ 4
-#define APPDIO_LAYER_THREAD	0	/* Application Data Input/Output */
+#define THREAD_TABLE_SZ 3
 #define KERNEL_LAYER_THREAD	1	/* Core of Gaver */
 #define NETOUT_LAYER_THREAD	2	/* Net Output (UDP Layer) */
 #define NETINP_LAYER_THREAD	3	/* Net Input  (UDP Layer) */
 
 /* Signal Events */
-#define SE_KERTOAPP   SIGRTMIN		/* Signal Event: Message from KERNEL -> APP */
 #define SE_KERTONET_0 SIGRTMIN+1	/* Signal Event: Message from KERNEL -> NET (Prio 0) */
 #define SE_KERTONET_1 SIGRTMIN+2	/* Signal Event: Message from KERNEL -> NET (Prio 1) */
 #define SE_KERTONET_2 SIGRTMIN+3	/* Signal Event: Message from KERNEL -> NET (Prio 2) */
-#define SE_APPTOKER   SIGRTMIN+4	/* Signal Event: Message from APP -> KERNEL */
-#define SE_NETTOKER   SIGRTMIN+5	/* Signal Event: Message from NET -> KERNEL */
+#define SE_NETTOKER   SIGRTMIN+4	/* Signal Event: Message from NET -> KERNEL */
 
 /* Operations */
 #define WR_OPT_READ	0
 #define WR_OPT_WRITE	1
+
+#ifdef ITC_CODE
+#undef EXTERN
+#define EXTERN
+#endif
+
+EXTERN void itc_msg_queue_init(struct itc_msg_queue *q);
+EXTERN int itc_writeto (int dst, struct msg_queue *q, int prio);
+EXTERN int itc_readfrom (int src, struct msg_queue *q, int prio);
+EXTERN int itc_read_event(int fd, struct itc_event_info *info);
+EXTERN int itc_signalfd_init (void);
+EXTERN int itc_block_signal (void);
 
 #endif /* itc.h */
 

@@ -19,8 +19,6 @@
 
 #include "itc.h"
 
-EXTERN struct itc_msg_queue appdio_kernel_queue;	/* Messages FROM App TO Kernel */
-EXTERN struct itc_msg_queue kernel_appdio_queue;	/* Messages FROM Kernel TO App */	
 EXTERN struct itc_msg_queue kernel_netout_queue[3];	/* Messages FROM Kernel TO Network Output */	
 EXTERN struct itc_msg_queue netinp_kernel_queue;	/* Messages FROM Network Input to Kernel */
 

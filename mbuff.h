@@ -30,32 +30,19 @@
 #include <netinet/in.h>
 #include "gaver.h"
 
-typedef u_int8_t addr_type;
-
-struct sounaddr {
-    int socket;
-};
 
 struct mbuff {
-    struct mbuff      *m_next;
-#define ADDR_TYPE_INSISE  0x01
-#define ADDR_TYPE_OUTSIDE 0x02
-#define ADDR_TYPE_EMPTY   0x03
-    addr_type	       m_atype;
-    union {
-	struct sounaddr    inside_addr;	
-	struct sockaddr_in outsize_addr;
-    } m_addr;
-    struct gvhdr       m_hdr;
-    size_t	       m_datalen;
-    unsigned char      m_payload[PAYLOAD_SIZE];
+    struct mbuff     	*m_next;
+    struct sockaddr_in 	m_outside_addr;
+    struct gvhdr	m_hdr;
+    size_t		m_hdrlen;
+    size_t		m_datalen;
+    unsigned char	m_payload[PAYLOAD_SIZE];
 };
 
 struct msg {
     struct msg    *p_next;
     struct mbuff  *p_mbuff;
-    /* struct mb_queue *mbq; */
-    
 };
 
 struct msg_queue {

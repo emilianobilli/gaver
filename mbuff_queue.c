@@ -38,6 +38,7 @@ struct mbuff *mbuff_dequeue(struct mb_queue *queue)
 	if (queue->head == NULL)
 	    queue->tail = NULL;
 	queue->size--;
+	mb->m_next = NULL;
     }
     return mb;
 }
@@ -73,6 +74,7 @@ struct msg *msg_dequeue(struct msg_queue *queue)
 	if (queue->head == NULL)
 	    queue->tail = NULL;
 	queue->size--;
+	msg->p_next = NULL;
     }
     return msg;
 }

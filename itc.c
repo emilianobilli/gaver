@@ -14,14 +14,26 @@
     You should have received a copy of the GNU General Public License
     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+#define ITC_CODE
 #include <unistd.h>
 #include "types.h"
 #include "itc.h"
 #include "itc_var.h"
 #include "mbuff.h"
 #include "mbuff_queue.h"
+
+#include <sys/signalfd.h>
 #include <signal.h>
 
+#define _GNU_SOURCE
+#include <pthread.h>
+
+static int itc_readmsg (struct wrmsg *opt);
+static int itc_writemsg (struct wrmsg *opt);
+static int itc_wr_msgqueue (int other, struct msg_queue *q, int prio, int opt );
+static int itc_self(void);
+static int itc_getmsgprio(int sig);
 
 /*----------------------------------------------------------------------------------------------*
  * itc_msg_queue_init(): Inicializa una cola de mensajes					*
@@ -44,11 +56,9 @@ int itc_signalfd_init (void)
 {
     sigset_t seset;
     sigemptyset(&seset);    
-    sigaddset(&seset,SE_KERTOAPP);
     sigaddset(&seset,SE_KERTONET_0);
     sigaddset(&seset,SE_KERTONET_1);
     sigaddset(&seset,SE_KERTONET_2);
-    sigaddset(&seset,SE_APPTOKER);
     sigaddset(&seset,SE_NETTOKER);
 
     return signalfd(-1, &seset, 0);
@@ -63,11 +73,9 @@ int itc_block_signal (void)
 {
     sigset_t seset;
     sigemptyset(&seset);    
-    sigaddset(&seset,SE_KERTOAPP);
     sigaddset(&seset,SE_KERTONET_0);
     sigaddset(&seset,SE_KERTONET_1);
     sigaddset(&seset,SE_KERTONET_2);
-    sigaddset(&seset,SE_APPTOKER);
     sigaddset(&seset,SE_NETTOKER);
 
     return pthread_sigmask(SIG_BLOCK, &seset, NULL);
@@ -78,16 +86,16 @@ int itc_block_signal (void)
  *			     La estructura info trae la informacion del hilo emisor y la prio	*
  * 												*
  *----------------------------------------------------------------------------------------------*/
-int itc_read_event(int fd, itc_event_info *info)
+int itc_read_event(int fd, struct itc_event_info *info)
 {
-    struct signalfd_siginfo siginfo;
+    struct signalfd_siginfo sinfo;
     ssize_t len;    
 
-    len = read(fd, &siginfo, sizeof(struct signalfd_siginfo));
+    len = read(fd, &sinfo, sizeof(struct signalfd_siginfo));
 
     if ( len != -1 ){
-	info->src  = siginfo.ssi_int;
-	info->prio = itc_getmsgprio(siginfo.ssi_signo);
+	info->src  = sinfo.ssi_int;
+	info->prio = itc_getmsgprio(sinfo.ssi_signo);
     }
     return len;
 }
@@ -98,9 +106,7 @@ int itc_read_event(int fd, itc_event_info *info)
  *----------------------------------------------------------------------------------------------*/
 int itc_getmsgprio(int sig)
 {
-    if (sig == SE_KERTOAPP || 
-	sig == SE_APPTOKER ||
-	sig == SE_NETTOKER ||
+    if (sig == SE_NETTOKER ||
 	sig == SE_KERTONET_0 )
 	return 0;
     else {
@@ -108,8 +114,9 @@ int itc_getmsgprio(int sig)
 	    return 1;
 	else
 	    if (sig == SE_KERTONET_2)
-		return 2
+		return 2;
     }
+    return -1;
 }
 
 /*----------------------------------------------------------------------------------------------*
@@ -139,14 +146,6 @@ int itc_readfrom (int src, struct msg_queue *q, int prio)
 }
 
 /*------------------------------------------------------------------------------------------------------*
- * writeto(int dst, struct msg_queue *q, int prio):							*
- * 	Concatena una lista de nodos msg en una cola especifica para el receptor			*
- *													*
- *	Parametros:											*
- *		- dst: Especifica a que ROL de THREAD se deben concantenar lo mensajes			*
- *		- q: La cola que se debe concatenar							*
- *		- prio: En que prioridad se debe concatenar, se ignora si el destinatario no 		*
- *			tiene colas por prioridad							*
  *------------------------------------------------------------------------------------------------------*/
 int itc_wr_msgqueue ( int other, struct msg_queue *q, int prio, int opt )
 {
@@ -154,55 +153,7 @@ int itc_wr_msgqueue ( int other, struct msg_queue *q, int prio, int opt )
 
     switch (itc_self())
     {
-	case APPDIO_LAYER_THREAD:
-	    if (other == KERNEL_LAYER_THREAD && opt == WR_OPT_WRITE)
-	    {
-		wropt.src  = APPDIO_LAYER_THREAD;
-		wropt.dst  = KERNEL_LAYER_THREAD;
-		wropt.srcq = q;
-		wropt.dstq = &(appdio_kernel_queue.queue);
-		wropt.msg_mutex = &(appdio_kernel_queue.mutex);
-		wropt.signal = SE_APPTOKER;
-	
-		return itc_writemsg(&wropt);
-	    }
-	    if (other == KERNEL_LAYER_THREAD && opt == WR_OPT_READ)
-	    {
-		wropt.src  = KERNEL_LAYER_THREAD;
-		wropt.dst  = APPDIO_LAYER_THREAD;
-		wropt.srcq = &(kernel_appdio_queue.queue);
-		wropt.dstq = q;
-		wropt.msg_mutex = &(kernel_appdio_queue.mutex);
-		wropt.signal = -1;	/* Valor no usado */
-
-		return itc_readmsg(&wropt);
-	    }
-	    break;
 	case KERNEL_LAYER_THREAD:
-	    if (other == APPDIO_LAYER_THREAD && opt == WR_OPT_WRITE)
-	    {
-		wropt.src  = KERNEL_LAYER_THREAD;
-		wropt.dst  = APPDIO_LAYER_THREAD;
-		wropt.srcq = q;
-		wropt.dstq = &(kernel_appdio_queue.queue);
-		wropt.msg_mutex = &(kernel_appdio_queue.mutex);
-		wropt.signal = SE_KERTOAPP;
-    
-		return itc_writemsg(&wropt);
-	    }
-
-	    if (other == APPDIO_LAYER_THREAD && opt == WR_OPT_READ)
-	    {
-		wropt.src  = APPDIO_LAYER_THREAD;
-		wropt.dst  = KERNEL_LAYER_THREAD;
-		wropt.srcq = &(appdio_kernel_queue.queue);
-		wropt.dstq = q;
-		wropt.msg_mutex = &(appdio_kernel_queue.mutex);
-		wropt.signal = -1;	/* Valor no usado para lectura */
-
-		return itc_reademsg(&wropt);
-	    }
-
 	    if (other == NETOUT_LAYER_THREAD && opt == WR_OPT_WRITE)
 	    {
 		wropt.src  = KERNEL_LAYER_THREAD;
@@ -230,12 +181,12 @@ int itc_wr_msgqueue ( int other, struct msg_queue *q, int prio, int opt )
 	case NETINP_LAYER_THREAD:
 	    if (other == KERNEL_LAYER_THREAD && opt == WR_OPT_WRITE)
 	    {
-		wropt.src  = NETIMP_LAYER_THREAD;
+		wropt.src  = NETINP_LAYER_THREAD;
 		wropt.dst  = KERNEL_LAYER_THREAD;
 		wropt.srcq = q;
 		wropt.dstq = &(netinp_kernel_queue.queue);
 		wropt.msg_mutex = &(netinp_kernel_queue.mutex);
-		wropt.signal = SE_NETTOKER
+		wropt.signal = SE_NETTOKER;
 
 		return itc_writemsg(&wropt);
 	    }
@@ -254,19 +205,20 @@ int itc_wr_msgqueue ( int other, struct msg_queue *q, int prio, int opt )
 	    }
 	    break;
     }
-
+    return -1;
 }
 
 int itc_writemsg (struct wrmsg *opt)
 {
     union sigval sval;
     int send_signal = 0;
-
+    int ret; 
     sval.sival_int = opt->src;
 
     pthread_mutex_lock(opt->msg_mutex);
     if (opt->dstq->head == NULL && opt->dstq->tail == NULL)
 	send_signal = 1;
+    ret = (int)(opt->srcq->size);
     msgqcat(opt->dstq, opt->srcq);
     pthread_mutex_unlock(opt->msg_mutex);
     
@@ -279,18 +231,21 @@ int itc_writemsg (struct wrmsg *opt)
 	 */
 	pthread_sigqueue(thread_table[opt->dst],opt->signal, sval);
 
-    return 0;
+    return ret;
 }
 
 
 int itc_readmsg (struct wrmsg *opt)
 {
+    int ret;
+
     pthread_mutex_lock(opt->msg_mutex);
+    ret = (int) (opt->srcq->size);
     msgqcat(opt->dstq, opt->srcq);
     opt->srcq->head = NULL;
     opt->srcq->tail = NULL;
     pthread_mutex_unlock(opt->msg_mutex);
 
-    return 0;
+    return ret;
 }
 
