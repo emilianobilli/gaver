@@ -13,9 +13,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <errno.h>
+
 #include "gaver.h"
 #include "mbuff_queue.h"
 #include "mbuff.h"
+#include "heap.h"
 #include "itc.h"
 #include "glo.h"
 
@@ -24,24 +27,24 @@
 #define ITC_EVENT	 0x02
 
 static ssize_t sendmbuff (int sd, void *bufdata, size_t lendata, void *bufhdr, size_t lenhdr, struct sockaddr_in *dst_addr);
-static ssize_t sendqueue (int ifudp, struct msg_queue *queue, size_t qlen);
+static ssize_t flushqueue (int ifudp, struct msg_queue *queue);
 static int wait_event(int timer_event, int itc_event, u_int8_t *event);
 
 
 
 int wait_event(int timer_event, int itc_event, u_int8_t *event)
 {
-    fd_set event;
+    fd_set read_event;
     int max, ret;    
 
-    FD_ZERO(&event);
-    FD_SET(output_timer,&event);
-    FD_SET(sefd, &event);
+    FD_ZERO(&read_event);
+    FD_SET(output_timer,&read_event);
+    FD_SET(itc_event, &read_event);
     
     max = (timer_event > itc_event) ? timer_event : itc_event;
     
     while(1) {
-	ret = select(max+1, &event, NULL, NULL, NULL);
+	ret = select(max+1, &read_event, NULL, NULL, NULL);
 	if (ret == -1) {
 	    if (errno == EINTR)
 		continue;
@@ -52,36 +55,38 @@ int wait_event(int timer_event, int itc_event, u_int8_t *event)
 	    break;
     }
     *event = 0;
-    if (FD_ISSET(timer_event, &event))
+    if (FD_ISSET(timer_event, &read_event))
 	*event |= TIMER_EXPIRATION;
-    if (FD_ISSET(itc_event, &event))
+    if (FD_ISSET(itc_event, &read_event))
 	*event |= ITC_EVENT;
     
     return ret;
 }
 
-
 void *output (void *arg)
 {
     struct msg_queue outputq[3];
     struct msg_queue txq;
+    struct itc_event_info ieinfo;
+    ssize_t   ret;
+    size_t    n;
     u_int8_t  event;		/* ITC Event	    */
     u_int64_t exp;		/* Expiration Times */
-    int msg_pending		/* Flag if Event arrives */
-    
+    int msg_nor_pending;	/* Flag if Event arrives */
+    int msg_ret_pending;	/* Flag if Event arrives */  
     
     /*
      * All itc signal used for comunicacion MUST be blocked
      */
     itc_block_signal();
 
-    init_msg_queue(&outpuq[PRIO_CTR_QUEUE]);
-    init_msg_queue(&outpuq[PRIO_RET_QUEUE]);
-    init_msg_queue(&outpuq[PRIO_NOR_QUEUE]);
+    init_msg_queue(&outputq[PRIO_CTR_QUEUE]);
+    init_msg_queue(&outputq[PRIO_RET_QUEUE]);
+    init_msg_queue(&outputq[PRIO_NOR_QUEUE]);
     init_msg_queue(&txq);
 
-    msg_pending = 0;
-
+    msg_nor_pending = 0;
+    msg_ret_pending = 0;
     while(1) 
     {
 	ret = wait_event(output_timer, itc_event, &event);
@@ -93,6 +98,47 @@ void *output (void *arg)
     	     */
 	    pthread_exit(&ret);
 	}
+
+	if (event & ITC_EVENT) {
+	    ret = itc_read_event(itc_event, &ieinfo);
+	    if (ret == -1)
+	    {
+		pthread_exit(&ret);
+	    }
+	    if (ieinfo.src != KERNEL_LAYER_THREAD)
+	    {
+		/* Debug */
+		
+	    }
+	    if (ieinfo.prio == PRIO_CTR_QUEUE)
+	    {
+		itc_readfrom(KERNEL_LAYER_THREAD,
+			     &outputq[PRIO_CTR_QUEUE],
+			     PRIO_CTR_QUEUE);
+		msgqcat(&txq, &outputq[PRIO_CTR_QUEUE]);
+	    }
+
+	    if (ieinfo.prio == PRIO_NOR_QUEUE)
+	    {
+		if (outputq[PRIO_NOR_QUEUE].size > 0)
+		    msg_nor_pending = 1;
+		else
+		    itc_readfrom(KERNEL_LAYER_THREAD, 
+			 &outputq[PRIO_NOR_QUEUE], 
+			 PRIO_NOR_QUEUE );
+	    }
+
+	    if (ieinfo.prio == PRIO_RET_QUEUE)
+	    {
+		if (outputq[PRIO_RET_QUEUE].size > 0)
+		    msg_ret_pending = 1;
+		else
+		    itc_readfrom(KERNEL_LAYER_THREAD, 
+			 &outputq[PRIO_RET_QUEUE], 
+			 PRIO_RET_QUEUE );
+	    }
+
+	}
 	if (event & TIMER_EXPIRATION) 
 	{
 	    ret = gettimerexp(output_timer, &exp);
@@ -103,20 +149,42 @@ void *output (void *arg)
 		 */
 		pthread_exit(&ret);
 	    }
+	    n = (size_t) exp;
+	    /*
+             * El timer expiro n veces
+	     *  - Se deben enviar tantos mensajes como expiraciones
+             */
+	    if (outputq[PRIO_RET_QUEUE].size < n && msg_ret_pending) 
+	    {
+		itc_readfrom(KERNEL_LAYER_THREAD, 
+			 &outputq[PRIO_RET_QUEUE], 
+			 PRIO_RET_QUEUE );
+		msg_ret_pending = 0;
+	    }
+	    n -= msgmmove(&txq, &outputq[PRIO_RET_QUEUE], n);
 
+	    if (outputq[PRIO_NOR_QUEUE].size < n && msg_nor_pending) 
+	    {
+		itc_readfrom(KERNEL_LAYER_THREAD, 
+			 &outputq[PRIO_NOR_QUEUE], 
+			 PRIO_NOR_QUEUE );
+		msg_nor_pending = 0;
+	    }
+	    msgmmove(&txq, &outputq[PRIO_NOR_QUEUE], n);
 	}
-	if (event & ITC_EVENT) {
-
-    
+	ret = flushqueue(ifudp, &txq);
+	if (ret == -1) {
+	    /*
+	     * Panic()
+	     */
+	    pthread_exit(&ret);
 	}
     }
-
-
 }
 
 
 
-ssize_t sendqueue (int ifudp, struct msg_queue *queue, size_t qlen)
+ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 {
     struct mmsghdr   mmsg[MAX_OUTPUT_MSG];
     struct iovec     io[MAX_OUTPUT_MSG*2];
@@ -127,39 +195,49 @@ ssize_t sendqueue (int ifudp, struct msg_queue *queue, size_t qlen)
     ssize_t ret;
     int i, qsz;
 
-    if (qlen != queue->size)
-	/*
-	 * Error al pasar el parametro
-	 */
-	return -1;
 
-    if (queue->size == 1) 
+    output_len = 0;
+
+    while (queue->size > 0)
     {
-	mbptr = queue->head->p_mbuff;
-	output_len = sendmbuff(ifudp, 
-		        mbptr->m_payload, 
-			mbptr->m_datalen, 
-			&(mbptr->m_hdr),
-			mbptr->m_hdrlen,
-			&(mbptr->m_outside_addr));
-	if (output_len == mbptr->m_datalen + mbptr->m_hdrlen)
+	if (queue->size == 1) 
 	{
-	    msgptr = msg_dequeue(queue);
-	    if (msgptr->discard == DISCARD_TRUE)
-		free_mbuff_locking(msgptr->p_mbuff);
-	    free_msg_locking(msgptr);
+	    mbptr = queue->head->p_mbuff;
+	    ret = sendmbuff(ifudp, 
+			    mbptr->m_payload, 
+			    mbptr->m_datalen, 
+			    &(mbptr->m_hdr),
+			    mbptr->m_hdrlen,
+			    &(mbptr->m_outside_addr));
+	    
+	    if (ret == -1) {
+		if ( errno == EINTR )
+		    continue;
+		else {
+		    output_len = ret;
+		    break;
+		}
+	    }
+	    if (ret == mbptr->m_datalen + mbptr->m_hdrlen) {
+		/*
+		 * Esta comprobacion es absurda porque en UDP
+		 * se deberia enviar todo lo que se le pidio en un datagrama
+		 */
+		output_len += ret;
+
+		msgptr = msg_dequeue(queue);
+		if (msgptr->discard == DISCARD_TRUE)
+		    free_mbuff_locking(msgptr->p_mbuff);
+		free_msg_locking(msgptr);
+	    }
 	}
-    }
-    else 
-    {
-	if (queue->size > MAX_OUTPUT_MSG)
-	    /*
-             * Que no supere el max output
-             */
-	    return -1;
 	else 
 	{
-	    qsz = queue->size;
+	    /*
+	     * La funcion envia hasta 10 datagramas por envio
+	     * Si supera los 10 se envian en la siguiente ronda
+	     */
+	    qsz = (queue->size > MAX_OUTPUT_MSG)? MAX_OUTPUT_MSG: queue->size;
 
 	    tmpq.head = NULL;
 	    tmpq.tail = NULL;
@@ -200,7 +278,6 @@ ssize_t sendqueue (int ifudp, struct msg_queue *queue, size_t qlen)
 
 	    if (ret != -1) 
 	    {
-		output_len = 0;
 		for ( i = 0; i <= qsz -1 && i <= MAX_OUTPUT_MSG -1; i++ ) 
 		{
 		    msgptr = msg_dequeue(&tmpq);
@@ -223,12 +300,15 @@ ssize_t sendqueue (int ifudp, struct msg_queue *queue, size_t qlen)
 		}
 	    }
 	    else
-		output_len = ret;
+		if (errno == EINTR)
+		    continue;
+		else {
+		    output_len = ret;
+		    break;
+		}
 	}
-
     }
     return output_len;
-
 }
 
 

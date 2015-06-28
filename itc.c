@@ -16,6 +16,7 @@
  */
 
 #define ITC_CODE
+#define _GNU_SOURCE
 #include <unistd.h>
 #include "types.h"
 #include "itc.h"
@@ -26,7 +27,7 @@
 #include <sys/signalfd.h>
 #include <signal.h>
 
-#define _GNU_SOURCE
+
 #include <pthread.h>
 
 static int itc_readmsg (struct wrmsg *opt);

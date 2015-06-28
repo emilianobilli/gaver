@@ -20,7 +20,7 @@ OBJ:= -c -Wall
 LINK:= -lrt -lm -lpthread
 
 
-all: itc.o heap.o mbuff_queue.o sockopt.o table.o
+all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o
 
 
 itc.o: itc.c itc.h itc_var.h
@@ -37,6 +37,9 @@ sockopt.o: sockopt.h sockopt.c
 
 table.o: table.c glo.h
 	$(CC) $(OBJ) table.c
+
+output.o: output.c 
+	$(CC) $(OBJ) output.c
 
 clean:
 	rm -Rf *.o

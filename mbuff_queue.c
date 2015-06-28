@@ -104,9 +104,9 @@ void msgqcat (struct msg_queue *dst, struct msg_queue *src)
     return;
 }
 
-int msgnmove (struct msg_queue *dst, struct msg_queue *src, int n)
+size_t  msgnmove (struct msg_queue *dst, struct msg_queue *src, size_t n)
 {
-    int i;
+    size_t i;
     struct msg *mptr;
 
     for ( i = 0; i <= n-1; i++ ) {
