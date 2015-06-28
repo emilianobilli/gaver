@@ -1,4 +1,23 @@
+
+/*
+    This file is part of GaVer
+
+    GaVer is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Foobar is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #define _GNU_SOURCE
+#define OUTPUT_CODE
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -14,23 +33,19 @@
 #include <unistd.h>
 
 #include <errno.h>
-
+#include "output.h"
 #include "gaver.h"
 #include "mbuff_queue.h"
 #include "mbuff.h"
 #include "heap.h"
 #include "itc.h"
+#include "util.h"
 #include "glo.h"
 
-#define MAX_OUTPUT_MSG 10
-#define TIMER_EXPIRATION 0x01
-#define ITC_EVENT	 0x02
 
-static ssize_t sendmbuff (int sd, void *bufdata, size_t lendata, void *bufhdr, size_t lenhdr, struct sockaddr_in *dst_addr);
-static ssize_t flushqueue (int ifudp, struct msg_queue *queue);
-static int wait_event(int timer_event, int itc_event, u_int8_t *event);
-
-
+PRIVATE ssize_t sendmbuff (int sd, void *bufdata, size_t lendata, void *bufhdr, size_t lenhdr, struct sockaddr_in *dst_addr);
+PRIVATE ssize_t flushqueue (int ifudp, struct msg_queue *queue);
+PRIVATE int wait_event(int timer_event, int itc_event, u_int8_t *event);
 
 int wait_event(int timer_event, int itc_event, u_int8_t *event)
 {
@@ -68,7 +83,7 @@ void *output (void *arg)
     struct msg_queue outputq[3];
     struct msg_queue txq;
     struct itc_event_info ieinfo;
-    ssize_t   ret;
+    ssize_t   ret, tmp;
     size_t    n;
     u_int8_t  event;		/* ITC Event	    */
     u_int64_t exp;		/* Expiration Times */
@@ -85,6 +100,9 @@ void *output (void *arg)
     init_msg_queue(&outputq[PRIO_NOR_QUEUE]);
     init_msg_queue(&txq);
 
+    bytes_sent = 0;
+    msg_sent   = 0;
+
     msg_nor_pending = 0;
     msg_ret_pending = 0;
     while(1) 
@@ -96,6 +114,7 @@ void *output (void *arg)
 	    /*
 	     * Panic()
     	     */
+	    printf("PANIC()\n");
 	    pthread_exit(&ret);
 	}
 
@@ -147,6 +166,7 @@ void *output (void *arg)
 		/*
 		 * Panic()
 		 */
+		printf("PANIC()\n");
 		pthread_exit(&ret);
 	    }
 	    n = (size_t) exp;
@@ -161,7 +181,7 @@ void *output (void *arg)
 			 PRIO_RET_QUEUE );
 		msg_ret_pending = 0;
 	    }
-	    n -= msgmmove(&txq, &outputq[PRIO_RET_QUEUE], n);
+	    n -= msgnmove(&txq, &outputq[PRIO_RET_QUEUE], n);
 
 	    if (outputq[PRIO_NOR_QUEUE].size < n && msg_nor_pending) 
 	    {
@@ -170,15 +190,22 @@ void *output (void *arg)
 			 PRIO_NOR_QUEUE );
 		msg_nor_pending = 0;
 	    }
-	    msgmmove(&txq, &outputq[PRIO_NOR_QUEUE], n);
+	    msgnmove(&txq, &outputq[PRIO_NOR_QUEUE], n);
 	}
+	tmp = txq.size;
 	ret = flushqueue(ifudp, &txq);
 	if (ret == -1) {
 	    /*
 	     * Panic()
 	     */
+	    printf("PANIC()\n");
 	    pthread_exit(&ret);
 	}
+	msg_sent   +=tmp;
+	bytes_sent +=ret;
+
+	if (msg_sent >= 8333)
+	    pthread_exit(&ret);
     }
 }
 

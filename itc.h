@@ -78,12 +78,14 @@ struct itc_event_info {
 #define EXTERN
 #endif
 
+EXTERN void itc_init(void);
 EXTERN void itc_msg_queue_init(struct itc_msg_queue *q);
 EXTERN int itc_writeto (int dst, struct msg_queue *q, int prio);
 EXTERN int itc_readfrom (int src, struct msg_queue *q, int prio);
 EXTERN int itc_read_event(int fd, struct itc_event_info *info);
 EXTERN int itc_signalfd_init (void);
 EXTERN int itc_block_signal (void);
+
 
 #endif /* itc.h */
 

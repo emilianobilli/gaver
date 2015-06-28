@@ -30,11 +30,21 @@
 
 #include <pthread.h>
 
-static int itc_readmsg (struct wrmsg *opt);
-static int itc_writemsg (struct wrmsg *opt);
-static int itc_wr_msgqueue (int other, struct msg_queue *q, int prio, int opt );
-static int itc_self(void);
-static int itc_getmsgprio(int sig);
+PRIVATE int itc_readmsg (struct wrmsg *opt);
+PRIVATE int itc_writemsg (struct wrmsg *opt);
+PRIVATE int itc_wr_msgqueue (int other, struct msg_queue *q, int prio, int opt );
+PRIVATE int itc_self(void);
+PRIVATE int itc_getmsgprio(int sig);
+
+void itc_init(void)
+{
+    itc_msg_queue_init(&kernel_netout_queue[0]);
+    itc_msg_queue_init(&kernel_netout_queue[1]);
+    itc_msg_queue_init(&kernel_netout_queue[2]);
+    itc_msg_queue_init(&netinp_kernel_queue);
+
+    return;
+}
 
 /*----------------------------------------------------------------------------------------------*
  * itc_msg_queue_init(): Inicializa una cola de mensajes					*
@@ -43,6 +53,7 @@ static int itc_getmsgprio(int sig);
  *----------------------------------------------------------------------------------------------*/
 void itc_msg_queue_init(struct itc_msg_queue *q)
 {
+    q->queue.size = 0;
     q->queue.head = NULL;
     q->queue.tail = NULL;
     pthread_mutex_init(&(q->mutex), NULL);

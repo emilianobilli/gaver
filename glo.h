@@ -26,6 +26,7 @@
 
 #include "heap_var.h"
 #include "itc_var.h"
+#include "output_var.h"
 
 EXTERN int ifudp;		/* Socket UDP */
 EXTERN int output_timer;	/* Timer for outgoing packages */

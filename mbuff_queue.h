@@ -33,5 +33,5 @@ EXTERN void mbuffqcat (struct mb_queue *dst, struct mb_queue *src);
 EXTERN void msg_enqueue (struct msg_queue *queue, struct msg *msg);
 EXTERN struct msg *msg_dequeue(struct msg_queue *queue);
 EXTERN void msgqcat (struct msg_queue *dst, struct msg_queue *src);
-EXTERN size_t msgmmove (struct msg_queue *dst, struct msg_queue *src, size_t len);
+EXTERN size_t msgnmove (struct msg_queue *dst, struct msg_queue *src, size_t len);
 #endif
