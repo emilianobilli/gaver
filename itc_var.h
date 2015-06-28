@@ -24,7 +24,7 @@ EXTERN struct itc_msg_queue netinp_kernel_queue;	/* Messages FROM Network Input 
 
 EXTERN pthread_t thread_table[THREAD_TABLE_SZ];
 
-EXTERN int sefd;	/* Signal event file descriptor */
+EXTERN int itc_event;	/* Signal ITC event file descriptor */
 
 
 #endif /* itc_var.h */

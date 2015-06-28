@@ -40,7 +40,11 @@ struct mbuff {
     unsigned char	m_payload[PAYLOAD_SIZE];
 };
 
+#define DISCARD_TRUE  1
+#define DISCARD_FALSE 0
+
 struct msg {
+    int discard;
     struct msg    *p_next;
     struct mbuff  *p_mbuff;
 };

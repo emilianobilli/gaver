@@ -27,5 +27,7 @@
 #include "heap_var.h"
 #include "itc_var.h"
 
+EXTERN int ifudp;		/* Socket UDP */
+EXTERN int output_timer;	/* Timer for outgoing packages */
 
 #endif /* _GLO_H */

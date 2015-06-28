@@ -59,9 +59,9 @@ struct itc_event_info {
 
 
 #define THREAD_TABLE_SZ 3
-#define KERNEL_LAYER_THREAD	1	/* Core of Gaver */
-#define NETOUT_LAYER_THREAD	2	/* Net Output (UDP Layer) */
-#define NETINP_LAYER_THREAD	3	/* Net Input  (UDP Layer) */
+#define KERNEL_LAYER_THREAD	0	/* Core of Gaver */
+#define NETOUT_LAYER_THREAD	1	/* Net Output (UDP Layer) */
+#define NETINP_LAYER_THREAD	2	/* Net Input  (UDP Layer) */
 
 /* Signal Events */
 #define SE_KERTONET_0 SIGRTMIN+1	/* Signal Event: Message from KERNEL -> NET (Prio 0) */

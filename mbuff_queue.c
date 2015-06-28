@@ -17,6 +17,21 @@
 #include "mbuff.h"
 #include <stdio.h>
 
+
+void init_mbuff_queue(struct mb_queue *q)
+{
+    q->head = NULL;
+    q->tail = NULL;
+    q->size = 0;
+}
+
+void init_msg_queue(struct msg_queue *q)
+{
+    q->head = NULL;
+    q->tail = NULL;
+    q->size = 0;
+}
+
 void mbuff_enqueue (struct mb_queue *queue, struct mbuff *mb)
 {
     mb->m_next = NULL;
@@ -87,4 +102,18 @@ void msgqcat (struct msg_queue *dst, struct msg_queue *src)
     dst->tail = src->tail;
     dst->size += src->size;
     return;
+}
+
+int msgnmove (struct msg_queue *dst, struct msg_queue *src, int n)
+{
+    int i;
+    struct msg *mptr;
+
+    for ( i = 0; i <= n-1; i++ ) {
+	mptr = msg_dequeue(src);
+	if (mptr == NULL)
+	    break;
+	msg_enqueue(dst, mptr);
+    }
+    return i;
 }
