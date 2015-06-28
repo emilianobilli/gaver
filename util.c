@@ -1,7 +1,11 @@
+#define _UTIL_CODE
 #include <math.h>
 #include <sys/types.h>
+#include <time.h>
 #include <sys/timerfd.h>
 #include <errno.h>
+#include <unistd.h>
+#include "util.h"
 #define NSEC_IN_SEC 1000000000L
 
 
@@ -57,7 +61,7 @@ int event_timer(struct timespec *time)
 /*======================================================================================*
  * gettimerexp()									*
  *======================================================================================*/
-int gettimerexp(int fd, u_int64_t *exp);
+int gettimerexp(int fd, u_int64_t *exp)
 {
     int ret;
     while (1) {
