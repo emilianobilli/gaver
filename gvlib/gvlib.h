@@ -74,8 +74,9 @@ typedef struct {
 
 /* Mensaje de tipo accept para la API */
 typedef struct {
-    u_int8_t path[108];
-    u_int8_t res[19];
+    u_int32_t ip;
+    u_int16_t port;
+    u_int8_t res[121];
 } gv_acptapi_t;
 
 /* Mensaje de tipo close para la API */
