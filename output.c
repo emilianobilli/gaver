@@ -231,13 +231,10 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 			    mbptr->m_hdrlen,
 			    &(mbptr->m_outside_addr));
 	    
-	    if (ret == -1) {
-		if ( errno == EINTR )
-		    continue;
-		else {
-		    output_len = ret;
-		    break;
-		}
+	    if (ret == -1) 
+	    {
+		output_len = ret;
+		break;
 	    }
 	    if (ret == mbptr->m_datalen + mbptr->m_hdrlen) {
 		/*
@@ -265,16 +262,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 	    tmpq.size = 0;
 	
 	    for ( i = 0; i <= qsz -1 && i <= MAX_OUTPUT_MSG -1; i++ ) {
-	    /*	struct msghdr {
-             *	    void         *msg_name;        optional address 
-             *	    socklen_t     msg_namelen;     size of address 
-             *	    struct iovec *msg_iov;         scatter/gather array 
-             *	    size_t        msg_iovlen;      # elements in msg_iov
-             *	    void         *msg_control;     ancillary data, see below 
-             *	    size_t        msg_controllen;  ancillary data buffer len 
-             *	    int           msg_flags;       flags on received message 
-             *	};
-	     */
+	    	
 		msgptr = msg_dequeue(queue);
 		mbptr  = msgptr->p_mbuff;
 		if (mbptr->m_need_ts == DO_TS)
@@ -327,12 +315,17 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 		}
 	    }
 	    else
+	    {
 		if (errno == EINTR)
+		{
+		    msgqcat(queue, &tmpq);
 		    continue;
+		}
 		else {
 		    output_len = ret;
 		    break;
 		}
+	    }
 	}
     }
     return output_len;
@@ -393,9 +386,15 @@ ssize_t sendmbuff (int sd, void *bufdata, size_t lendata, void *bufhdr, size_t l
     msg.msg_name     = dst_addr;
     msg.msg_namelen  = alen;
     
-    ret = sendmsg(sd,
-		  &msg,
-		  0);
+
+    while (1) 
+    {
+	ret = sendmsg(sd,
+		      &msg,
+		      0);
+	if ( ret > 0 || ( ret == -1 && errno != EINTR ))
+	    break;
+    }
 #endif
     return ret;
 }

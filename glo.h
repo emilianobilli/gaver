@@ -28,9 +28,10 @@
 #include "output_var.h"
 #include "input_var.h"
 
+EXTERN int mtu;			/* MTU Max */
 EXTERN int ifudp;		/* Socket UDP */
 EXTERN int output_timer;	/* Timer for outgoing packages */
 EXTERN int syn_timer;		/* Timer for syn packages */
-
+EXTERN u_int64_t input_wait;	/* Time in nsec for waiting other message */
 
 #endif /* _GLO_H */
