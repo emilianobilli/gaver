@@ -16,7 +16,7 @@
 #
 
 CC := gcc
-OBJ:= -c -Wall
+OBJ:= -c -Wall -ggdb 
 LINK:= -lrt -lm -lpthread
 
 

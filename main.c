@@ -86,6 +86,8 @@ int main(void)
     p= q.head;
     for ( i = 0; i <= 8333-1; i++ )
     {	
+	p->p_mbuff->m_need_ts = 1;
+	p->p_mbuff->m_tsoff = 3;
 	p->p_mbuff->m_datalen = 1460;
 	p->p_mbuff->m_hdrlen  = 8;
 	memcpy(&(p->p_mbuff->m_outside_addr), &in, sizeof(struct sockaddr_in));

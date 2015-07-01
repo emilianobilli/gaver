@@ -215,7 +215,15 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
     {
 	if (queue->size == 1) 
 	{
-	    mbptr = queue->head->p_mbuff;
+	    msgptr = queue->head;
+	    mbptr =  queue->head->p_mbuff;
+
+	    if (mbptr->m_need_ts == DO_TS)
+		/*
+		 * Put the timestamp 
+		 */
+		timestamp((u_int64_t *)&(mbptr->m_payload[mbptr->m_tsoff]), NULL);
+	
 	    ret = sendmbuff(ifudp, 
 			    mbptr->m_payload, 
 			    mbptr->m_datalen, 
@@ -268,6 +276,12 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
              *	};
 	     */
 		msgptr = msg_dequeue(queue);
+		mbptr  = msgptr->p_mbuff;
+		if (mbptr->m_need_ts == DO_TS)
+		    /*
+		     * Put Timestamp
+		     */
+		    timestamp((u_int64_t *)&(mbptr->m_payload[mbptr->m_tsoff]), NULL);
 
 		io[i*2].iov_base		= &(msgptr->p_mbuff->m_hdr);
 		io[i*2].iov_len			= msgptr->p_mbuff->m_hdrlen;

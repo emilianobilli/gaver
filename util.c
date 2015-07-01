@@ -28,6 +28,22 @@
 #include "util.h"
 #define NSEC_IN_SEC 1000000000L
 
+/*======================================================================================*
+ * timestamp()			 							*
+ *======================================================================================*/ 
+void timestamp (u_int64_t *vts, struct timespec *ts)
+{
+    struct timespec sts;
+    if ( ts == NULL )
+    {
+	clock_gettime(CLOCK_MONOTONIC, &sts);
+	ts = &sts;
+    }
+    vts[0] = ts->tv_sec;
+    vts[1] = ts->tv_nsec;
+    return;
+}
+
 
 /*======================================================================================*
  * Return the packets per seconds 							*
