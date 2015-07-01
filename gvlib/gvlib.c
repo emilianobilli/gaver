@@ -163,7 +163,7 @@ int gv_listen(gv_socker_t *sd, int backlog)
     listenmsg.type = GV_LISTEN_API;
     listenmsg.un.listen.backlog = backlog;
 
-    /* Envio mensaje bind por so_ctrl de gaver */
+    /* Envio mensaje listen por so_ctrl de gaver */
     if (iomessage(sd, &listenmsg, 's') == -1)
 	return -1;
 
@@ -182,10 +182,43 @@ int gv_listen(gv_socker_t *sd, int backlog)
 
 int gv_accept(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t *len)
 {
+    /* Creo estructura para mensaje de tipo accept y reply */
+    gv_msgapi_t acceptmsg, repmsg;
+    
+    acceptmsg.type = GV_ACCEPT_API;
+    acceptmsg.un.accept.ip = addr->sin_addr.s_addr;
+    acceptmsg.un.accept.port = addr->sin_port;
 
+    /* Envio mensaje accept por so_ctrl de gaver */
+    if (iomessage(sd, &acceptmsg, 's') == -1)
+	return -1;
+
+    /* Leo mensaje de reply */
+    if (iomessage(sd, &repmsg, 'r') == -1)
+	return -1;
+
+    /* Verifico que el mensaje sea de tipo reply y el codigo de respuesta */
+    if (repmsg.type != GV_REPLY_API)
+	return -1;
+    if (repmsg.un.reply.code != GV_REP_CODE_OK)
+	return -1;
 }
 
 int gv_close (gv_socker_t *sd)
 {
+    /* Creo estructura para mensaje de tipo close */
+    gv_msgapi_t closemsg;
 
+    closemsg.type = GV_CLOSE_API;
+
+    /* Envio mensaje close por so_ctrl de gaver */
+    if (iomessage(sd, &closemsg, 's') == -1)
+	return -1;
+
+    close(sd->so_data);
+    close(sd-so_ctrl);
+
+    return 0;
 }
+
+
