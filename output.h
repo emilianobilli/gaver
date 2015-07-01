@@ -21,7 +21,6 @@
 #define _OUTPUT_H
 
 
-
 #define MAX_OUTPUT_MSG 10
 #define TIMER_EXPIRATION 0x01
 #define ITC_EVENT	 0x02
@@ -32,7 +31,6 @@
 #undef EXTERN
 #define EXTERN
 #endif
-
 
 EXTERN void* output(void *arg);
 

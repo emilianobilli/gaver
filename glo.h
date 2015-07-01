@@ -23,12 +23,14 @@
 #define EXTERN
 #endif
 
-
 #include "heap_var.h"
 #include "itc_var.h"
 #include "output_var.h"
+#include "input_var.h"
 
 EXTERN int ifudp;		/* Socket UDP */
 EXTERN int output_timer;	/* Timer for outgoing packages */
+EXTERN int syn_timer;		/* Timer for syn packages */
+
 
 #endif /* _GLO_H */

@@ -50,7 +50,7 @@ int main(void)
     ipt.tv_sec  = 0;
     ipt.tv_nsec = pktime(MBPS_TOBPS(10), 1500); 
 
-    itc_block_signal();
+/*    itc_block_signal(); */
     itc_event = itc_signalfd_init();
 
     if (itc_event == -1) {
@@ -64,7 +64,7 @@ int main(void)
 	return -1;
     }
 
-    ifudp = ipv4_udp_socket("0.0.0.0", 5000);
+    ifudp = ipv4_udp_socket("0.0.0.0", 5000); 
     if (ifudp == -1) {
 	perror("ipv4");
 	return -1;

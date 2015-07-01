@@ -21,6 +21,9 @@
 #include <time.h>
 #include <sys/timerfd.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include "util.h"
 #define NSEC_IN_SEC 1000000000L
@@ -89,6 +92,18 @@ int gettimerexp(int fd, u_int64_t *exp)
 	    break;
     }
     return ret;
+}
+
+
+/*======================================================================================*
+ * PANIC()										*
+ *======================================================================================*/
+void PANIC(int err, const char *layer, const char *where)
+{	
+    char error[512];	
+    strerror_r(err, error, 512);
+    fprintf(stderr, "! ! ! GaVer panic [%s] in %s: [errno = %d] %s (EXIT) ! ! !\n", layer, where, err, error);
+    exit(EXIT_FAILURE);
 }
 
 

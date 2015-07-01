@@ -42,7 +42,6 @@
 #include "util.h"
 #include "glo.h"
 
-
 PRIVATE ssize_t sendmbuff (int sd, void *bufdata, size_t lendata, void *bufhdr, size_t lenhdr, struct sockaddr_in *dst_addr);
 PRIVATE ssize_t flushqueue (int ifudp, struct msg_queue *queue);
 PRIVATE int wait_event(int timer_event, int itc_event, u_int8_t *event);
@@ -111,18 +110,15 @@ void *output (void *arg)
 
 	if (ret == -1) 
 	{
-	    /*
-	     * Panic()
-    	     */
-	    printf("PANIC()\n");
-	    pthread_exit(&ret);
+	    PANIC(errno, "NETOUT_LAYER_THREAD", "wait_event()");
 	}
 
-	if (event & ITC_EVENT) {
+	if (event & ITC_EVENT) 
+	{
 	    ret = itc_read_event(itc_event, &ieinfo);
 	    if (ret == -1)
 	    {
-		pthread_exit(&ret);
+		PANIC(errno, "NETOUT_LAYER_THREAD", "itc_read_event()");
 	    }
 	    if (ieinfo.src != KERNEL_LAYER_THREAD)
 	    {
@@ -163,11 +159,7 @@ void *output (void *arg)
 	    ret = gettimerexp(output_timer, &exp);
 	    if (ret == -1) 
 	    {
-		/*
-		 * Panic()
-		 */
-		printf("PANIC()\n");
-		pthread_exit(&ret);
+		PANIC(errno, "NETOUT_LAYER_THREAD", "gettimerexp()");
 	    }
 	    n = (size_t) exp;
 	    /*
@@ -194,13 +186,10 @@ void *output (void *arg)
 	}
 	tmp = txq.size;
 	ret = flushqueue(ifudp, &txq);
-	if (ret == -1) {
-	    /*
-	     * Panic()
-	     */
-	    printf("PANIC()\n");
-	    pthread_exit(&ret);
-	}
+	if (ret == -1) 
+	{
+	    PANIC(errno, "NETOUT_LAYER_THREAD", "flushqueue()");
+	}    
 	msg_sent   +=tmp;
 	bytes_sent +=ret;
 
@@ -208,8 +197,6 @@ void *output (void *arg)
 	    pthread_exit(&ret);
     }
 }
-
-
 
 ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 {
@@ -221,7 +208,6 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
     ssize_t output_len;
     ssize_t ret;
     int i, qsz;
-
 
     output_len = 0;
 

@@ -30,11 +30,15 @@
 #include <netinet/in.h>
 #include "gaver.h"
 
+#define TS_SEC  0
+#define TS_NSEC 1
+
 
 struct mbuff {
-    struct mbuff     	*m_next;
+    struct mbuff       *m_next;
     struct sockaddr_in 	m_outside_addr;
     struct gvhdr	m_hdr;
+    u_int64_t		m_input_ts[2];		/* Input TS */
     size_t		m_hdrlen;
     size_t		m_datalen;
     unsigned char	m_payload[PAYLOAD_SIZE];
@@ -43,8 +47,12 @@ struct mbuff {
 #define DISCARD_TRUE  1
 #define DISCARD_FALSE 0
 
+#define DO_TS   1		/* When is necesary put TS */
+#define DONT_TS 0
 struct msg {
-    int discard;
+    int   discard;		/* If the mbuff needs to be discard */
+    int   timespamp;		/* If the mbuff needs to time stamp */
+    off_t ts_off;		/* Where put the ts: m_payload[msg->ts_off] */
     struct msg    *p_next;
     struct mbuff  *p_mbuff;
 };
