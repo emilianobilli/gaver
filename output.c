@@ -84,6 +84,7 @@ void *output (void *arg)
     struct itc_event_info ieinfo;
     ssize_t   ret, tmp;
     size_t    n;
+    char      *where;
     u_int8_t  event;		/* ITC Event	    */
     u_int64_t exp;		/* Expiration Times */
     int msg_nor_pending;	/* Flag if Event arrives */
@@ -110,7 +111,9 @@ void *output (void *arg)
 
 	if (ret == -1) 
 	{
-	    PANIC(errno, "NETOUT_LAYER_THREAD", "wait_event()");
+	    where = "wait_event()";
+	    goto panic;
+	    
 	}
 
 	if (event & ITC_EVENT) 
@@ -118,7 +121,8 @@ void *output (void *arg)
 	    ret = itc_read_event(itc_event, &ieinfo);
 	    if (ret == -1)
 	    {
-		PANIC(errno, "NETOUT_LAYER_THREAD", "itc_read_event()");
+		where = "wait_event()";
+		goto panic;
 	    }
 	    if (ieinfo.src != KERNEL_LAYER_THREAD)
 	    {
@@ -159,7 +163,8 @@ void *output (void *arg)
 	    ret = gettimerexp(output_timer, &exp);
 	    if (ret == -1) 
 	    {
-		PANIC(errno, "NETOUT_LAYER_THREAD", "gettimerexp()");
+		where = "gettimerexp()";
+		goto panic;
 	    }
 	    n = (size_t) exp;
 	    /*
@@ -188,7 +193,8 @@ void *output (void *arg)
 	ret = flushqueue(ifudp, &txq);
 	if (ret == -1) 
 	{
-	    PANIC(errno, "NETOUT_LAYER_THREAD", "flushqueue()");
+	    where = "flushqueue()";
+	    goto panic;
 	}    
 	msg_sent   +=tmp;
 	bytes_sent +=ret;
@@ -196,6 +202,10 @@ void *output (void *arg)
 	if (msg_sent >= 8333)
 	    pthread_exit(&ret);
     }
+
+panic:
+    PANIC(errno, "NETOUT_LAYER_THREAD", where);
+    return NULL;
 }
 
 ssize_t flushqueue (int ifudp, struct msg_queue *queue)
