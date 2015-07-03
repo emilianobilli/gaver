@@ -119,7 +119,7 @@ void PANIC(int err, const char *layer, const char *where)
     char error[512];	
     strerror_r(err, error, 512);
     fprintf(stderr, "! ! ! GaVer panic [%s] in %s: [errno = %d] %s (EXIT) ! ! !\n", layer, where, err, error);
-    exit(EXIT_FAILURE);
+/*    exit(EXIT_FAILURE); */
 }
 
 

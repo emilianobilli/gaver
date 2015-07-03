@@ -31,7 +31,6 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
-
 #include <errno.h>
 #include "output.h"
 #include "gaver.h"
@@ -240,7 +239,6 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 			    &(mbptr->m_hdr),
 			    mbptr->m_hdrlen,
 			    &(mbptr->m_outside_addr));
-	    
 	    if (ret == -1) 
 	    {
 		output_len = ret;
@@ -300,7 +298,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 			   mmsg,
 			   qsz,
 			   0);
-
+	    
 	    if (ret != -1) 
 	    {
 		for ( i = 0; i <= qsz -1 && i <= MAX_OUTPUT_MSG -1; i++ ) 
@@ -347,7 +345,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 ssize_t sendmbuff (int sd, void *bufdata, size_t lendata, void *bufhdr, size_t lenhdr,
 			    struct sockaddr_in *dst_addr)
 {
-    ssize_t ret;
+    ssize_t ret = 0;
     socklen_t alen = sizeof(struct sockaddr_in);
 #ifdef USE_SENDTO
     unsigned char buf[SENDTO_MAX_BUFFER];

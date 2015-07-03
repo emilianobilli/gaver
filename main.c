@@ -16,31 +16,12 @@
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 
-int ipv4_udp_socket (const char *ipv4_addr, u_int16_t port)
-{
-    struct sockaddr_in addr;
-    int udp_socket;
-    
-
-    addr.sin_port   = htons(port);
-    addr.sin_family = AF_INET;
-    inet_aton(ipv4_addr, &(addr.sin_addr));
-
-    udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
-    if ( udp_socket == -1 )
-	return -1;
-
-    if ( bind(udp_socket, (struct sockaddr *)&addr, (socklen_t)sizeof(struct sockaddr_in)) == -1 )
-	return -1;
-
-    return udp_socket;
-}
 
 int main(void)
 {
     struct timespec ipt;	/* InterPacket Time */
     struct msg_queue q;
-    struct sockaddr_in in;
+    struct sockaddr_in in, in2, in3;
     int ret, i;
     int *tret;
     struct msg *p;
@@ -48,7 +29,7 @@ int main(void)
     itc_init();
 
     ipt.tv_sec  = 0;
-    ipt.tv_nsec = pktime(MBPS_TOBPS(10), 1500); 
+    ipt.tv_nsec = pktime(MBPS_TOBPS(5), 1500); 
 
 /*    itc_block_signal(); */
     itc_event = itc_signalfd_init();
@@ -75,7 +56,7 @@ int main(void)
     q.head = NULL;
     q.tail = NULL;
 
-    ret = alloc_mbuff_chain(&q, 8333);
+    ret = alloc_mbuff_chain(&q, 300);
 
     thread_table[KERNEL_LAYER_THREAD] = pthread_self();
     pthread_create(&thread_table[NETOUT_LAYER_THREAD], NULL, output, NULL);
@@ -83,14 +64,29 @@ int main(void)
     in.sin_family = AF_INET;
     in.sin_port	  = 300;
     inet_aton("8.8.8.8", &in.sin_addr.s_addr);
+
+    in2.sin_family = AF_INET;
+    in2.sin_port	  = 300;
+    inet_aton("4.4.4.4", &in2.sin_addr.s_addr);
+
+    in3.sin_family = AF_INET;
+    in3.sin_port	  = 300;
+    inet_aton("4.256.4.4", &in3.sin_addr.s_addr);
+
     p= q.head;
-    for ( i = 0; i <= 8333-1; i++ )
+    for ( i = 0; i <= 300-1; i++ )
     {	
 	p->p_mbuff->m_need_ts = 1;
 	p->p_mbuff->m_tsoff = 3;
 	p->p_mbuff->m_datalen = 1460;
 	p->p_mbuff->m_hdrlen  = 8;
-	memcpy(&(p->p_mbuff->m_outside_addr), &in, sizeof(struct sockaddr_in));
+	if (( i % 2 ) == 0)
+	    memcpy(&(p->p_mbuff->m_outside_addr), &in, sizeof(struct sockaddr_in));
+	else
+	    memcpy(&(p->p_mbuff->m_outside_addr), &in3, sizeof(struct sockaddr_in));
+	
+	if (( i % 100) == 0)
+	    memcpy(&(p->p_mbuff->m_outside_addr), &in3, sizeof(struct sockaddr_in));
 	p = p->p_next;
     }
 
