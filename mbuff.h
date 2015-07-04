@@ -46,13 +46,45 @@ struct mbuff {
     unsigned char	m_payload[PAYLOAD_SIZE];
 };
 
+
+struct mb_queue {
+    size_t	 size;
+    struct mbuff *head;
+    struct mbuff *tail;
+};
+
 #define DISCARD_TRUE  1
 #define DISCARD_FALSE 0
 
+#define MSG_TYPE_REQ     0		/* Request */
+#define MSG_TYPE_REP     1		/* Reply   */
+#define MSG_TYPE_CARRIER 2		/* Portadora */
+
+#define OPT_READ	0
+#define OPT_WRITE	1
+
+struct opt_request {
+    int to;
+    int type;			/* Read or Write */
+};
+
+struct opt_reply {
+    int from;
+    int result;			/* size || -errno */
+};
+
 struct msg {
-    int   discard;		/* If the mbuff needs to be discard */
-    struct msg    *p_next;
-    struct mbuff  *p_mbuff;
+    int    msg_type;		/* Request or Reply */
+    union {
+	struct opt_request request;
+	struct opt_reply   reply;
+    } opt;
+    int    discard;		/* If the mbuff or queue needs to be discard */
+    struct msg          *p_next;
+    union {
+	struct mbuff    *p_mbuff;
+	struct mb_queue  mbq;
+    } mb;			/* Queue of mbuff or a simple mbuff */
 };
 
 struct msg_queue {
@@ -61,10 +93,5 @@ struct msg_queue {
     struct msg *tail;
 };
 
-struct mb_queue {
-    size_t	 size;
-    struct mbuff *head;
-    struct mbuff *tail;
-};
 
 #endif

@@ -29,7 +29,7 @@ int main(void)
     itc_init();
 
     ipt.tv_sec  = 0;
-    ipt.tv_nsec = pktime(MBPS_TOBPS(5), 1500); 
+    ipt.tv_nsec = pktime(MBPS_TOBPS(100), 1500); 
 
 /*    itc_block_signal(); */
     itc_event = itc_signalfd_init();
@@ -56,7 +56,7 @@ int main(void)
     q.head = NULL;
     q.tail = NULL;
 
-    ret = alloc_mbuff_chain(&q, 300);
+    ret = alloc_mbuff_chain(&q, 8333);
 
     thread_table[KERNEL_LAYER_THREAD] = pthread_self();
     pthread_create(&thread_table[NETOUT_LAYER_THREAD], NULL, output, NULL);
@@ -74,19 +74,20 @@ int main(void)
     inet_aton("4.256.4.4", &in3.sin_addr.s_addr);
 
     p= q.head;
-    for ( i = 0; i <= 300-1; i++ )
+    for ( i = 0; i <= 8333-1; i++ )
     {	
-	p->p_mbuff->m_need_ts = 1;
-	p->p_mbuff->m_tsoff = 3;
-	p->p_mbuff->m_datalen = 1460;
-	p->p_mbuff->m_hdrlen  = 8;
+/*	p->msg_type = MSG_TYPE_CARRIER; */
+	p->mb.p_mbuff->m_need_ts = 1;
+	p->mb.p_mbuff->m_tsoff = 3;
+	p->mb.p_mbuff->m_datalen = 1460;
+	p->mb.p_mbuff->m_hdrlen  = 8;
 	if (( i % 2 ) == 0)
-	    memcpy(&(p->p_mbuff->m_outside_addr), &in, sizeof(struct sockaddr_in));
+	    memcpy(&(p->mb.p_mbuff->m_outside_addr), &in, sizeof(struct sockaddr_in));
 	else
-	    memcpy(&(p->p_mbuff->m_outside_addr), &in3, sizeof(struct sockaddr_in));
+	    memcpy(&(p->mb.p_mbuff->m_outside_addr), &in2, sizeof(struct sockaddr_in));
 	
 	if (( i % 100) == 0)
-	    memcpy(&(p->p_mbuff->m_outside_addr), &in3, sizeof(struct sockaddr_in));
+	    memcpy(&(p->mb.p_mbuff->m_outside_addr), &in, sizeof(struct sockaddr_in));
 	p = p->p_next;
     }
 

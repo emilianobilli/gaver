@@ -70,7 +70,6 @@ ssize_t recvdgram (int sd, void *data, size_t datalen, void *hdr, size_t hdrlen,
 }
 
 
-
 void *input (void *arg)
 {
     struct msg_queue rxq;
@@ -97,7 +96,7 @@ void *input (void *arg)
 	alloc_mbuff_chain(&rxq, 1);
 	msgptr = msg_dequeue(&rxq);
 	if ( msgptr != NULL ) {
-	    ret = recvmbuff(ifudp, msgptr->p_mbuff);
+	    ret = recvmbuff(ifudp, msgptr->mb.p_mbuff);
 	    if (ret == -1) {
 		where = "recvmbuff()";
 		goto panic;
@@ -111,6 +110,7 @@ void *input (void *arg)
 	    /*
 	     * Lo envia al kernel
 	     */
+	    msgptr->msg_type = MSG_TYPE_CARRIER;
 	    msg_enqueue(&rxq, msgptr);
 	    itc_writeto(KERNEL_LAYER_THREAD,
 			&rxq,

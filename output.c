@@ -114,25 +114,17 @@ void *output (void *arg)
 	    goto panic;
 	    
 	}
-
 	if (event & ITC_EVENT) 
 	{
 	    ret = itc_read_event(itc_event, &ieinfo);
 	    if (ret == -1)
 	    {
-		where = "wait_event()";
+		where = "itc_read_event()";
 		goto panic;
-	    }
-	    if (ieinfo.src != KERNEL_LAYER_THREAD)
-	    {
-		/* Debug */
-		
 	    }
 	    if (ieinfo.prio == PRIO_CTR_QUEUE)
 	    {
-		itc_readfrom(KERNEL_LAYER_THREAD,
-			     &outputq[PRIO_CTR_QUEUE],
-			     PRIO_CTR_QUEUE);
+		itc_readfrom(KERNEL_LAYER_THREAD,&outputq[PRIO_CTR_QUEUE],PRIO_CTR_QUEUE);
 		msgqcat(&txq, &outputq[PRIO_CTR_QUEUE]);
 	    }
 
@@ -141,9 +133,7 @@ void *output (void *arg)
 		if (outputq[PRIO_NOR_QUEUE].size > 0)
 		    msg_nor_pending = 1;
 		else
-		    itc_readfrom(KERNEL_LAYER_THREAD, 
-			 &outputq[PRIO_NOR_QUEUE], 
-			 PRIO_NOR_QUEUE );
+		    itc_readfrom(KERNEL_LAYER_THREAD,&outputq[PRIO_NOR_QUEUE],PRIO_NOR_QUEUE );
 	    }
 
 	    if (ieinfo.prio == PRIO_RET_QUEUE)
@@ -151,9 +141,7 @@ void *output (void *arg)
 		if (outputq[PRIO_RET_QUEUE].size > 0)
 		    msg_ret_pending = 1;
 		else
-		    itc_readfrom(KERNEL_LAYER_THREAD, 
-			 &outputq[PRIO_RET_QUEUE], 
-			 PRIO_RET_QUEUE );
+		    itc_readfrom(KERNEL_LAYER_THREAD,&outputq[PRIO_RET_QUEUE],PRIO_RET_QUEUE );
 	    }
 
 	}
@@ -172,18 +160,14 @@ void *output (void *arg)
              */
 	    if (outputq[PRIO_RET_QUEUE].size < n && msg_ret_pending) 
 	    {
-		itc_readfrom(KERNEL_LAYER_THREAD, 
-			 &outputq[PRIO_RET_QUEUE], 
-			 PRIO_RET_QUEUE );
+		itc_readfrom(KERNEL_LAYER_THREAD,&outputq[PRIO_RET_QUEUE],PRIO_RET_QUEUE);
 		msg_ret_pending = 0;
 	    }
 	    n -= msgnmove(&txq, &outputq[PRIO_RET_QUEUE], n);
 
 	    if (outputq[PRIO_NOR_QUEUE].size < n && msg_nor_pending) 
 	    {
-		itc_readfrom(KERNEL_LAYER_THREAD, 
-			 &outputq[PRIO_NOR_QUEUE], 
-			 PRIO_NOR_QUEUE );
+		itc_readfrom(KERNEL_LAYER_THREAD,&outputq[PRIO_NOR_QUEUE],PRIO_NOR_QUEUE);
 		msg_nor_pending = 0;
 	    }
 	    msgnmove(&txq, &outputq[PRIO_NOR_QUEUE], n);
@@ -194,7 +178,7 @@ void *output (void *arg)
 	{
 	    where = "flushqueue()";
 	    goto panic;
-	}    
+	}
 	msg_sent   +=tmp;
 	bytes_sent +=ret;
 
@@ -224,9 +208,19 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
     {
 	if (queue->size == 1) 
 	{
-	    msgptr = queue->head;
-	    mbptr =  queue->head->p_mbuff;
+	    msgptr = msg_dequeue(queue);
+	    mbptr =  msgptr->mb.p_mbuff;
 
+	    if (msgptr->msg_type != MSG_TYPE_CARRIER ) {
+		/*
+		 * Aca debe llegar un mensage de portadora
+		 * si llega otra cosa se descarta silenciosamente
+		 */
+		if (msgptr->discard == DISCARD_TRUE)
+		    free_mbuff_locking(mbptr);
+		free_msg_locking(msgptr);
+		continue;
+	    }
 	    if (mbptr->m_need_ts == DO_TS)
 		/*
 		 * Put the timestamp 
@@ -250,10 +244,9 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 		 * se deberia enviar todo lo que se le pidio en un datagrama
 		 */
 		output_len += ret;
-
-		msgptr = msg_dequeue(queue);
+		
 		if (msgptr->discard == DISCARD_TRUE)
-		    free_mbuff_locking(msgptr->p_mbuff);
+		    free_mbuff_locking(mbptr);
 		free_msg_locking(msgptr);
 	    }
 	}
@@ -264,7 +257,6 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 	     * Si supera los 10 se envian en la siguiente ronda
 	     */
 	    qsz = (queue->size > MAX_OUTPUT_MSG)? MAX_OUTPUT_MSG: queue->size;
-
 	    tmpq.head = NULL;
 	    tmpq.tail = NULL;
 	    tmpq.size = 0;
@@ -272,18 +264,33 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 	    for ( i = 0; i <= qsz -1 && i <= MAX_OUTPUT_MSG -1; i++ ) {
 	    	
 		msgptr = msg_dequeue(queue);
-		mbptr  = msgptr->p_mbuff;
+
+		mbptr  = msgptr->mb.p_mbuff;
+	    
+		if (msgptr->msg_type != MSG_TYPE_CARRIER ) {
+		/*
+		 * Aca debe llegar un mensage de portadora
+		 * si llega otra cosa se descarta silenciosamente
+		 */
+		    if (msgptr->discard == DISCARD_TRUE)
+			free_mbuff_locking(mbptr);
+		    free_msg_locking(msgptr);
+		    i--;
+		    qsz--;
+		    continue;
+		}	
+
 		if (mbptr->m_need_ts == DO_TS)
 		    /*
 		     * Put Timestamp
 		     */
 		    timestamp((u_int64_t *)&(mbptr->m_payload[mbptr->m_tsoff]), NULL);
 
-		io[i*2].iov_base		= &(msgptr->p_mbuff->m_hdr);
-		io[i*2].iov_len			= msgptr->p_mbuff->m_hdrlen;
-		io[(i*2)+1].iov_base		= msgptr->p_mbuff->m_payload;
-		io[(i*2)+1].iov_len		= msgptr->p_mbuff->m_datalen;
-		mmsg[i].msg_hdr.msg_name	= &(msgptr->p_mbuff->m_outside_addr);
+		io[i*2].iov_base		= &(mbptr->m_hdr);
+		io[i*2].iov_len			= mbptr->m_hdrlen;
+		io[(i*2)+1].iov_base		= mbptr->m_payload;
+		io[(i*2)+1].iov_len		= mbptr->m_datalen;
+		mmsg[i].msg_hdr.msg_name	= &(mbptr->m_outside_addr);
 		mmsg[i].msg_hdr.msg_namelen	= sizeof(struct sockaddr_in);
 		mmsg[i].msg_hdr.msg_iov		= &io[i*2];
 		mmsg[i].msg_hdr.msg_iovlen	= 2;
@@ -298,13 +305,14 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 			   mmsg,
 			   qsz,
 			   0);
-	    
+
 	    if (ret != -1) 
 	    {
 		for ( i = 0; i <= qsz -1 && i <= MAX_OUTPUT_MSG -1; i++ ) 
 		{
 		    msgptr = msg_dequeue(&tmpq);
-		    if (mmsg[i].msg_len == msgptr->p_mbuff->m_hdrlen + msgptr->p_mbuff->m_datalen) 
+		    mbptr  = msgptr->mb.p_mbuff;
+		    if (mmsg[i].msg_len == mbptr->m_hdrlen + mbptr->m_datalen) 
 		    {
 			/*
 			 * Si los datos enviados concuerdan
@@ -314,13 +322,13 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 			 */
 			output_len += mmsg[i].msg_len;
 			if (msgptr->discard == DISCARD_TRUE)
-			    free_mbuff_locking(msgptr->p_mbuff);
-			msgptr->p_mbuff = NULL;
+			    free_mbuff_locking(mbptr);
+			msgptr->mb.p_mbuff = NULL;
 			free_msg_locking(msgptr);
 		    }
 		    else if (mmsg[i].msg_len == 0)
 			msg_enqueue(queue, msgptr);
-		}
+		}	
 	    }
 	    else
 	    {

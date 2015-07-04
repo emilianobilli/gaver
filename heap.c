@@ -152,7 +152,7 @@ int alloc_msg_chain( struct msg_queue *queue, size_t len)
 	p_buff = alloc_msg();
 	if ( p_buff != NULL ) {
 	    p_buff->p_next = NULL;
-	    p_buff->p_mbuff = NULL;
+	    p_buff->mb.p_mbuff = NULL;
 	    msg_enqueue(queue, p_buff);
 	}
 	else
@@ -168,8 +168,8 @@ int alloc_msg_chain( struct msg_queue *queue, size_t len)
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 int alloc_mbuff_chain( struct msg_queue *queue, size_t len)
 {
-    struct msg *p_buff;
-    struct mbuff   *m_buff;
+    struct msg	 *p_buff;
+    struct mbuff *m_buff;
     size_t i;
     /*
      * 1- Block mutex msg
@@ -188,7 +188,7 @@ int alloc_mbuff_chain( struct msg_queue *queue, size_t len)
 	    p_buff = alloc_msg();
 	    if (p_buff != NULL) {
 		p_buff->p_next = NULL;
-	        p_buff->p_mbuff = m_buff;
+	        p_buff->mb.p_mbuff = m_buff;
 		msg_enqueue(queue, p_buff);
 	    }
 	    else {
