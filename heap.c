@@ -164,6 +164,26 @@ int alloc_msg_chain( struct msg_queue *queue, size_t len)
 }
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * alloc_mbuff_payload()								    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+int alloc_mbuff_payload( struct mb_queue *queue, size_t len, int mtu )
+{
+    struct mbuff *mptr;
+    size_t mbuff_elements = len / (size_t) mtu;
+    size_t i;
+
+    pthread_mutex_lock(&heap_mbuff_mutex);
+    for ( i = 0; i <= mbuff_elements -1; i++ ) {
+	mptr = alloc_mbuff();
+	if (mptr == NULL)
+	    break;
+	mbuff_enqueue(queue, mptr);
+    }
+    pthread_mutex_unlock(&heap_mbuff_mutex);
+
+    return (int) i;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * alloc_mbuff_chain()									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 int alloc_mbuff_chain( struct msg_queue *queue, size_t len)
