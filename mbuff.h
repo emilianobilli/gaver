@@ -1,12 +1,3 @@
-
-/*
- * ToDo: 
- *	- Modificar la estructra msg y agregar, direccion de origen (socket)
- *	- Agregar contador de elementos en cadena
- *	- Reemplazar puntero a mbuff por cola de mbuff
- *	- Modificar todo heap para estos ultimos cambios
- */
-
 /*
     This file is part of GaVer
 
@@ -62,15 +53,18 @@ struct mb_queue {
 
 #define OPT_READ	0
 #define OPT_WRITE	1
+#define OPT_CLOSE	2
 
 struct opt_request {
-    int to;
-    int type;			/* Read or Write */
+    int    to;
+    int    opt_type;		/* Read or Write or Close */
+    size_t mtu;			/* If the type is Read */
 };
 
 struct opt_reply {
-    int from;
-    int result;			/* size || -errno */
+    int     from;
+    int	    opt_type;		/* Type of request */
+    ssize_t result;		/* size || -errno */
 };
 
 struct msg {
@@ -80,11 +74,12 @@ struct msg {
 	struct opt_reply   reply;
     } opt;
     int    discard;		/* If the mbuff or queue needs to be discard */
-    struct msg          *p_next;
+    
     union {
 	struct mbuff    *p_mbuff;
 	struct mb_queue  mbq;
     } mb;			/* Queue of mbuff or a simple mbuff */
+    struct msg          *p_next;
 };
 
 struct msg_queue {
