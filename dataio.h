@@ -23,8 +23,120 @@
 #endif
 
 
+/* According to POSIX.1-2001 */
+#include <sys/select.h>
 
-ssize_t recvdata (int sdux, struct mb_queue *q, size_t mtu )
+/* According to earlier standards */
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include "itc.h"
+#include "glo.h"
+
+
+PRIVATE recvdata (int sdux, struct mb_queue *q, size_t len, size_t mtu );
+PRIVATE senddata (int sdux, struct mb_queue *txq, struct mb_queue *no_sent, int discard);
+
+
+void *dataio (void *arg)
+{
+    struct msg_queue wpenq;		/* Pendientes de escritura */
+    struct msg_queue rpenq;		/* Pendientes de lectura   */
+    struct msg_queue to_krn;
+    struct msg_queue tmp;
+    struct mb_queue  no_sent;
+    struct msg	     *mptr;
+    ssize_t ioret;
+    int max, ret;
+    fd_set wset, rset;
+    char   *where;
+
+    itc_block_signal();
+
+    init_msg_queue(&wpenq);
+    init_msg_queue(&rpenq);
+
+    while (1)
+    {
+	FD_ZERO(&wset);
+	FD_ZERO(&rset);
+
+	/*
+         * Add itc file descriptor
+         */
+	FD_SET(itc_event, &rset);
+	max = itc_event;
+
+	init_msg_queue(&tmp);
+	/*
+	 * Add all sockets scaning read events 
+	 */
+	while ((mptr = dequeue_msg(&rpenq)) != NULL)
+	{
+	    FD_SET(mptr->io.io_socket, &rpenq);
+	    max = (mptr->io.io_socket > max) ? mptr->io.io_socket : max;
+
+	    enqueue_msg(&tmp, mptr);
+	}
+	msgqcat(&rpenq, &tmp);
+
+	init_msg_queue(&tmp);
+
+	/*
+         * Add all sockets scaning write envents
+         */
+	while ((mptr = dequeue_msg(&wpenq)) != NULL)
+	{
+	    FD_SET(mptr->io.io_socket, &wpenq);
+	    max = (mptr->io.io_socket > max) ? mptr->io.io_socket : max;
+
+	    enqueue_msg(&tmp, mptr);
+	}	
+	msgqcat(&wpenq, &tmp);
+
+	while (1)
+	{
+	    ret = select(max+1, &rpenq, &wpenq, NULL, NULL);
+	    if (ret == -1) {
+		if (errno == EINTR)
+		    continue;
+		else {
+		    where = "select()";
+		    goto panic;
+		}
+	    }
+	    else
+		break;
+	}
+
+	init_msg_queue(&tmp);
+	init_msg_queue(&to_krn);
+	while ((mptr = dequeue_msg(&wpenq)) != NULL)
+	{
+	    if (FD_ISSET(mptr->io.io_socket, &wpenq)) {
+		io_ret = senddata(mptr->io.io_socket,
+				 &mptr->mb.mbq,
+				 &no_sent, DISCARD_TRUE);
+		
+		if (io_ret > 0 && no_sent.size == 0) {
+		    /* Se envio todo */
+		    mptr->io.reply.len += io_ret;
+		}
+	
+	    }
+
+	    enqueue_msg(&tmp, mptr);
+	}
+	msgqcat(&wpenq, &tmp);
+    }
+
+panic:
+    PANIC(errno,"DATAIO_LAYER_THREAD",where);
+}
+
+
+ssize_t recvdata (int sdux, struct mb_queue *q, size_t len, size_t mtu )
 {
     struct msghdr msg;
     struct iovec *iodata;
@@ -46,8 +158,8 @@ ssize_t recvdata (int sdux, struct mb_queue *q, size_t mtu )
     /* Averiguar cuantos bytes hay en cola */
     if (ioctl(sdux, SIOCINQ, &value) == -1)
 	return (ssize_t)-1;
-
-    btor = ( value > ATOMIC_READ ) ? ATOMIC_READ : value;
+    btor = ( ATOMIC_READ > len ) ? len : ATOMIC_READ;
+    btor = ( value > btor ) ? btor : value;
 
     if (alloc_mbuff_payload(&t1, btor, mtu) == 0)
 	return (ssize_t)0;
@@ -115,6 +227,9 @@ ssize_t recvdata (int sdux, struct mb_queue *q, size_t mtu )
     }
     while (t2.size != 0)
     {
+	/*
+         * Elimina lo que no utilizo
+         */
 	mbptr = mbuff_dequeue(&t2);
 	free_mbuff_locking(mbptr);
     }
@@ -122,7 +237,7 @@ ssize_t recvdata (int sdux, struct mb_queue *q, size_t mtu )
 }
 
 
-ssize_t senddata (int sdux, struct mb_queue *txq, struct mb_queue *no_sent)
+ssize_t senddata (int sdux, struct mb_queue *txq, struct mb_queue *no_sent, int discard)
 {
     struct msghdr msg;
     struct iovec *iodata;
@@ -197,7 +312,8 @@ ssize_t senddata (int sdux, struct mb_queue *txq, struct mb_queue *no_sent)
 	if ( ret >= mbptr->m_datalen )
 	{
 	    ret -= mbptr->m_datalen;
-	    free_mbuff_locking(mbptr);
+	    if (discard)
+		free_mbuff_locking(mbptr);
 	}
 	else
 	{

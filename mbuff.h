@@ -47,38 +47,31 @@ struct mb_queue {
 #define DISCARD_TRUE  1
 #define DISCARD_FALSE 0
 
-#define MSG_TYPE_REQ     0		/* Request */
-#define MSG_TYPE_REP     1		/* Reply   */
-#define MSG_TYPE_CARRIER 2		/* Portadora */
+#define MSG_IO_REQUEST    0		/* Request */
+#define MSG_IO_REPLY      1		/* Reply   */
+#define MSG_MBUFF_CARRIER 2		/* Portadora */
 
-#define OPT_READ	0
-#define OPT_WRITE	1
-#define OPT_CLOSE	2
+#define IO_OPT_READ	0
+#define IO_OPT_WRITE	1
 
-struct opt_request {
-    int    to;
-    int    opt_type;		/* Read or Write or Close */
-    size_t mtu;			/* If the type is Read */
-};
-
-struct opt_reply {
-    int     from;
-    int	    opt_type;		/* Type of request */
-    ssize_t result;		/* size || -errno */
+struct io_opt {
+    int     io_opt;		/* Read || Write */
+    int     io_socket;		/* Socket to read || write */
+    ssize_t io_len;		/* Len || -errno */
+    size_t  io_chuck_size;	/* Chuck Size */
 };
 
 struct msg {
-    int    msg_type;		/* Request or Reply */
+    int    msg_type;			/* Request or Reply */
     union {
-	struct opt_request request;
-	struct opt_reply   reply;
-    } opt;
-    int    discard;		/* If the mbuff or queue needs to be discard */
-    
+	struct io_opt request;
+	struct io_opt reply;
+    } io;
+    int    discard;			/* If the mbuff or queue needs to be discard */
     union {
 	struct mbuff    *p_mbuff;
 	struct mb_queue  mbq;
-    } mb;			/* Queue of mbuff or a simple mbuff */
+    } mb;				/* Queue of mbuff or a simple mbuff */
     struct msg          *p_next;
 };
 
