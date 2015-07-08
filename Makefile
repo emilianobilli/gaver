@@ -20,7 +20,7 @@ OBJ:= -c -Wall -ggdb
 LINK:= -lrt -lm -lpthread
 
 
-all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o main.o
+all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o main.o 
 	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o main.o -o main $(LINK)
 
 itc.o: itc.c itc.h itc_var.h
@@ -46,6 +46,9 @@ util.o: util.c util.h
 
 input.o: input.c input.h
 	$(CC) $(OBJ) input.c
+
+dataio.o: dataio.c dataio.h
+	$(CC) $(OBJ) dataio.c
 
 main.o:
 	$(CC) $(OBJ) main.c
