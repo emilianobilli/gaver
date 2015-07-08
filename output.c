@@ -211,7 +211,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 	    msgptr = msg_dequeue(queue);
 	    mbptr =  msgptr->mb.p_mbuff;
 
-	    if (msgptr->msg_type != MSG_TYPE_CARRIER ) {
+	    if (msgptr->msg_type != MSG_MBUFF_CARRIER ) {
 		/*
 		 * Aca debe llegar un mensage de portadora
 		 * si llega otra cosa se descarta silenciosamente
@@ -267,7 +267,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 
 		mbptr  = msgptr->mb.p_mbuff;
 	    
-		if (msgptr->msg_type != MSG_TYPE_CARRIER ) {
+		if (msgptr->msg_type != MSG_MBUFF_CARRIER ) {
 		/*
 		 * Aca debe llegar un mensage de portadora
 		 * si llega otra cosa se descarta silenciosamente

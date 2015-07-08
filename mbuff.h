@@ -54,18 +54,19 @@ struct mb_queue {
 #define IO_OPT_READ	0
 #define IO_OPT_WRITE	1
 
-struct io_opt {
-    int     io_opt;		/* Read || Write */
-    int     io_socket;		/* Socket to read || write */
-    ssize_t io_len;		/* Len || -errno */
-    size_t  io_chuck_size;	/* Chuck Size */
-};
+#define IO_RET_SUCCESS  0
+#define IO_RET_FAILURE  1
 
 struct msg {
     int    msg_type;			/* Request or Reply */
-    union {
-	struct io_opt request;
-	struct io_opt reply;
+    struct {
+	int io_opt;
+	int io_socket;
+	int io_ret;
+	int io_errno;
+	size_t io_req_len;
+	size_t io_rep_len;
+	size_t io_chunk_size;
     } io;
     int    discard;			/* If the mbuff or queue needs to be discard */
     union {

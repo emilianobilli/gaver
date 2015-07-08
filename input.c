@@ -110,7 +110,7 @@ void *input (void *arg)
 	    /*
 	     * Lo envia al kernel
 	     */
-	    msgptr->msg_type = MSG_TYPE_CARRIER;
+	    msgptr->msg_type = MSG_MBUFF_CARRIER;
 	    msg_enqueue(&rxq, msgptr);
 	    itc_writeto(KERNEL_LAYER_THREAD,
 			&rxq,

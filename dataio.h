@@ -64,8 +64,8 @@ int fill_fdset (struct msg_queue *queue, fd_set *set)
 
     while( (mptr = dequeue_msg(queue))!= NULL )
     {
-	FD_SET(/* Socket access */, set);
-	max = ( max > /* Socket access */ )? max : /* Socket access */;
+	FD_SET(mptr->io.io_socket, set);
+	max = ( max > mptr->io.io_socket )? max : mptr->io.io_socket;
 	enqueue_msg(&tmp, mptr);
     }
     msgqcat(queue, &tmp);
@@ -120,26 +120,81 @@ void *dataio (void *arg)
 	    where = "select_nosignal()";
 	    goto panic;
 	}
-
 	init_msg_queue(&tmp);
 	init_msg_queue(&to_krn);
+
 	while ((mptr = dequeue_msg(&wpenq)) != NULL)
 	{
-	    if (FD_ISSET(mptr->io.io_socket, &wpenq)) {
+	    if (FD_ISSET(mptr->io.io_socket, &wset)) {
 		io_ret = senddata(mptr->io.io_socket,
 				 &mptr->mb.mbq,
 				 &no_sent, DISCARD_TRUE);
 		
 		if (io_ret > 0 && no_sent.size == 0) {
-		    /* Se envio todo */
-		    mptr->io.reply.len += io_ret;
-		}
-	
-	    }
+		    mptr->io.io_opt = IO_OPT_WRITE;
+		    mptr->io.io_ret = IO_RET_SUCCESS;
+		    mptr->io.io_errno   = 0;
+		    mptr->io.io_rep_len += io_ret;
 
-	    enqueue_msg(&tmp, mptr);
+		    mptr->msg_type = MSG_IO_REPLY;
+
+		    msg_enqueue(&to_krn, mptr);
+		}
+		else if ( io_ret == -1 ) {
+		    mptr->io.io_opt = IO_OPT_WRITE;
+		    mptr->io.io_ret = IO_RET_FAILURE;
+		    mptr->io.io_errno = errno;
+		
+		    msg->msg_type = MSG_IO_REPLY;
+		    mbuffqcat(&(mptr->mb.mbq), &no_sent);
+		    msg_enqueue(&to_krn, mptr);
+		}
+		else {
+		    mptr->io.io_rep_len += io_ret;
+		    mbuffqcat(&(mptr->mb.mbq), &no_sent);
+		    msg_enqueue(&tmp, mptr);
+		}
+	    }
+	    else
+		msg_enqueue(&tmp, mptr);
 	}
 	msgqcat(&wpenq, &tmp);
+
+	init_msg_queue(&tmp);
+
+	while ((mptr = dequeue_msg(&rpenq)) != NULL)
+	{
+	    if (FD_ISSET(mptr->io.io_socket, &rset)) {
+		io_ret = recvdata(mptr->io.io_socket,
+				 &(mptr->mb.mbq),
+				 mptr->io.io_req_len, mptr->io.io_chunk_size);
+		
+		if (io_ret > 0) {
+		    mptr->io.io_opt = IO_OPT_READ;
+		    mptr->io.io_ret = IO_RET_SUCCESS;
+		    mptr->io.io_errno   = 0;
+		    mptr->io.io_rep_len = io_ret;
+
+		    mptr->msg_type = MSG_IO_REPLY;
+
+		    msg_enqueue(&to_krn, mptr);
+		}
+		else if ( io_ret == -1 ) {
+		    mptr->io.io_opt = IO_OPT_READ;
+		    mptr->io.io_ret = IO_RET_FAILURE;
+		    mptr->io.io_errno = errno;
+		    msg->msg_type = MSG_IO_REPLY;
+		    msg_enqueue(&to_krn, mptr);
+		}
+		else {
+		    msg_enqueue(&tmp, mptr);
+		}
+	    }
+	    else
+		msg_enqueue(&tmp, mptr);
+	}
+	msgqcat(&rpenq, &tmp);
+
     }
 
 panic:
