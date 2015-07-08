@@ -37,6 +37,41 @@
 
 PRIVATE recvdata (int sdux, struct mb_queue *q, size_t len, size_t mtu );
 PRIVATE senddata (int sdux, struct mb_queue *txq, struct mb_queue *no_sent, int discard);
+PRIVATE int select_nosignal (int max, fd_set *read, fd_set *write, fd_set *excep, struct timeval *tout);
+PRIVATE int fill_fdset (struct msg_queue *queue, fd_set *set);
+
+int select_nosignal ( int max, fd_set *read, fd_set *write, fd_set *except, struct timeval *tout)
+{
+    int ret;
+    while (1)
+    {
+	    ret = select(max+1, read, write, except, tout);
+	    if ( ret >= 0 || ret == -1 && errno != EINTR )
+		break;	
+    }
+    return ret;
+}
+
+int fill_fdset (struct msg_queue *queue, fd_set *set)
+{
+    struct msg_queue tmp;
+    struct msg *mptr;
+    int    max = 0;
+
+    FD_ZERO(set);
+
+    init_msg_queue(&tmp);
+
+    while( (mptr = dequeue_msg(queue))!= NULL )
+    {
+	FD_SET(/* Socket access */, set);
+	max = ( max > /* Socket access */ )? max : /* Socket access */;
+	enqueue_msg(&tmp, mptr);
+    }
+    msgqcat(queue, &tmp);
+
+    return max;
+}
 
 
 void *dataio (void *arg)
@@ -61,53 +96,29 @@ void *dataio (void *arg)
     {
 	FD_ZERO(&wset);
 	FD_ZERO(&rset);
-
 	/*
          * Add itc file descriptor
          */
 	FD_SET(itc_event, &rset);
 	max = itc_event;
 
-	init_msg_queue(&tmp);
 	/*
 	 * Add all sockets scaning read events 
 	 */
-	while ((mptr = dequeue_msg(&rpenq)) != NULL)
-	{
-	    FD_SET(mptr->io.io_socket, &rpenq);
-	    max = (mptr->io.io_socket > max) ? mptr->io.io_socket : max;
-
-	    enqueue_msg(&tmp, mptr);
-	}
-	msgqcat(&rpenq, &tmp);
-
-	init_msg_queue(&tmp);
-
+	
+	ret = fill_fdset(&rpenq, &rset);
+	max = ( max > ret ) ? max : ret;
 	/*
          * Add all sockets scaning write envents
          */
-	while ((mptr = dequeue_msg(&wpenq)) != NULL)
+	ret = fill_fdset(&wpenq, &wset);
+	max = ( max > ret ) ? max : ret;
+	
+	ret = select_nosignal(max+1, &rset, &wset, NULL, NULL);
+	if (ret == -1)
 	{
-	    FD_SET(mptr->io.io_socket, &wpenq);
-	    max = (mptr->io.io_socket > max) ? mptr->io.io_socket : max;
-
-	    enqueue_msg(&tmp, mptr);
-	}	
-	msgqcat(&wpenq, &tmp);
-
-	while (1)
-	{
-	    ret = select(max+1, &rpenq, &wpenq, NULL, NULL);
-	    if (ret == -1) {
-		if (errno == EINTR)
-		    continue;
-		else {
-		    where = "select()";
-		    goto panic;
-		}
-	    }
-	    else
-		break;
+	    where = "select_nosignal()";
+	    goto panic;
 	}
 
 	init_msg_queue(&tmp);
