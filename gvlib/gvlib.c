@@ -1,5 +1,20 @@
 #include "gvlib.h"
 
+
+#define GV_DATA_SD((x)) (x)->so_data
+#define GV_CTRL_SD((x)) (x)->so_ctrl
+/*
+ * How to use
+ *
+ * write(GV_DATA_SD(&sd), buffer, len);
+ *
+ * or
+ *
+ * write(getdatasocket(&sd), buffer, len);
+ *
+ */
+
+
 int getdatasocket(socket_t *sd)
 {
     return sd->so_data;
@@ -7,12 +22,13 @@ int getdatasocket(socket_t *sd)
 
 int getgvsocketunix(char *su_path)
 {
-    /*
-     * usar getenv()
-     */
-
-    strcpy(su_path, "/var/gaver.sock");
-    return 0;
+    char *gv_socket_env;
+    gv_socket_env = getenv("GV_SOCKET_LOCAL");
+    if ( gv_socket_env != NULL ) {
+	strcpy(su_path, gv_socket_env);
+	return 0;
+    }
+    return -1;
 }
 
 /* Funciona para intercambiar mensaje con GaVer. Actios: r-->recibe, s-->envia */
