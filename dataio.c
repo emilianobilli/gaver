@@ -225,9 +225,9 @@ void *dataio (void *arg)
 		if (mptr->msg_type != MSG_IO_REQUEST)
 		    /* Drop silently */
 		    continue;
-		    mptr->io.io_ret     = 0;
-		    mptr->io.io_errno   = 0;
-		    mptr->io.io_rep_len = 0;
+		mptr->io.io_ret     = 0;
+		mptr->io.io_errno   = 0;
+		mptr->io.io_rep_len = 0;
 		if (mptr->io.io_opt == IO_OPT_READ)
 		    msg_enqueue(&rpenq, mptr);
 		if (mptr->io.io_opt == IO_OPT_WRITE)
