@@ -84,14 +84,48 @@ typedef struct {
     u_int8_t res[127];
 } gv_clsapi_t;
 
-
-
 int getdatasocket(socket_t *sd);
+
+int getctrlsocket(socket_t *sd);
+
 int getgvsocketunix(char *su_path);
+
+/*
+ * Prototipo supuesto
+ *
+ * domain: AF_INET
+ * type: SOCK_STREAM
+ * protocol: 0
+ */
+int gv_socket(gv_socket_t *sd, int domain, int type, int protocol);
+
+/*
+gv_socket_t sock;
+
+ret = gv_socket(&sock, AF_INET, SOCK_STREAM, 0);
+if (ret != -1) {
+    gv_bind
+    gv_listen
+    gv_accept
+}
+
+*/
 int gv_socket(gv_socket_t *sd);
 int gv_connect(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t len);
 int gv_bind(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t len);
 int gv_listen(gv_socker_t *sd, int backlog);
+
+/*
+ * Prototipo supuesto
+ *
+ */
+int gv_accept(gv_socket_t *sd, gv_socket_t *unused, struct sockaddr *addr, socklen_t *len);
+/*
+gv_socket_t sock;
+ret = gv_accept(&sock, NULL,(struct sockaddr *) &addr, &len);
+*/
+
+
 int gv_accept(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t *len);
 int gv_close (gv_socker_t *sd);
 
