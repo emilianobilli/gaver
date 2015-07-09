@@ -7,6 +7,10 @@ int getdatasocket(socket_t *sd)
 
 int getgvsocketunix(char *su_path)
 {
+    /*
+     * usar getenv()
+     */
+
     strcpy(su_path, "/var/gaver.sock");
     return 0;
 }
