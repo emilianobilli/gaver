@@ -15,19 +15,21 @@
     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SOCKOPT_H
-#define _SOCKOPT_H
+#include "glo.h"
 
-extern int unix_socket(const char *path);
+void pthreads_stop(void)
+{
+    pthread_mutex_init(&start_lock, NULL);
+    pthread_mutex_lock(&start_lock);
+}
 
-extern int ipv4_udp_socket (const char *ipv4_addr, u_int16_t port);
+void pthreads_start(void)
+{
+    pthread_mutex_unlock(&start_lock);
+}
 
-extern int iptos_throughput(int sd);
-
-extern int set_rcvbuf(int socket, u_int32_t buff_size );
-
-extern int set_sndbuf(int socket, u_int32_t buff_size );
-
-extern int set_nofrag(int sd);
-
-#endif
+void pthread_wait_start(void)
+{
+    pthread_mutex_lock(&start_lock);
+    pthread_mutex_unlock(&start_lock);
+}

@@ -18,6 +18,29 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <netinet/ip.h>
+#include <sys/un.h>
+#include <string.h>
+
+
+int unix_socket(const char *path)
+{
+    struct sockaddr_un addr;
+    int unix_socket;
+
+    addr.sun_family = AF_UNIX;
+    strcpy(addr.sun_path, path);
+
+    unix_socket = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (unix_socket == -1)
+	return -1;
+
+    if (bind(unix_socket, 
+	    (struct sockaddr *)&addr,
+	    (socklen_t) sizeof(struct sockaddr_un)) == -1)
+	return -1;
+
+    return unix_socket;
+}
 
 
 int ipv4_udp_socket (const char *ipv4_addr, u_int16_t port)
@@ -33,7 +56,9 @@ int ipv4_udp_socket (const char *ipv4_addr, u_int16_t port)
     if ( udp_socket == -1 )
 	return -1;
 
-    if ( bind(udp_socket, (struct sockaddr *)&addr, (socklen_t)sizeof(struct sockaddr_in)) == -1 )
+    if (bind(udp_socket, 
+	    (struct sockaddr *)&addr, 
+	    (socklen_t)sizeof(struct sockaddr_in)) == -1 )
 	return -1;
 
     return udp_socket;

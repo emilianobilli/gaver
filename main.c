@@ -61,6 +61,9 @@ int main(void)
     thread_table[KERNEL_LAYER_THREAD] = pthread_self();
     pthread_create(&thread_table[NETOUT_LAYER_THREAD], NULL, output, NULL);
 
+
+    sleep(12);
+
     in.sin_family = AF_INET;
     in.sin_port	  = 300;
     inet_aton("8.8.8.8", &in.sin_addr.s_addr);

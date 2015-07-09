@@ -94,6 +94,8 @@ void *output (void *arg)
      */
     itc_block_signal();
 
+    
+
     init_msg_queue(&outputq[PRIO_CTR_QUEUE]);
     init_msg_queue(&outputq[PRIO_RET_QUEUE]);
     init_msg_queue(&outputq[PRIO_NOR_QUEUE]);

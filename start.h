@@ -14,20 +14,13 @@
     You should have received a copy of the GNU General Public License
     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef _START_H
+#define _START_H
 
-#ifndef _SOCKOPT_H
-#define _SOCKOPT_H
+#include "types.h"
 
-extern int unix_socket(const char *path);
-
-extern int ipv4_udp_socket (const char *ipv4_addr, u_int16_t port);
-
-extern int iptos_throughput(int sd);
-
-extern int set_rcvbuf(int socket, u_int32_t buff_size );
-
-extern int set_sndbuf(int socket, u_int32_t buff_size );
-
-extern int set_nofrag(int sd);
+EXTERN void pthreads_stop(void);
+EXTERN void pthreads_start(void);
+EXTERN void pthread_wait_start(void);
 
 #endif
