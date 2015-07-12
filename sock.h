@@ -63,12 +63,68 @@ struct tdulost_queue {
     struct tdulost *tail;
 };
 
-
-
 EXTERN struct sock sktable[MAX_SOCKETS];
 EXTERN struct sock *sk_gvport[sizeof(u_int16_t)];
 EXTERN struct sockqueue so_used;
 EXTERN struct sockqueue so_free;
+
+struct msg *mbufftomsg (struct mbuff *mb, int clone, int discard)
+{
+    struct msg *mptr;
+    struct mbuff *mbnew;
+
+    mptr = alloc_msg_locking();
+    if ( mptr != NULL ) 
+    {
+	mptr->msg_type = MSG_MBUFF_CARRIER;
+	if (clone)
+	{
+	    mbnew = clone_mbuff(mb);
+	    mptr->mb.p_mbuff = mbnew;
+	}
+	else
+	    mptr->mb.p_mbuff = mb;
+	mptr->discard = discard;
+    }
+    return mptr;
+}
+
+size_t mbqtomsgq (struct msg_queue *msgq, struct mb_queue *mbq, size_t len, int clone, int discard)
+{
+    struct msg_queue tmp;
+    struct msg   *mptr;
+    struct mbuff *mbptr, *mbnew;
+    size_t n, i;
+
+    init_msg_queue(&tmp);
+
+    len = ( len > mbq->size )? mbq->size : len;
+    n = alloc_msg_chain(&tmp, len);
+    
+    i = 0;
+    mbptr = mbq->head;
+    mptr  = tmp.head;
+
+    while ( mbptr != NULL && mptr != NULL  && i <= n-1 )
+    {
+	mptr->msg_type = MSG_MBUFF_CARRIER;
+	if (clone)
+	{
+	    mbnew = clone_mbuff(mbptr);
+	    mptr->mb.p_mbuff = mbnew;
+	}
+	else
+	    mptr->mb.p_mbuff = mbptr;
+
+	mptr->discard = discard;
+	i++;
+	mptr  = mptr->p_next;
+	mbptr = mbptr->m_next;
+    }
+    return n;
+}
+
+
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * init_tdulost_queue():								    *
@@ -276,8 +332,3 @@ void sock_enqueue (struct sockqueue *q, struct sock *soptr)
     q->tail = soptr;
     q->size++;
 }
-
-
-
-
-
