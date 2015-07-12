@@ -32,13 +32,13 @@ EXTERN void free_msg_locking(struct msg *p);
 
 EXTERN struct mbuff *alloc_mbuff(void);
 EXTERN struct mbuff *alloc_mbuff_locking(void);
-EXTERN int alloc_mbuff_chain( struct msg_queue *queue, size_t len);
+EXTERN size_t alloc_mbuff_chain( struct msg_queue *queue, size_t len);
 EXTERN struct mbuff *clone_mbuff(struct mbuff *mb);
-EXTERN int alloc_msg_chain( struct msg_queue *queue, size_t len);
+EXTERN size_t alloc_msg_chain( struct msg_queue *queue, size_t len);
 
 EXTERN struct msg *alloc_msg(void);
 EXTERN struct msg *alloc_msg_locking(void);
-EXTERN int alloc_mbuff_payload( struct mb_queue *queue, size_t len, int mtu );
+EXTERN size_t alloc_mbuff_payload( struct mb_queue *queue, size_t len, int mtu );
 EXTERN void init_heap(void);
 
 #endif

@@ -159,7 +159,7 @@ struct mbuff *alloc_mbuff_locking(void)
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * alloc_msg_chain()									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-int alloc_msg_chain( struct msg_queue *queue, size_t len)
+size_t alloc_msg_chain( struct msg_queue *queue, size_t len)
 {
     struct msg *p_buff;
     size_t i;
@@ -184,7 +184,7 @@ int alloc_msg_chain( struct msg_queue *queue, size_t len)
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * alloc_mbuff_payload()								    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-int alloc_mbuff_payload( struct mb_queue *queue, size_t len, int mtu )
+size_t alloc_mbuff_payload( struct mb_queue *queue, size_t len, int mtu )
 {
     struct mbuff *mptr;
     size_t mbuff_elements = len / (size_t) mtu;
@@ -204,7 +204,7 @@ int alloc_mbuff_payload( struct mb_queue *queue, size_t len, int mtu )
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * alloc_mbuff_chain()									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-int alloc_mbuff_chain( struct msg_queue *queue, size_t len)
+size_t alloc_mbuff_chain( struct msg_queue *queue, size_t len)
 {
     struct msg	 *p_buff;
     struct mbuff *m_buff;

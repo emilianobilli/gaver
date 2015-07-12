@@ -94,23 +94,41 @@ size_t mbqtomsgq (struct msg_queue *msgq, struct mb_queue *mbq, size_t len, int 
     struct msg_queue tmp;
     struct msg   *mptr;
     struct mbuff *mbptr, *mbnew;
-    size_t n, i;
+    size_t ret; 
+    size_t sz;
+    size_t i;
+
 
     init_msg_queue(&tmp);
 
-    len = ( len > mbq->size )? mbq->size : len;
-    n = alloc_msg_chain(&tmp, len);
+    sz = ( len > mbq->size )? mbq->size : len;
     
+    ret = alloc_msg_chain(&tmp, sz);
+    
+    if (ret == 0)
+	return 0;
+
     i = 0;
     mbptr = mbq->head;
     mptr  = tmp.head;
 
-    while ( mbptr != NULL && mptr != NULL  && i <= n-1 )
+    while ( i <= ret-1 )
     {
-	mptr->msg_type = MSG_MBUFF_CARRIER;
+	if (mbptr == NULL)
+	    break;
+
+	mptr->msg_type = MSG_BUFF_CARRIER;
 	if (clone)
 	{
 	    mbnew = clone_mbuff(mbptr);
+	    if (mbnew == NULL)
+	    {
+		/*
+		 * Corregir
+		 */
+
+		break;
+	    }
 	    mptr->mb.p_mbuff = mbnew;
 	}
 	else
@@ -121,7 +139,7 @@ size_t mbqtomsgq (struct msg_queue *msgq, struct mb_queue *mbq, size_t len, int 
 	mptr  = mptr->p_next;
 	mbptr = mbptr->m_next;
     }
-    return n;
+    return i;
 }
 
 
