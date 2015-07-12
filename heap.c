@@ -18,6 +18,9 @@
 #include <stdlib.h>
 #include "heap_var.h"
 #include "mbuff_queue.h"
+#define _HEAP_CODE
+#include "heap.h"
+#include <string.h>
 
 static void init_heap_mbuff(void);
 static void init_heap_msg(void);
@@ -121,6 +124,21 @@ struct mbuff *alloc_mbuff(void)
     return mb;
 }
 
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * clone_mbuff()									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+struct mbuff *clone_mbuff(struct mbuff *mb)
+{
+    struct mbuff *ret;
+
+    ret = alloc_mbuff_locking();
+    if (ret != NULL) {
+	memcpy(ret, mb, sizeof(struct mbuff));
+	ret->m_next = NULL;
+    }
+	
+    return ret;
+}
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * alloc_mbuff_locking()								    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

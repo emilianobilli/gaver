@@ -20,18 +20,21 @@
 #include "mbuff.h"
 #include "types.h"
 
-
-/*
- * ToDo: mbuff_insert()
- */
+#ifdef _MBUFF_QUEUE_CODE
+#undef EXTERN
+#define EXTERN
+#endif
 
 EXTERN void init_mbuff_queue(struct mb_queue *q);
 EXTERN void init_msg_queue(struct msg_queue *q);
 EXTERN void mbuff_enqueue (struct mb_queue *queue, struct mbuff *mb);
 EXTERN struct mbuff *mbuff_dequeue(struct mb_queue *queue);
+EXTERN void mbuff_insert (struct mb_queue *queue, struct mbuff *mb);
 EXTERN void mbuffqcat (struct mb_queue *dst, struct mb_queue *src);
 EXTERN void msg_enqueue (struct msg_queue *queue, struct msg *msg);
 EXTERN struct msg *msg_dequeue(struct msg_queue *queue);
 EXTERN void msgqcat (struct msg_queue *dst, struct msg_queue *src);
 EXTERN size_t msgnmove (struct msg_queue *dst, struct msg_queue *src, size_t len);
+
+
 #endif

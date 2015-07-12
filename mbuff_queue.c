@@ -14,9 +14,10 @@
     You should have received a copy of the GNU General Public License
     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  */
+#define _MBUFF_QUEUE_CODE
 #include "mbuff.h"
 #include <stdio.h>
-
+#include "mbuff_queue.h"
 
 void init_mbuff_queue(struct mb_queue *q)
 {
@@ -43,6 +44,40 @@ void mbuff_enqueue (struct mb_queue *queue, struct mbuff *mb)
     queue->size++;
 }
 
+void mbuff_insert (struct mb_queue *queue, struct mbuff *mb)
+{
+    struct mbuff    *ptr;
+    struct mb_queue tmp;
+
+    if (queue->size == 0 || 
+	mb->m_hdr.seq > queue->tail->m_hdr.seq)
+	mbuff_enqueue(queue, mb);
+    else {
+	if (mb->m_hdr.seq < queue->head->m_hdr.seq) {
+	    mb->m_next  = queue->head;
+	    queue->head = mb;
+	}
+	else {
+	    init_mbuff_queue(&tmp);
+	    while ((ptr = mbuff_dequeue(queue)) != NULL )
+	    {
+		if (ptr->m_hdr.seq < mb->m_hdr.seq)
+		    mbuff_enqueue(&tmp, ptr);
+		else {
+		    mbuff_enqueue(&tmp, mb);
+		    mbuff_enqueue(&tmp, ptr);
+		    break;
+		}
+	    }
+	    mbuffqcat(&tmp, queue);
+	    queue->head = tmp.head;
+	    queue->tail = tmp.tail;
+	    queue->size = tmp.size;
+	}
+    }
+}
+
+
 struct mbuff *mbuff_dequeue(struct mb_queue *queue)
 {
     struct mbuff *mb;
@@ -60,11 +95,15 @@ struct mbuff *mbuff_dequeue(struct mb_queue *queue)
 
 void mbuffqcat (struct mb_queue *dst, struct mb_queue *src)
 {
+    if (src->tail == NULL && src->tail == NULL)
+	return;
+
     if (dst->tail == NULL && dst->head == NULL) 
 	dst->head = src->head;
     else 
 	dst->tail->m_next = src->head;
-    dst->tail	  = src->tail;
+
+    dst->tail  = src->tail;
     dst->size += src->size;
     return;
 }
@@ -95,6 +134,9 @@ struct msg *msg_dequeue(struct msg_queue *queue)
 }
 void msgqcat (struct msg_queue *dst, struct msg_queue *src)
 {
+    if (src->head == NULL && src->tail == NULL)
+	return;
+
     if (dst->tail == NULL && dst->head == NULL)
 	dst->head = src->head;
     else

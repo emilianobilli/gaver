@@ -308,6 +308,7 @@ int itc_readmsg (struct wrmsg *opt)
     pthread_mutex_lock(opt->msg_mutex);
     ret = (int) (opt->srcq->size);
     msgqcat(opt->dstq, opt->srcq);
+    opt->srcq->size = 0;
     opt->srcq->head = NULL;
     opt->srcq->tail = NULL;
     pthread_mutex_unlock(opt->msg_mutex);
