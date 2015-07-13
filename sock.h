@@ -8,6 +8,7 @@ struct timeout {
 };
 
 #define IO_NONE		  0x00  /* 0000 */
+#define IO_WAITING_MEM    0x04	/* 0100 */
 #define IO_READ_PENDING   0x01	/* 0001 */
 #define IO_WRITE_PENDING  0x02  /* 0010 */
 #define IO_RW_PENDING     0x03  /* 0011 = IO_READ_PENDING | IO_WRITE_PENDING */
@@ -31,7 +32,7 @@ struct sock {
     u_int64_t	so_dseq_exp;		/* Data seq expected    */
     u_int64_t   so_cseq_exp;		/* Control seq expected */
 
-    struct tdu_lost_queue lostq;	/* Queue of lost Trasport Data Unit (mbuff) */
+    struct seq_lost_queue lostq;	/* Queue of lost Trasport Data Unit (mbuff) */
 
     size_t wmem_size;			/* Write buffer size    */
     size_t rmem_size;			/* Read  buffer size    */
@@ -51,16 +52,16 @@ struct sockqueue {
 };
 
 
-struct tdulost {
+struct seqlost {
     u_int64_t	    seq;	/* Seq */
     struct timespec eta;	/* Estimated arrival Time */
-    struct tdulost  *next;	/* Next Node */
+    struct seqlost  *next;	/* Next Node */
 }
 
-struct tdulost_queue {
+struct seqlost_queue {
     size_t size;
-    struct tdulost *head;
-    struct tdulost *tail;
+    struct seqlost *head;
+    struct seqlost *tail;
 };
 
 EXTERN struct sock sktable[MAX_SOCKETS];
@@ -68,6 +69,70 @@ EXTERN struct sock *sk_gvport[sizeof(u_int16_t)];
 EXTERN struct sockqueue so_used;
 EXTERN struct sockqueue so_free;
 
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * makewreq():										    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+struct msg *makewreq (int so_data, struct mb_queue *mbq) 
+{
+    struct msg *ptr;
+    struct mbuff *mbptr;
+    size_t len;
+    len = 0;
+    ptr = alloc_msg_locking();
+
+    if ( ptr != NULL ) {
+	ptr->io_opt = IO_OPT_WRITE;
+	ptr->io_socket = so_data;
+	ptr->io_ret    = 0;
+	ptr->io_errno  = 0;
+	ptr->discard   = DISCARD_TRUE;
+
+	init_mbuff_queue(&(ptr->mb.mbq));
+
+	while ( (mbptr = mbuff_dequeue(mbq)) != NULL ) {
+	    len += mbptr->m_datalen;
+	    mbuff_enqueue(&(ptr->mb.mbq));
+	}
+
+	ptr->io_req_len = len;
+	ptr->io_rep_len = 0;
+	ptr->io_chunk_size = 0;
+	ptr->p_next = NULL;
+    }
+    return ptr;
+}
+
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * makerreq():										    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+struct msg *makerreq ( int so_data, size_t len, size_t chunk_size ) 
+{
+    struct msg *ptr;
+    ptr = alloc_msg_locking();
+
+    if (ptr != NULL) {
+	ptr->io_opt = IO_OPT_READ;
+	ptr->io_socket = so_data;
+	ptr->io_ret    = 0;
+	ptr->io_errno  = 0;
+	ptr->discard   = DISCARD_FALSE;
+
+	init_mbuff_queue(&(ptr->mb.mbq));
+
+	ptr->io_req_len = len;
+	ptr->io_rep_len = 0;
+	ptr->io_chunk_size = chunk_size;
+	ptr->p_next = NULL;
+    }
+    return ptr;
+}
+
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * mbufftomsg():									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 struct msg *mbufftomsg (struct mbuff *mb, int clone, int discard)
 {
     struct msg *mptr;
@@ -88,7 +153,9 @@ struct msg *mbufftomsg (struct mbuff *mb, int clone, int discard)
     }
     return mptr;
 }
-
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * mbqtomsgq():										    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 size_t mbqtomsgq (struct msg_queue *msgq, struct mb_queue *mbq, size_t len, int clone, int discard)
 {
     struct msg_queue tmp;
@@ -112,17 +179,14 @@ size_t mbqtomsgq (struct msg_queue *msgq, struct mb_queue *mbq, size_t len, int 
     mbptr = mbq->head;
     mptr  = tmp.head;
 
-    while ( i <= ret-1 )
-    {
+    while ( i <= ret-1 ) {
 	if (mbptr == NULL)
 	    break;
 
 	mptr->msg_type = MSG_BUFF_CARRIER;
-	if (clone)
-	{
+	if (clone) {
 	    mbnew = clone_mbuff(mbptr);
-	    if (mbnew == NULL)
-	    {
+	    if (mbnew == NULL) {
 		/*
 		 * Corregir
 		 */
@@ -142,12 +206,10 @@ size_t mbqtomsgq (struct msg_queue *msgq, struct mb_queue *mbq, size_t len, int 
     return i;
 }
 
-
-
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * init_tdulost_queue():								    *
+ * init_seqlost_queue():								    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-void init_tdulost_queue(struct tdulost_queue *q)
+void init_seqlost_queue(struct seqlost_queue *q)
 {
     q->size = 0;
     q->head = NULL;
@@ -155,22 +217,22 @@ void init_tdulost_queue(struct tdulost_queue *q)
 }
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * gettdulost():									    *
+ * getseqlost():									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-struct tdulost *gettdulost(struct tdulost_queue *q, u_int64_t seq)
+struct seqlost *getseqlost(struct seqlost_queue *q, u_int64_t seq)
 {
-    struct tdulost_queue tmp;
-    struct tdulost *tdptr;
-    struct tdulost *ret;
+    struct seqlost_queue tmp;
+    struct seqlost *tdptr;
+    struct seqlost *ret;
 
-    init_tdulost_queue(&tmp);
+    init_seqlost_queue(&tmp);
 
-    while ((tdptr != tdulost_dequeue(q)) != NULL)
+    while ((tdptr != seqlost_dequeue(q)) != NULL)
     {
 	if (tdptr->seq == seq)
 	    ret = tdptr;
 	else
-	    tdulost_enqueue(&tmp, tdptr);
+	    seqlost_enqueue(&tmp, tdptr);
     }
     q->size = tmp.size;
     q->head = tmp.head;
@@ -179,11 +241,11 @@ struct tdulost *gettdulost(struct tdulost_queue *q, u_int64_t seq)
 }
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * copytdulost():									    *
+ * copyseqlost():									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-void copytdulost (u_int64_t *buff, struct tdulost_queue *q, size_t max)
+void copyseqlost (u_int64_t *buff, struct seqlost_queue *q, size_t max)
 {
-    struct tdulost *tdptr;
+    struct seqlost *tdptr;
 
     size_t n = 0;
     tdptr = q->head;
@@ -195,9 +257,9 @@ void copytdulost (u_int64_t *buff, struct tdulost_queue *q, size_t max)
 }
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * tdulost_enqueue():									    *
+ * seqlost_enqueue():									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-void tdulost_enqueue(struct tdulost_queue *q, struct tdulost *tdptr)
+void seqlost_enqueue(struct seqlost_queue *q, struct seqlost *tdptr)
 {
     tdptr->next = NULL;
     if (q->tail == NULL && q->head == NULL)
@@ -209,11 +271,11 @@ void tdulost_enqueue(struct tdulost_queue *q, struct tdulost *tdptr)
 }
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * tdulost_dequeue():									    *
+ * seqlost_dequeue():									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-struct tdulost *tdulost_dequeue(struct tdulost_queue *q)
+struct seqlost *seqlost_dequeue(struct seqlost_queue *q)
 {
-    struct tdulost *td;
+    struct seqlost *td;
     
     td = q->head;
     if (td != NULL) {
