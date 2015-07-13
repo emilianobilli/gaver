@@ -43,7 +43,8 @@ char *gv_error_str[] = { "Invalid address",
 int load_gvcgf (int argc, char *argv[])
 {
     int opt;
-
+    int port;
+    int i;
 
     while (( opt = getopt(argc,argv,"a:p:S:s:m:M:")) != -1)
     {
@@ -55,6 +56,15 @@ int load_gvcgf (int argc, char *argv[])
 	    }
 	    break;
 	case 'p':
+	    for ( i = 0; optarg[i]; i++ )
+		if (isdigit((int)optarg[i]))
+		    break;
+	    if ( i == strlen(optarg)-1 ) 
+		gv_cfg.port = (u_int16_t) strtol(optarg,NULL,10);
+	    else {
+		gv_error = EINVPORT;
+		return -1;
+	    }
 	    break;
 	case 'S':
 	    break;
@@ -69,29 +79,4 @@ int load_gvcgf (int argc, char *argv[])
     }
 }
 
-
-int
-       main(int argc, char *argv[])
-       {
-           int flags, opt;
-           int nsecs, tfnd;
-
-           nsecs = 0;
-           tfnd = 0;
-           flags = 0;
-           while ((opt = getopt(argc, argv, "nt:")) != -1) {
-               switch (opt) {
-               case 'n':
-                   flags = 1;
-                   break;
-               case 't':
-                   nsecs = atoi(optarg);
-                   tfnd = 1;
-                   break;
-               default: /* '?' */
-                   fprintf(stderr, "Usage: %s [-t nsecs] [-n] name\n",
-                           argv[0]);
-                   exit(EXIT_FAILURE);
-               }
-           }
 
