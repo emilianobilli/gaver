@@ -60,16 +60,33 @@ int load_gvcgf (int argc, char *argv[])
 		if (isdigit((int)optarg[i]))
 		    break;
 	    if ( i == strlen(optarg)-1 ) 
-		gv_cfg.port = (u_int16_t) strtol(optarg,NULL,10);
+		gv_cfg.port = htons((u_int16_t) strtol(optarg,NULL,10));
 	    else {
 		gv_error = EINVPORT;
 		return -1;
 	    }
 	    break;
 	case 'S':
+	    if (strcmp("rt-fifo", optarg)== 0)
+		gv_cfg.sched = 1;
+	    else {
+		if (strcmp("rt-rr", optarg) == 0)
+		    gv_cfg.sched = 2;
+		else
+		    gv_error = EUNKPASCH;
+		    return -1;
+	    }
 	    break;
 	case 's':
-	    break;
+	    if ( i = 0; optarg[i]; i++ )
+		if(isdigit((int)optarg[i]))
+		    break;
+	    if ( i == strlen(optarg)-1 )
+		gv_cfg.bps_speed = (u_int64_t) strtol(optarg,NULL, 10);
+	    else {
+		gv_error = EOVSPEED;
+		return -1;
+	    break
 	case 'm':
 	    break;
 	case 'M':

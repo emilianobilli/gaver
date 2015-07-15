@@ -4,16 +4,18 @@
 
 #define MAX_NANOSECOND 999999999
 
-int time_gt (struct timespec *a, struct timespec *b){
-    if (a->tv_sec > b->tv_sec){
-	return 1;
-    }
 
-    if (a->tv_sec < b->tv_sec){
+int time_gt (struct timespec *a, struct timespec *b)
+{
+    if (a->tv_sec > b->tv_sec)
+	return 1;
+
+
+    if (a->tv_sec < b->tv_sec)
 	return 0;
-    }
     
-    if (a->tv_sec == b->tv_sec){
+    if (a->tv_sec == b->tv_sec)
+    {
 	if (a->tv_nsec > b->tv_nsec){
 	    return 1;
 	}
@@ -24,7 +26,8 @@ int time_gt (struct timespec *a, struct timespec *b){
 }
 
 
-int time_lt (struct timespec *a, struct timespec *b){
+int time_lt (struct timespec *a, struct timespec *b)
+{
     if (a->tv_sec < b->tv_sec){
 	return 1;
     }
@@ -43,7 +46,8 @@ int time_lt (struct timespec *a, struct timespec *b){
     }
 }
 
-int time_eq (struct timespec *a, struct timespec *b){
+int time_eq (struct timespec *a, struct timespec *b)
+{
     if ((a->tv_sec == b->tv_sec) && (a->tv_nsec == b->tv_nsec))
 	return 1;
     return 0;
