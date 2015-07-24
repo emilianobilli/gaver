@@ -7,16 +7,17 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-
+/*
+ * Message Types
+ */
 #define GV_CONNECT_API 0
-#define GV_REPLY_API 1
-#define GV_BIND_API 2
-#define GV_LISTEN_API 3
-#define GV_ACCEPT_API 4
-#define GV_CLOSE_API 5
+#define GV_REPLY_API   1
+#define GV_BIND_API    2
+#define GV_LISTEN_API  3
+#define GV_ACCEPT_API  4
+#define GV_CLOSE_API   5
 
-#define GV_PORT 55000
-#define GV_MSGSIZE 128
+#define GV_MSGSIZE   128
 #define SU_PATH_SIZE 108
 
 #define GV_REP_CODE_OK 0
@@ -29,9 +30,13 @@ typedef struct {
 } gv_socket_t;
 
 
+typedef u_int16_t gv_port_t;
+
 struct sockaddr_gv {
-    u_int16_t	sin_gvport;
-    struct sockaddr_in addr;
+    sa_family_t    sin_family; /* address family: AF_INET */
+    in_port_t      sin_port;   /* port in network byte order */
+    gv_port_t	   sin_gvport; /* port for gaver */
+    struct in_addr sin_addr;   /* internet address */
 };
 
 typedef struct {
