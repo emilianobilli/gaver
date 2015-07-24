@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+
 #define GV_CONNECT_API 0
 #define GV_REPLY_API 1
 #define GV_BIND_API 2
@@ -28,61 +29,68 @@ typedef struct {
 } gv_socket_t;
 
 
+struct sockaddr_gv {
+    u_int16_t	sin_gvport;
+    struct sockaddr_in addr;
+};
+
 typedef struct {
     u_int8_t type;
     union {
-	gv_cntapi_t connect;
-	gv_replyapi_t reply;
-	gv_bindapi_t bind;
-	gv_listenapi_t listen;
-	gv_acptapi_t accept;
-	gv_clsapi_t close;
+	gv_connectapi_t connect;
+	gv_replyapi_t   reply;
+	gv_bindapi_t    bind;
+	gv_listenapi_t  listen;
+	gv_accceptapi_t accept;
+	gv_closesapi_t  close;
     } un;
+    unsigned char res[11];
 } gv_msgapi_t;
+
 
 /* Mensaje de tipo Connect para la API */
 typedef struct {
     u_int32_t ip;
     u_int16_t port;
     u_int16_t vport;
-    u_int8_t path[108];
-    u_int8_t res[11];
-} gv_cntapi_t;
+    u_int8_t  path[SU_PATH_SIZE];
+} gv_connectapi_t;
+
 
 /* Mensaje de tipo reply para la API */
 typedef struct {
-    u_int8_t code;
+    u_int8_t  code;
     u_int32_t ip;
     u_int16_t port;
     u_int16_t vport;
-    u_int8_t msg[118];
+    u_int8_t  msg[118];
 } gv_replyapi_t;
+
 
 /* Mensaje de tipo bind para la API */
 typedef struct {
     u_int32_t ip;
     u_int16_t port;
     u_int16_t vport;
-    u_int8_t res[119];
 } gv_bindapi_t;
+
 
 /* Mensaje de tipo listen para la API */
 typedef struct {
     u_int8_t backlog;
-    u_int8_t res[126];
 } gv_listenapi_t;
 
 /* Mensaje de tipo accept para la API */
 typedef struct {
     u_int32_t ip;
     u_int16_t port;
-    u_int8_t res[121];
-} gv_acptapi_t;
+    u_int16_t vport;
+} gv_acceptapi_t;
 
 /* Mensaje de tipo close para la API */
 typedef struct {
     u_int8_t res[127];
-} gv_clsapi_t;
+} gv_closeapi_t;
 
 int getdatasocket(socket_t *sd);
 
@@ -110,23 +118,15 @@ if (ret != -1) {
 }
 
 */
-int gv_socket(gv_socket_t *sd);
-int gv_connect(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t len);
-int gv_bind(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t len);
-int gv_listen(gv_socker_t *sd, int backlog);
+int gv_connect(gv_socket_t *sd, struct sockaddr_gv *addr, socklen_t len);
+int gv_bind(gv_socket_t *sd, struct sockaddr_gv *addr, socklen_t len);
+int gv_listen(gv_socket_t *sd, int backlog);
 
 /*
  * Prototipo supuesto
  *
  */
-int gv_accept(gv_socket_t *sd, gv_socket_t *unused, struct sockaddr *addr, socklen_t *len);
-/*
-gv_socket_t sock;
-ret = gv_accept(&sock, NULL,(struct sockaddr *) &addr, &len);
-*/
-
-
-int gv_accept(gv_socker_t *sd, struct sockaddr_in* addr, socklen_t *len);
-int gv_close (gv_socker_t *sd);
+int gv_accept(gv_socket_t *sd, struct sockaddr_gv *addr, socklen_t *len);
+int gv_close (gv_socket_t *sd);
 
 #endif /* gv_lib.h */
