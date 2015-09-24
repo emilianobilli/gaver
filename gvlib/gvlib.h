@@ -23,10 +23,19 @@
 #define GV_REP_CODE_OK 0
 #define GV_REP_CODE_FAIL 1
 
+
+#define IOMSG_ACTION_READ  0
+#define IOMSG_ACTION_WRITE 1
+
+#define GV_DATA_SD((x)) (x)->so_data
+#define GV_CTRL_SD((x)) (x)->so_ctrl
+
+
+
 typedef struct {
-    int so_ctrl;
-    int so_data;
-    struct sockaddr_un so_addr;
+    int so_ctrl;			/* Control Conexion */
+    int so_data;			/* Data conexion    */
+    struct sockaddr_un so_addr;		/* Unix Path 	    */
 } gv_socket_t;
 
 

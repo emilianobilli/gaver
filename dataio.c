@@ -306,7 +306,7 @@ ssize_t recvdata (int sdux, struct mb_queue *q, size_t len, size_t mtu )
 	ret = recvmsg(sdux,
    	              &msg,
 		      MSG_NOSIGNAL | MSG_DONTWAIT);
-	if ( ret > 0 || (ret == -1 && errno == EINTR))
+	if ( ret > 0 || (ret == -1 && errno != EINTR))
 	    break;
     }
 
@@ -403,7 +403,7 @@ ssize_t senddata (int sdux, struct mb_queue *txq, struct mb_queue *no_sent, int 
 	ret = sendmsg(sdux,
    	              &msg,
 		      MSG_NOSIGNAL | MSG_DONTWAIT);
-	if ( ret > 0 || (ret == -1 && errno == EINTR))
+	if ( ret > 0 || (ret == -1 && errno != EINTR))
 	    break;
     }
 
