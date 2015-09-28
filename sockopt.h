@@ -20,6 +20,8 @@
 
 extern int unix_socket(const char *path);
 
+extern int unix_socket_client(const char *path);
+
 extern int ipv4_udp_socket (const char *ipv4_addr, u_int16_t port);
 
 extern int iptos_throughput(int sd);
