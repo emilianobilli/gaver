@@ -5,7 +5,14 @@ import gvlib
 import socket
 
 
-def gv_socket()
+class gaver(object):
+    def __init__(self):
+	self.so_data
+	self.so_ctrl
+
+    
+
+    def socket(self
 
 
 class gv_object(object):
