@@ -36,13 +36,18 @@ int gv_fileno(gv_socket_t *sd)
 static int getgvsocketunix(char *su_path);
 
 
+static int getgvsockettype
 
-static int getgvsocketunix(char *su_path)
+
+static int getgvsocketinet(struct sockaddr_in *addr)
+
+
+static int getgvsocketunix(struct sockaddr_un *addr)
 {
     char *gv_socket_env;
     gv_socket_env = getenv("GV_SOCKET_LOCAL");
     if ( gv_socket_env != NULL ) {
-	strcpy(su_path, gv_socket_env);
+	strcpy(addr->sun_path, gv_socket_env);
 	return 0;
     }
     return -1;

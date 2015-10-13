@@ -17,9 +17,6 @@
 #ifndef _API_TYPES_H
 #define _API_TYPES_H
 
-#define GAVER_HANDHAKE	"GV-LIB 0.1"	/* Default msg when the connection start */
-#define GAVER_REPLY	"GV-KRN 0.1"	/* Default reply from kernel 		 */
-
 #include <sys/types.h>
 
 #define IOMSG_ACTION_READ	0x00
@@ -33,6 +30,9 @@
 #define MSG_ACCEPT		0x01
 #define MSG_BIND		0x02
 #define MSG_LISTEN		0x03
+#define MSG_CLOSE		0x04
+#define MSG_SETOPT		0x05
+#define MSG_GETOPT		0x06
 
 
 struct gv_msg_connect {
@@ -42,9 +42,11 @@ struct gv_msg_connect {
     u_int8_t  sun_path[SUN_PATH_SIZE];
 };
 
+
 struct gv_msg_accept {
     u_int8_t  sun_path[SUN_PATH_SIZE];
 };
+
 
 struct gv_msg_bind {
     u_int32_t addr;
@@ -52,11 +54,13 @@ struct gv_msg_bind {
     u_int16_t vport;
 };
 
+
 struct gv_msg_listen {
     u_int8_t  backlog;
 };
 
-union gv_return {
+
+union gv_reply {
     struct {
 	u_int16_t  error_code;		/* 2 bytes */
     } fail;
@@ -67,24 +71,24 @@ union gv_return {
     } success;
 };
 
-union gv_msg_all {
+union gv_request {
     struct gv_msg_connect connect;	
     struct gv_msg_accept  accept;
     struct gv_msg_bind    bind;
     struct gv_msg_listen  listen;
 };
 
-struct gv_msg_api {
+struct gv_req_api {
     u_int8_t         msg_type;
-    union gv_msg_all un;
-    u_int8_t         __res[GVMSGAPISZ-sizeof(union gv_msg_listen)-sizeof(u_int8_t)];
+    union gv_request un;
+    u_int8_t         __res[GVMSGAPISZ-sizeof(union gv_request)-sizeof(u_int8_t)];
 };
 
 
-struct gv_ret_api {
+struct gv_rep_api {
     u_int8_t         status;
-    union gv_return  un;
-    u_int8_t         __res[GVMSGAPISZ-sizeof(union gv_return)-sizeof(u_int8_t)];
+    union gv_reply  un;
+    u_int8_t         __res[GVMSGAPISZ-sizeof(union gv_reply)-sizeof(u_int8_t)];
 };
 
 #endif /* apitypes.h */

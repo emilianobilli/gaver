@@ -19,6 +19,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/types.h>
+#include "gv_err.h"
 #include "apitypes.h"
 
 
