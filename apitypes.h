@@ -71,12 +71,14 @@ union gv_reply {
     } success;
 };
 
+
 union gv_request {
     struct gv_msg_connect connect;	
     struct gv_msg_accept  accept;
     struct gv_msg_bind    bind;
     struct gv_msg_listen  listen;
 };
+
 
 struct gv_req_api {
     u_int8_t         msg_type;

@@ -45,7 +45,7 @@ static int getgvsocketinet(struct sockaddr_in *addr)
 static int getgvsocketunix(struct sockaddr_un *addr)
 {
     char *gv_socket_env;
-    gv_socket_env = getenv("GV_SOCKET_LOCAL");
+    gv_socket_env = getenv("GV_KERNEL_LINK");
     if ( gv_socket_env != NULL ) {
 	strcpy(addr->sun_path, gv_socket_env);
 	return 0;
@@ -66,7 +66,6 @@ int gv_socket(gv_socket_t *sd, int domain, int type, int protocol)
     /*
      * Clean the struct 
      */
-
     memset(sd, 0, sizeof(gv_socket_t));
     /*
      * Get the Unix socket of GaVer kernel
@@ -75,7 +74,7 @@ int gv_socket(gv_socket_t *sd, int domain, int type, int protocol)
     if (ret == -1)
     {
 	sd->so_status = SO_STATUS_UNLINKED;
-	gv_err = EENVAR;
+	gv_err = ENVERROR;
 	return -1;
     }
     
@@ -86,13 +85,10 @@ int gv_socket(gv_socket_t *sd, int domain, int type, int protocol)
     if (sd->so_ctrl == -1)
     {
 	sd->so_status = SO_STATUS_UNLINKED;
-	gv_err = ECTRLCNT;
+	gv_err = KRNERROR;
 	return -1;
     }
 
-    /*
-     * FALTA HACER EL HANDSHAKE --------------
-     */
     tmpnam(so_data_path);
     sd->so_data = unix_socket(so_data_path);
     if (sd->so_data == -1) 

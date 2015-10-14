@@ -17,11 +17,21 @@
 
 CC := gcc
 OBJ:= -c -Wall -ggdb 
+OBJ_LIB:= -c -Wall -fPIC
 LINK:= -lrt -lm -lpthread
-
+SHARED:= -shared 
 
 all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o main.o 
 	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o main.o -o main $(LINK)
+
+libgv.so: libgv.o gv_err.o
+	$(CC) $(SHARED) libgv.o gv_err.o -o libgv.so
+
+libgv.o: libgv.c
+	$(CC) $(OBJ_LIB) libgv.c
+
+gv_err.o: gv_err.h gv_err.c
+	$(CC) $(OBJ_LIB) gv_err.c
 
 itc.o: itc.c itc.h itc_var.h
 	$(CC) $(OBJ) itc.c 
@@ -57,5 +67,6 @@ main.o:
 	$(CC) $(OBJ) main.c
 
 clean:
-	rm -Rf *.o
-	rm main
+	-rm -Rf *.o
+	-rm main
+	-rm libgv.so

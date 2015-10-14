@@ -19,37 +19,38 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/types.h>
+#include <errno.h>
+#include <string.h>
 #include "gv_err.h"
 #include "apitypes.h"
 
+static ssize_t rw_msg(int sd, void *msg, int action);
 
 int gv_listen_api_msg (int sd, u_int8_t backlog)
 {
-    struct gv_msg_api msg;
-    struct gv_ret_api ret;
+    struct gv_req_api msg;
+    struct gv_rep_api ret;
 
-    memset(&msg, 0, sizeof(struct gv_msg_api);
+    memset(&msg, 0, sizeof(struct gv_req_api));
+
     msg.msg_type = MSG_CONNECT;
     msg.un.listen.backlog = backlog;
 
     if (rw_msg(sd, &msg, IOMSG_ACTION_WRITE) == -1)
-	/*
-         * Asignar GV ERROR
-         */
+    {
+	gv_errno = OSERROR;
 	return -1;
-
-    memset(&ret, 0, sizeof(struct gv_ret_api);
+    }
+    memset(&ret, 0, sizeof(struct gv_rep_api));
     if (rw_msg(sd, &ret, IOMSG_ACTION_READ) == -1)
-	/*
-         * Asignar GV ERROR
-         */
+    {
+	gv_errno = OSERROR;
 	return -1;
+    }
 
     if (ret.status == COMMAND_FAIL)
     {
-    	/*
-         * Asignar GV ERROR
-         */
+    	gv_errno = (int) ret.un.fail.error_code;
 	return -1;
     }
     return 0;
@@ -58,32 +59,29 @@ int gv_listen_api_msg (int sd, u_int8_t backlog)
 
 int gv_accept_api_msg(int sd, u_int32_t *addr, u_int16_t *port, u_int16_t *vport, char *sun_path)
 {
-    struct gv_msg_api msg;
-    struct gv_ret_api ret;
+    struct gv_req_api msg;
+    struct gv_rep_api ret;
 
-    memset(&msg, 0, sizeof(struct gv_msg_api);
+    memset(&msg, 0, sizeof(struct gv_req_api));
 
     msg.msg_type = MSG_ACCEPT;
-    strcpy(msg.un.accept.sun_path, sun_path);
+    strcpy((char *)msg.un.accept.sun_path, sun_path);
 
     if (rw_msg(sd, &msg, IOMSG_ACTION_WRITE) == -1)
-	/*
-         * Asignar GV ERROR
-         */
+    {
+	gv_errno = OSERROR;
 	return -1;
+    }
 
-    memset(&ret, 0, sizeof(struct gv_ret_api);
+    memset(&ret, 0, sizeof(struct gv_rep_api));
     if (rw_msg(sd, &ret, IOMSG_ACTION_READ) == -1)
-	/*
-         * Asignar GV ERROR
-         */
+    {
+	gv_errno = OSERROR;
 	return -1;
-
+    }
     if (ret.status == COMMAND_FAIL)
     {
-    	/*
-         * Asignar GV ERROR
-         */
+	gv_errno = (int) ret.un.fail.error_code;
 	return -1;
     }
     else
@@ -98,10 +96,10 @@ int gv_accept_api_msg(int sd, u_int32_t *addr, u_int16_t *port, u_int16_t *vport
 
 int gv_bind_api_msg (int sd, u_int32_t *addr, u_int16_t *port, u_int16_t *vport)
 {	
-    struct gv_msg_api msg;
-    struct gv_ret_api ret;
+    struct gv_req_api msg;
+    struct gv_rep_api ret;
 
-    memset(&msg, 0, sizeof(struct gv_msg_api);
+    memset(&msg, 0, sizeof(struct gv_req_api));
 
     msg.msg_type = MSG_BIND;
     msg.un.bind.addr  = *addr;
@@ -109,23 +107,19 @@ int gv_bind_api_msg (int sd, u_int32_t *addr, u_int16_t *port, u_int16_t *vport)
     msg.un.bind.vport = *vport;
 
     if (rw_msg(sd, &msg, IOMSG_ACTION_WRITE) == -1)
-	/*
-         * Asignar GV ERROR
-         */
+    {
+	gv_errno = OSERROR;
 	return -1;
-
-    memset(&ret, 0, sizeof(struct gv_ret_api);
+    }
+    memset(&ret, 0, sizeof(struct gv_rep_api));
     if (rw_msg(sd, &ret, IOMSG_ACTION_READ) == -1)
-	/*
-         * Asignar GV ERROR
-         */
+    {
+	gv_errno = OSERROR;
 	return -1;
-
+    }
     if (ret.status == COMMAND_FAIL)
     {
-    	/*
-         * Asignar GV ERROR
-         */
+    	gv_errno = (int) ret.un.fail.error_code;
 	return -1;
     }
     else
@@ -139,46 +133,38 @@ int gv_bind_api_msg (int sd, u_int32_t *addr, u_int16_t *port, u_int16_t *vport)
 
 int gv_connect_api_msg (int sd, u_int32_t addr, u_int16_t port, u_int16_t vport, char *sun_path)
 {
-    struct gv_msg_api msg;
-    struct gv_ret_api ret;
+    struct gv_req_api msg;
+    struct gv_rep_api ret;
 
-    memset(&msg, 0, sizeof(struct gv_msg_api);
+    memset(&msg, 0, sizeof(struct gv_req_api));
 
     msg.msg_type = MSG_CONNECT;
     msg.un.connect.addr  = addr;
     msg.un.connect.port  = port;
     msg.un.connect.vport = vport;
-    strcpy(msg.un.sun_path, sun_path);
+    strcpy((char *)msg.un.connect.sun_path, sun_path);
 
     if (rw_msg(sd, &msg, IOMSG_ACTION_WRITE) == -1)
-	/*
-         * Asignar GV ERROR
-         */
+    {
+	gv_errno = OSERROR;
 	return -1;
-
-    memset(&ret, 0, sizeof(struct gv_ret_api);
+    }
+    memset(&ret, 0, sizeof(struct gv_rep_api));
     if (rw_msg(sd, &ret, IOMSG_ACTION_READ) == -1)
-	/*
-         * Asignar GV ERROR
-         */
+    {
+	gv_errno = OSERROR;
 	return -1;
-
+    }
     if (ret.status == COMMAND_FAIL)
     {
-    	/*
-         * Asignar GV ERROR
-         */
+	gv_errno = (int) ret.un.fail.error_code;
 	return -1;
     }
     return 0;
 }
 
 
-
-ssize_t rw_msg(int sd, struct gv_msg_api *msg, int action);
-
-
-ssize_t rw_msg(int sd, struct gv_msg_api *msg, int action)
+ssize_t rw_msg(int sd, void *msg, int action)
 {
     ssize_t bytes_transfd, ret;
     u_int8_t *ptr;
