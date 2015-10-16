@@ -35,6 +35,9 @@
 #define MSG_GETOPT		0x06
 
 
+#define PADDING(x,y) u_int8_t _pad[GVMSGAPISZ-sizeof(x)-sizeof(y)]
+
+
 struct gv_msg_connect {
     u_int32_t addr;
     u_int16_t port;
@@ -71,7 +74,6 @@ union gv_reply {
     } success;
 };
 
-
 union gv_request {
     struct gv_msg_connect connect;	
     struct gv_msg_accept  accept;
@@ -79,18 +81,17 @@ union gv_request {
     struct gv_msg_listen  listen;
 };
 
-
 struct gv_req_api {
     u_int8_t         msg_type;
+    PADDING(union gv_request,u_int8_t);
     union gv_request un;
-    u_int8_t         __res[GVMSGAPISZ-sizeof(union gv_request)-sizeof(u_int8_t)];
 };
 
 
 struct gv_rep_api {
     u_int8_t         status;
+    PADDING(union gv_reply,u_int8_t);
     union gv_reply  un;
-    u_int8_t         __res[GVMSGAPISZ-sizeof(union gv_reply)-sizeof(u_int8_t)];
 };
 
 #endif /* apitypes.h */

@@ -14,6 +14,7 @@ struct timeout {
 #define IO_RW_PENDING     0x03  /* 0011 = IO_READ_PENDING | IO_WRITE_PENDING */
 
 #define MAX_SOCKETS	  255
+#define NO_GVPORT         0x0000
 
 struct sock {
     int 	so_lodata;
@@ -338,6 +339,36 @@ struct sock *getsockbygvport(u_int16_t gvport)
 {
     return sk_gvport[gvport];
 }
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * bind_gvport(): 									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+struct sock *bind_gvport(struct sock *sk, u_int16_t gvport)
+{
+    if ( sk_gvport[gvport] == NULL )
+    {
+	sk_gvport[gvport] = sk;
+	sk->so_local_gvport = gvport;
+	return sk;
+    }
+    return NULL;
+}
+
+struct sock *close_gvport_sk (struct sock *sk)
+{
+    sk_gvport[sk->so_local_gvport] = NULL;
+    sk->so_local_gvport = NO_GVPORT;
+    return sk;
+}
+
+struct sock *close_gvport_gvport(u_int16_t gvport)
+{
+    struct sock *sk = sk_gvport[gvport];
+    if ( sk != NULL )
+	return close_gvport_sk(sk);
+    return NULL;
+}
+
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * getsockbysodata(): 									    *

@@ -5,6 +5,13 @@
 #define MAX_NANOSECOND   999999999
 #define NSSECOND	1000000000
 
+
+double ttodouble (struct timespec *t)
+{
+    return (double) ( (double) t->tv_sec ) + ( (double) t->tv_nsec / (double) 1000000000.0 )  
+}
+
+
 int time_gt (struct timespec *a, struct timespec *b)
 {
     if (a->tv_sec > b->tv_sec)
