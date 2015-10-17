@@ -163,18 +163,6 @@ int gv_connect_api_msg (int sd, u_int32_t addr, u_int16_t port, u_int16_t vport,
     return 0;
 }
 
-
-ssize_t read_msg(int sd, void *msg)
-{
-    return rw_msg(sd, msg, IOMSG_ACTION_READ);
-}
-
-ssize_r write_msg(int sd, void *msg)
-{
-    return rw_msg(sd, msg, IOMSG_ACTION_WRITE);
-}
-
-
 ssize_t rw_msg(int sd, void *msg, int action)
 {
     ssize_t bytes_transfd, ret;

@@ -66,6 +66,12 @@ start.o: start.c start_var.h start.h
 main.o:
 	$(CC) $(OBJ) main.c
 
+install_lib: libgv.so
+	-sudo mkdir /usr/include/gaver/
+	sudo cp apitypes.h /usr/include/gaver/
+	sudo cp gv_err.h   /usr/include/gaver/
+	sudo cp libgv.h    /usr/include/gaver/
+	sudo cp libgv.so   /usr/lib/
 clean:
 	-rm -Rf *.o
 	-rm main
