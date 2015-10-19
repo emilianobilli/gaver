@@ -22,9 +22,8 @@
 #include <errno.h>
 #include <string.h>
 #include "gv_err.h"
+#include "common.h"
 #include "apitypes.h"
-
-static ssize_t rw_msg(int sd, void *msg, int action);
 
 int gv_listen_api_msg (int sd, u_int8_t backlog)
 {
@@ -36,13 +35,13 @@ int gv_listen_api_msg (int sd, u_int8_t backlog)
     msg.msg_type = MSG_CONNECT;
     msg.un.listen.backlog = backlog;
 
-    if (rw_msg(sd, &msg, IOMSG_ACTION_WRITE) == -1)
+    if (write_msg(sd, &msg, GVMSGAPISZ) == -1)
     {
 	gv_errno = OSERROR;
 	return -1;
     }
     memset(&ret, 0, sizeof(struct gv_rep_api));
-    if (rw_msg(sd, &ret, IOMSG_ACTION_READ) == -1)
+    if (read_msg(sd, &ret, GVMSGAPISZ) == -1)
     {
 	gv_errno = OSERROR;
 	return -1;
@@ -67,14 +66,14 @@ int gv_accept_api_msg(int sd, u_int32_t *addr, u_int16_t *port, u_int16_t *vport
     msg.msg_type = MSG_ACCEPT;
     strcpy((char *)msg.un.accept.sun_path, sun_path);
 
-    if (rw_msg(sd, &msg, IOMSG_ACTION_WRITE) == -1)
+    if (write_msg(sd, &msg, GVMSGAPISZ) == -1)
     {
 	gv_errno = OSERROR;
 	return -1;
     }
 
     memset(&ret, 0, sizeof(struct gv_rep_api));
-    if (rw_msg(sd, &ret, IOMSG_ACTION_READ) == -1)
+    if (read_msg(sd, &ret, GVMSGAPISZ) == -1)
     {
 	gv_errno = OSERROR;
 	return -1;
@@ -106,13 +105,13 @@ int gv_bind_api_msg (int sd, u_int32_t *addr, u_int16_t *port, u_int16_t *vport)
     msg.un.bind.port  = *port;
     msg.un.bind.vport = *vport;
 
-    if (rw_msg(sd, &msg, IOMSG_ACTION_WRITE) == -1)
+    if (write_msg(sd, &msg, GVMSGAPISZ) == -1)
     {
 	gv_errno = OSERROR;
 	return -1;
     }
     memset(&ret, 0, sizeof(struct gv_rep_api));
-    if (rw_msg(sd, &ret, IOMSG_ACTION_READ) == -1)
+    if (read_msg(sd, &ret, GVMSGAPISZ) == -1)
     {
 	gv_errno = OSERROR;
 	return -1;
@@ -131,6 +130,7 @@ int gv_bind_api_msg (int sd, u_int32_t *addr, u_int16_t *port, u_int16_t *vport)
     return 0;
 }
 
+
 int gv_connect_api_msg (int sd, u_int32_t addr, u_int16_t port, u_int16_t vport, char *sun_path)
 {
     struct gv_req_api msg;
@@ -144,13 +144,13 @@ int gv_connect_api_msg (int sd, u_int32_t addr, u_int16_t port, u_int16_t vport,
     msg.un.connect.vport = vport;
     strcpy((char *)msg.un.connect.sun_path, sun_path);
 
-    if (rw_msg(sd, &msg, IOMSG_ACTION_WRITE) == -1)
+    if (write_msg(sd, &msg,GVMSGAPISZ ) == -1)
     {
 	gv_errno = OSERROR;
 	return -1;
     }
     memset(&ret, 0, sizeof(struct gv_rep_api));
-    if (rw_msg(sd, &ret, IOMSG_ACTION_READ) == -1)
+    if (read_msg(sd, &ret, GVMSGAPISZ) == -1)
     {
 	gv_errno = OSERROR;
 	return -1;
@@ -161,43 +161,4 @@ int gv_connect_api_msg (int sd, u_int32_t addr, u_int16_t port, u_int16_t vport,
 	return -1;
     }
     return 0;
-}
-
-ssize_t rw_msg(int sd, void *msg, int action)
-{
-    ssize_t bytes_transfd, ret;
-    u_int8_t *ptr;
-    
-    ptr = (u_int8_t *) &msg;
-    bytes_transfd = 0;
-
-    if (action == IOMSG_ACTION_READ )
-    {
-	while(bytes_transfd < GVMSGAPISZ)
-	{
-	    ret = recv(sd, &ptr[bytes_transfd], GVMSGAPISZ - bytes_transfd, 0);
-	    if (ret == -1) {
-		if (errno != EINTR) 
-		    return -1;
-		else
-		    continue;
-	    }
-	    bytes_transfd += ret;
-	}
-    }
-    if (action == IOMSG_ACTION_WRITE)
-    {
-	while(bytes_transfd < GVMSGAPISZ)
-	{
-	    ret = send(sd, &ptr[bytes_transfd], GVMSGAPISZ - bytes_transfd, 0);
-	    if (ret == -1) {
-		if (errno != EINTR) 
-		    return -1;
-		else
-		    continue;
-	    }
-	    bytes_transfd += ret;
-	}
-    }
-    return bytes_transfd;
 }

@@ -24,8 +24,8 @@ SHARED:= -shared
 all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o main.o 
 	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o main.o -o main $(LINK)
 
-libgv.so: libgv.o gv_err.o
-	$(CC) $(SHARED) libgv.o gv_err.o -o libgv.so
+libgv.so: libgv.o gv_err.o common.o
+	$(CC) $(SHARED) libgv.o common.o gv_err.o -o libgv.so
 
 libgv.o: libgv.c
 	$(CC) $(OBJ_LIB) libgv.c
@@ -62,6 +62,8 @@ dataio.o: dataio.c dataio.h
 
 start.o: start.c start_var.h start.h
 	$(CC) $(OBJ) start.c
+common.o: common.c
+	$(CC) $(OBJ_LIB) common.c
 
 main.o:
 	$(CC) $(OBJ) main.c
@@ -72,6 +74,7 @@ install_lib: libgv.so
 	sudo cp gv_err.h   /usr/include/gaver/
 	sudo cp libgv.h    /usr/include/gaver/
 	sudo cp libgv.so   /usr/lib/
+
 clean:
 	-rm -Rf *.o
 	-rm main

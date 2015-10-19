@@ -19,8 +19,6 @@
 
 #include <sys/types.h>
 
-#define IOMSG_ACTION_READ	0x00
-#define IOMSG_ACTION_WRITE	0x01
 #define SUN_PATH_SIZE		108
 #define GVMSGAPISZ		128
 #define COMMAND_SUCCESS		0
