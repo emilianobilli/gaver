@@ -190,7 +190,7 @@ void *output (void *arg)
 	    where = "flushqueue()";
 	    goto panic;
 	}
-	msg_sent   +=tmp;
+	msg_sent   += (tmp -txq.size);
 	bytes_sent +=ret;
 
 	if (kernelq.size > 0)
@@ -224,7 +224,6 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
      */
 
     init_msg_queue(retq);
-
 
     while (queue->size > 0)
     {
