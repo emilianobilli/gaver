@@ -42,6 +42,7 @@ void itc_init(void)
     itc_msg_queue_init(&kernel_netout_queue[1]);
     itc_msg_queue_init(&kernel_netout_queue[2]);
     itc_msg_queue_init(&netinp_kernel_queue);
+    itc_msg_queue_init(&netout_kernel_queue);
     itc_msg_queue_init(&kernel_dataio_queue);
     itc_msg_queue_init(&dataio_kernel_queue);
 
@@ -73,7 +74,8 @@ int itc_signalfd_init (void)
     sigaddset(&seset,SE_KERTONET_0);
     sigaddset(&seset,SE_KERTONET_1);
     sigaddset(&seset,SE_KERTONET_2);
-    sigaddset(&seset,SE_NETTOKER);
+    sigaddset(&seset,SE_NETINTOKER);
+    sigaddset(&seset,SE_NETOUTTOKER);
     sigaddset(&seset,SE_DATTOKER);
     sigaddset(&seset,SE_KERTODAT);
 
@@ -92,7 +94,8 @@ int itc_block_signal (void)
     sigaddset(&seset,SE_KERTONET_0);
     sigaddset(&seset,SE_KERTONET_1);
     sigaddset(&seset,SE_KERTONET_2);
-    sigaddset(&seset,SE_NETTOKER);
+    sigaddset(&seset,SE_NETINTOKER);
+    sigaddset(&seset,SE_NETOUTTOKER);
     sigaddset(&seset,SE_DATTOKER);
     sigaddset(&seset,SE_KERTODAT);
 
@@ -124,7 +127,8 @@ int itc_read_event(int fd, struct itc_event_info *info)
  *----------------------------------------------------------------------------------------------*/
 int itc_getmsgprio(int sig)
 {
-    if (sig == SE_NETTOKER || 
+    if (sig == SE_NETINTOKER || 
+	sig == SE_NETOUTTOKER ||
 	sig == SE_DATTOKER ||
 	sig == SE_KERTODAT ||
 	sig == SE_KERTONET_0 )
@@ -174,16 +178,31 @@ int itc_wr_msgqueue ( int other, struct msg_queue *q, int prio, int opt )
     switch (itc_self())
     {
 	case KERNEL_LAYER_THREAD:
-	    if (other == NETOUT_LAYER_THREAD && opt == WR_OPT_WRITE)
+	    if (other == NETOUT_LAYER_THREAD) 
 	    {
-		wropt.src  = KERNEL_LAYER_THREAD;
-		wropt.dst  = NETOUT_LAYER_THREAD;
-		wropt.srcq = q;
-		wropt.dstq = &(kernel_netout_queue[prio].queue);
-		wropt.msg_mutex = &(kernel_netout_queue[prio].mutex);
-		wropt.signal = (prio == 0) ? SE_KERTONET_0 : ((prio == 1) ? SE_KERTONET_1 : SE_KERTONET_2);
+		if  (opt == WR_OPT_WRITE)
+		{
+		    wropt.src  = KERNEL_LAYER_THREAD;
+		    wropt.dst  = NETOUT_LAYER_THREAD;
+		    wropt.srcq = q;
+		    wropt.dstq = &(kernel_netout_queue[prio].queue);
+		    wropt.msg_mutex = &(kernel_netout_queue[prio].mutex);
+		    wropt.signal = (prio == 0) ? SE_KERTONET_0 : ((prio == 1) ? SE_KERTONET_1 : SE_KERTONET_2);
     
-		return itc_writemsg(&wropt);
+		    return itc_writemsg(&wropt);
+		}
+		if (opt == WR_OPT_READ)
+		{
+		    wropt.src   = NETOUT_LAYER_THREAD;
+		    wropt.dst   = KERNEL_LAYER_THREAD;
+		    wropt.srcq  = &(netout_kernel_queue.queue); 
+		    wropt.dstq  = q;
+		    wropt.msg_mutex = &(netout_kernel_queue.mutex);
+		    wropt.signal = -1;
+
+		    return itc_writemsg(&wropt);
+		}	
+
 	    }
 	    if (other == NETINP_LAYER_THREAD && opt == WR_OPT_READ)
 	    {
@@ -206,6 +225,8 @@ int itc_wr_msgqueue ( int other, struct msg_queue *q, int prio, int opt )
 		    wropt.dstq = &(kernel_dataio_queue.queue);
 		    wropt.msg_mutex = &(kernel_dataio_queue.mutex);
 		    wropt.signal = SE_KERTODAT;
+
+		    return itc_readmsg(&wropt);
 		}
 		if ( opt == WR_OPT_READ  )
 		{
@@ -215,6 +236,8 @@ int itc_wr_msgqueue ( int other, struct msg_queue *q, int prio, int opt )
 		    wropt.dstq = q;
 		    wropt.msg_mutex = &(dataio_kernel_queue.mutex);
 		    wropt.signal = -1;
+
+		    return itc_readmsg(&wropt);
 		}
 	    }
 	    break;
@@ -230,6 +253,8 @@ int itc_wr_msgqueue ( int other, struct msg_queue *q, int prio, int opt )
 		    wropt.dstq = &(dataio_kernel_queue.queue);
 		    wropt.msg_mutex = &(dataio_kernel_queue.mutex);
 		    wropt.signal = SE_DATTOKER;
+	    
+		    return itc_readmsg(&wropt);
 		}
 		if ( opt == WR_OPT_READ  )
 		{
@@ -239,11 +264,11 @@ int itc_wr_msgqueue ( int other, struct msg_queue *q, int prio, int opt )
 		    wropt.dstq = q;
 		    wropt.msg_mutex = &(kernel_dataio_queue.mutex);
 		    wropt.signal = -1;
+	    
+		    return itc_readmsg(&wropt);
 		}
 	    }
-	    
-
-
+	    break;
 	case NETINP_LAYER_THREAD:
 	    if (other == KERNEL_LAYER_THREAD && opt == WR_OPT_WRITE)
 	    {
@@ -252,22 +277,36 @@ int itc_wr_msgqueue ( int other, struct msg_queue *q, int prio, int opt )
 		wropt.srcq = q;
 		wropt.dstq = &(netinp_kernel_queue.queue);
 		wropt.msg_mutex = &(netinp_kernel_queue.mutex);
-		wropt.signal = SE_NETTOKER;
+		wropt.signal = SE_NETINTOKER;
 
 		return itc_writemsg(&wropt);
 	    }
 	    break;
 	case NETOUT_LAYER_THREAD:
-	    if (other == KERNEL_LAYER_THREAD && opt == WR_OPT_READ)
+	    if (other == KERNEL_LAYER_THREAD)
 	    {
-		wropt.src  = NETINP_LAYER_THREAD;
-		wropt.dst  = KERNEL_LAYER_THREAD;
-		wropt.srcq = &(kernel_netout_queue[prio].queue);
-		wropt.dstq = q;
-		wropt.msg_mutex = &(kernel_netout_queue[prio].mutex);
-		wropt.signal = -1;	/* Valor no usado para lectura */
-	    
-		return itc_readmsg(&wropt);
+		if  ( opt == WR_OPT_READ)
+		{
+		    wropt.src  = KERNEL_LAYER_THREAD;
+		    wropt.dst  = NETOUT_LAYER_THREAD;
+		    wropt.srcq = &(kernel_netout_queue[prio].queue);
+		    wropt.dstq = q;
+		    wropt.msg_mutex = &(kernel_netout_queue[prio].mutex);
+		    wropt.signal = -1;	/* Valor no usado para lectura */
+		
+		    return itc_readmsg(&wropt);
+		}
+	        if (opt == WR_OPT_WRITE)
+		{
+		    wropt.src = NETOUT_LAYER_THREAD;
+		    wropt.dst = KERNEL_LAYER_THREAD;
+		    wropt.srcq = q;
+		    wropt.dstq = &(netout_kernel_queue.queue);
+		    wropt.msg_mutex = &(netout_kernel_queue.mutex);
+		    wropt.signal = SE_NETOUTTOKER;
+		    
+		    return itc_readmsg(&wropt);
+		}
 	    }
 	    break;
     }

@@ -69,7 +69,8 @@ struct itc_event_info {
 #define SE_KERTONET_0 	SIGRTMIN+1	/* Signal Event: Message from KERNEL -> NET (Prio 0) */
 #define SE_KERTONET_1 	SIGRTMIN+2	/* Signal Event: Message from KERNEL -> NET (Prio 1) */
 #define SE_KERTONET_2 	SIGRTMIN+3	/* Signal Event: Message from KERNEL -> NET (Prio 2) */
-#define SE_NETTOKER   	SIGRTMIN+4	/* Signal Event: Message from NET -> KERNEL */
+#define SE_NETINTOKER  	SIGRTMIN+4	/* Signal Event: Message from NET -> KERNEL */
+#define SE_NETOUTTOKER  SIGRTMIN+7
 #define SE_DATTOKER     SIGRTMIN+5      /* Signal Event: Message from DATA -> KRRNEL */
 #define SE_KERTODAT	SIGRTMIN+6	/* Signal Event: Message from KERNEL -> DATA */
 

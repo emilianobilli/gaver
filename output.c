@@ -42,7 +42,7 @@
 #include "glo.h"
 
 PRIVATE ssize_t sendmbuff (int sd, void *bufdata, size_t lendata, void *bufhdr, size_t lenhdr, struct sockaddr_in *dst_addr);
-PRIVATE ssize_t flushqueue (int ifudp, struct msg_queue *queue);
+PRIVATE ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *kernelq);
 PRIVATE int wait_event(int timer_event, int itc_event, u_int8_t *event);
 
 int wait_event(int timer_event, int itc_event, u_int8_t *event)
@@ -79,7 +79,7 @@ int wait_event(int timer_event, int itc_event, u_int8_t *event)
 void *output (void *arg)
 {
     struct msg_queue outputq[3];
-    struct msg_queue txq;
+    struct msg_queue txq, kernelq;
     struct itc_event_info ieinfo;
     ssize_t   ret, tmp;
     size_t    n;
@@ -95,7 +95,7 @@ void *output (void *arg)
     itc_block_signal();
 
     
-
+    init_msg_queue(&kernelq);
     init_msg_queue(&outputq[PRIO_CTR_QUEUE]);
     init_msg_queue(&outputq[PRIO_RET_QUEUE]);
     init_msg_queue(&outputq[PRIO_NOR_QUEUE]);
@@ -175,7 +175,7 @@ void *output (void *arg)
 	    msgnmove(&txq, &outputq[PRIO_NOR_QUEUE], n);
 	}
 	tmp = txq.size;
-	ret = flushqueue(ifudp, &txq);
+	ret = flushqueue(ifudp, &txq, &kernelq);
 	if (ret == -1) 
 	{
 	    where = "flushqueue()";
@@ -183,6 +183,9 @@ void *output (void *arg)
 	}
 	msg_sent   +=tmp;
 	bytes_sent +=ret;
+
+	if (kernelq.size > 0)
+	    itc_writeto(KERNEL_LAYER_THREAD,&kernelq, 0);
 
 	if (msg_sent >= 8333)
 	    pthread_exit(&ret);
@@ -193,7 +196,7 @@ panic:
     return NULL;
 }
 
-ssize_t flushqueue (int ifudp, struct msg_queue *queue)
+ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 {
     struct mmsghdr   mmsg[MAX_OUTPUT_MSG];
     struct iovec     io[MAX_OUTPUT_MSG*2];
@@ -205,6 +208,14 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
     int i, qsz;
 
     output_len = 0;
+
+    
+    /*
+     * Inicia la cola de retorno
+     */
+
+    init_msg_queue(retq);
+
 
     while (queue->size > 0)
     {
@@ -248,8 +259,16 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 		output_len += ret;
 		
 		if (msgptr->discard == DISCARD_TRUE)
+		{
 		    free_mbuff_locking(mbptr);
-		free_msg_locking(msgptr);
+		    free_msg_locking(msgptr);
+		}
+		else
+		    /*
+		     * Si el mensaje no debe descartarse
+		     * hay que enviarselo nuevamente al Kernel
+		     */
+		    msg_enqueue(retq, msgptr);
 	    }
 	}
 	else 
@@ -259,10 +278,9 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 	     * Si supera los 10 se envian en la siguiente ronda
 	     */
 	    qsz = (queue->size > MAX_OUTPUT_MSG)? MAX_OUTPUT_MSG: queue->size;
-	    tmpq.head = NULL;
-	    tmpq.tail = NULL;
-	    tmpq.size = 0;
-	
+	    
+	    init_msg_queue(&tmpq);
+	    
 	    for ( i = 0; i <= qsz -1 && i <= MAX_OUTPUT_MSG -1; i++ ) {
 	    	
 		msgptr = msg_dequeue(queue);
@@ -324,9 +342,12 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue)
 			 */
 			output_len += mmsg[i].msg_len;
 			if (msgptr->discard == DISCARD_TRUE)
+			{
 			    free_mbuff_locking(mbptr);
-			msgptr->mb.p_mbuff = NULL;
-			free_msg_locking(msgptr);
+			    free_msg_locking(msgptr);
+			}
+			else
+			    msg_enqueue(retq, msgptr);
 		    }
 		    else if (mmsg[i].msg_len == 0)
 			msg_enqueue(queue, msgptr);

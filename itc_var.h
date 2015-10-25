@@ -21,6 +21,7 @@
 
 EXTERN struct itc_msg_queue kernel_netout_queue[3];	/* Messages FROM Kernel TO Network Output */	
 EXTERN struct itc_msg_queue netinp_kernel_queue;	/* Messages FROM Network Input to Kernel */
+EXTERN struct itc_msg_queue netout_kernel_queue;	/* Messages FROM Network Output to Kernel */
 EXTERN struct itc_msg_queue dataio_kernel_queue;	/* Messages FROM Data IO to Kernel */
 EXTERN struct itc_msg_queue kernel_dataio_queue;	/* Messages FROM Kernel to Data IO */
 EXTERN pthread_t thread_table[THREAD_TABLE_SZ];

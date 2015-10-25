@@ -36,7 +36,7 @@ double distance(double a, double b)
 {
     double ret = a - b;
     if (ret < 0)
-	return -ret
+	return -ret;
     else
 	return ret;
 }
