@@ -80,15 +80,19 @@ void *output (void *arg)
 {
     struct msg_queue outputq[3];
     struct msg_queue txq, kernelq;
+    struct msg_queue *ctr_queue;
+    struct msg_queue *ret_queue;
+    struct msg_queue *nor_queue;
+
     struct itc_event_info ieinfo;
     ssize_t   ret, tmp;
     size_t    n;
-    char      *where;
+
     u_int8_t  event;		/* ITC Event	    */
     u_int64_t exp;		/* Expiration Times */
     int msg_nor_pending;	/* Flag if Event arrives */
     int msg_ret_pending;	/* Flag if Event arrives */  
-    
+    char      *where;
     /*
      * All itc signal used for comunicacion MUST be blocked
      */
@@ -100,6 +104,11 @@ void *output (void *arg)
     init_msg_queue(&outputq[PRIO_RET_QUEUE]);
     init_msg_queue(&outputq[PRIO_NOR_QUEUE]);
     init_msg_queue(&txq);
+
+
+    ctr_queue = &outputq[PRIO_CTR_QUEUE];
+    ret_queue = &outputq[PRIO_RET_QUEUE];
+    nor_queue = &outputq[PRIO_NOR_QUEUE];
 
     bytes_sent = 0;
     msg_sent   = 0;
@@ -126,24 +135,24 @@ void *output (void *arg)
 	    }
 	    if (ieinfo.prio == PRIO_CTR_QUEUE)
 	    {
-		itc_readfrom(KERNEL_LAYER_THREAD,&outputq[PRIO_CTR_QUEUE],PRIO_CTR_QUEUE);
-		msgqcat(&txq, &outputq[PRIO_CTR_QUEUE]);
+		itc_readfrom(KERNEL_LAYER_THREAD,ctr_queue,PRIO_CTR_QUEUE);
+		msgqcat(&txq, ctr_queue);
 	    }
 
 	    if (ieinfo.prio == PRIO_NOR_QUEUE)
 	    {
-		if (outputq[PRIO_NOR_QUEUE].size > 0)
+		if (nor_queue->size > 0)
 		    msg_nor_pending = 1;
 		else
-		    itc_readfrom(KERNEL_LAYER_THREAD,&outputq[PRIO_NOR_QUEUE],PRIO_NOR_QUEUE );
+		    itc_readfrom(KERNEL_LAYER_THREAD,nor_queue,PRIO_NOR_QUEUE );
 	    }
 
 	    if (ieinfo.prio == PRIO_RET_QUEUE)
 	    {
-		if (outputq[PRIO_RET_QUEUE].size > 0)
+		if (ret_queue->size > 0)
 		    msg_ret_pending = 1;
 		else
-		    itc_readfrom(KERNEL_LAYER_THREAD,&outputq[PRIO_RET_QUEUE],PRIO_RET_QUEUE );
+		    itc_readfrom(KERNEL_LAYER_THREAD,ret_queue,PRIO_RET_QUEUE );
 	    }
 
 	}
@@ -160,19 +169,19 @@ void *output (void *arg)
              * El timer expiro n veces
 	     *  - Se deben enviar tantos mensajes como expiraciones
              */
-	    if (outputq[PRIO_RET_QUEUE].size < n && msg_ret_pending) 
+	    if (ret_queue->size < n && msg_ret_pending) 
 	    {
-		itc_readfrom(KERNEL_LAYER_THREAD,&outputq[PRIO_RET_QUEUE],PRIO_RET_QUEUE);
+		itc_readfrom(KERNEL_LAYER_THREAD,ret_queue,PRIO_RET_QUEUE);
 		msg_ret_pending = 0;
 	    }
-	    n -= msgnmove(&txq, &outputq[PRIO_RET_QUEUE], n);
+	    n -= msgnmove(&txq, ret_queue, n);
 
-	    if (outputq[PRIO_NOR_QUEUE].size < n && msg_nor_pending) 
+	    if (nor_queue->size < n && msg_nor_pending) 
 	    {
-		itc_readfrom(KERNEL_LAYER_THREAD,&outputq[PRIO_NOR_QUEUE],PRIO_NOR_QUEUE);
+		itc_readfrom(KERNEL_LAYER_THREAD,nor_queue,PRIO_NOR_QUEUE);
 		msg_nor_pending = 0;
 	    }
-	    msgnmove(&txq, &outputq[PRIO_NOR_QUEUE], n);
+	    msgnmove(&txq, nor_queue, n);
 	}
 	tmp = txq.size;
 	ret = flushqueue(ifudp, &txq, &kernelq);
