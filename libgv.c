@@ -55,7 +55,6 @@ int gv_listen_api_msg (int sd, u_int8_t backlog)
     return 0;
 }
 
-
 int gv_accept_api_msg(int sd, u_int32_t *addr, u_int16_t *port, u_int16_t *vport, char *sun_path)
 {
     struct gv_req_api msg;

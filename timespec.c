@@ -4,11 +4,16 @@
 
 #define MAX_NANOSECOND   999999999
 #define NSSECOND	1000000000
+			
 
-
-double ttodouble (struct timespec *t)
+double ttod (struct timespec *t)
 {
-    return (double) ( (double) t->tv_sec ) + ( (double) t->tv_nsec / (double) 1000000000.0 )  
+    return (double) ( (double) t->tv_sec ) + ( (double) t->tv_nsec / (double) NSSECOND );
+}
+
+void dtot (double *dt, struct timespec *t)
+{
+    return;
 }
 
 

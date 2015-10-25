@@ -25,8 +25,89 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <endian.h>
 #include "util.h"
-#define NSEC_IN_SEC 1000000000L
+#define NSEC_IN_SEC 1000000000
+
+/*======================================================================================*
+ * distance(): d(a,b) -> | a - b | = | b - a |   					*
+ *======================================================================================*/ 
+double distance(double a, double b)
+{
+    double ret = a - b;
+    if (ret < 0)
+	return -ret
+    else
+	return ret;
+}
+
+/*======================================================================================*
+ * htonll(): 	 									*
+ *======================================================================================*/ 
+u_int64_t hton64(u_int64_t u64)
+{
+    return htobe64(u64);
+}
+/*======================================================================================*
+ * ntohll(): 			 							*
+ *======================================================================================*/ 
+u_int64_t ntoh64(u_int64_t u64)
+{
+    return be64toh(u64);
+}
+
+/*======================================================================================*
+ * ttod(): Timespec to Double	 							*
+ *======================================================================================*/ 
+double ttod (struct timespec *t)
+{
+    return (double) ( (double) t->tv_sec ) + ( (double) t->tv_nsec / (double) NSEC_IN_SEC );
+}
+
+/*======================================================================================*
+ * dtot(): Double to Timespec	 							*
+ *======================================================================================*/ 
+void dtot (const double *dt, struct timespec *t)
+{
+    t->tv_sec = floor(*dt);
+    t->tv_nsec = ( *dt - (floor(*dt)) ) * (NSEC_IN_SEC) ;    /* X = X - [X] */
+    return;
+}
+
+/*======================================================================================*
+ * clock_monotonic()		 							*
+ *======================================================================================*/ 
+void clock_monotonic(struct timespec *ts)
+{
+    clock_gettime(CLOCK_MONOTONIC, ts);
+}
+
+
+/*======================================================================================*
+ * timestamp_tnbo()		 							*
+ *======================================================================================*/ 
+void timestamp_tnbo (u_int64_t *vts, struct timespec *ts)
+{
+    struct timespec sts;
+    if ( ts == NULL )
+    {
+	clock_monotonic(&sts);
+	ts = &sts;
+    }
+    vts[0] = hton64(ts->tv_sec);
+    vts[1] = hton64(ts->tv_nsec);
+    return;
+}
+
+/*======================================================================================*
+ * gettimestamp_fnbo()			 						*
+ *======================================================================================*/ 
+void gettimestamp_fnbo (struct timespec *ts, u_int64_t *vts)
+{
+    ts->tv_sec  = ntoh64(vts[0]);
+    ts->tv_nsec = ntoh64(vts[1]);
+}
+
 
 /*======================================================================================*
  * timestamp()			 							*
@@ -36,7 +117,7 @@ void timestamp (u_int64_t *vts, struct timespec *ts)
     struct timespec sts;
     if ( ts == NULL )
     {
-	clock_gettime(CLOCK_MONOTONIC, &sts);
+	clock_monotonic(&sts);
 	ts = &sts;
     }
     vts[0] = ts->tv_sec;
@@ -44,6 +125,14 @@ void timestamp (u_int64_t *vts, struct timespec *ts)
     return;
 }
 
+/*======================================================================================*
+ * gettimestamp()			 							*
+ *======================================================================================*/ 
+void gettimestamp (struct timespec *ts, u_int64_t *vts)
+{
+    ts->tv_sec  = vts[0];
+    ts->tv_nsec = vts[1];
+}
 
 /*======================================================================================*
  * Return the packets per seconds 							*
@@ -101,7 +190,7 @@ int gettimerexp(int fd, u_int64_t *exp)
 {
     int ret;
     while (1) {
-	ret = read(fd, exp, 8);
+	ret = read(fd, exp, sizeof(u_int64_t));
         if (ret != -1)
 	    break;
 	else if (errno != EINTR)
