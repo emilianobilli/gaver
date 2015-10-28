@@ -13,8 +13,56 @@ struct timeout {
 #define IO_WRITE_PENDING  0x02  /* 0010 */
 #define IO_RW_PENDING     0x03  /* 0011 = IO_READ_PENDING | IO_WRITE_PENDING */
 
-#define MAX_SOCKETS	  255
+#define MAX_SOCKETS	  256
 #define NO_GVPORT         0x0000
+
+
+
+struct sock *new_sk( int dev_gv )
+{
+    struct sock *nsk = NULL;		/* New Socket */
+    int nsd;				/* New Socket Descriptor */
+
+    nsd = accept(dev_gv,(struct sockaddr *)NULL, (socklen_t *)NULL);
+    if ( nsd != -1 )
+    {
+	nsk = getfreesock();
+	if (nsk != NULL)
+	{
+	    init_sock(nsk);
+	    setusedsock(nsk);
+	    nsk->so_loctrl       = nsd;
+	    nsk->so_loctrl_state = 0; /*!!!!!!!!!!!!!! Definir estados */
+	    nsk->so_state        = GV_CLOSE;
+	    nsk->so_local_gvport = NO_GVPORT;
+	}
+	else {
+	    /*
+             * No hay slots
+             */
+	    close(nsd);
+	}
+    }
+    else {
+	/*
+	 * Panic ???
+	 */
+    }
+    return nsk;
+}
+
+
+
+do_connect
+
+do_accept
+
+do_bind
+
+do_listen
+
+
+
 
 struct sock {
     int 	so_lodata;
@@ -55,6 +103,7 @@ struct sockqueue {
 
 struct seqlost {
     u_int64_t	    seq;	/* Seq */
+    double          eta;
     struct timespec eta;	/* Estimated arrival Time */
     struct seqlost  *next;	/* Next Node */
 }
@@ -64,6 +113,7 @@ struct seqlost_queue {
     struct seqlost *head;
     struct seqlost *tail;
 };
+
 
 EXTERN struct sock sktable[MAX_SOCKETS];
 EXTERN struct sock *sk_gvport[sizeof(u_int16_t)];
@@ -296,8 +346,8 @@ void init_sock_table(void)
 {
     int n;
 
-    init_sock_queue(so_used);
-    init_sock_queue(so_free);
+    init_sock_queue(&so_used);
+    init_sock_queue(&so_free);
 
     for ( n = 0; n <= MAX_SOCKETS-1; n++ )
     {
@@ -402,6 +452,14 @@ struct sock *getsockbysoctrl(int so_ctrl)
 	ptr = ptr->so_next;
     }
     return NULL;
+}
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * setusedsock(): 									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+void setusedsock(struct sock *sk)
+{
+    sock_enqueue(&so_used, sk);
 }
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*

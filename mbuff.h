@@ -70,8 +70,8 @@ struct msg {
     } io;
     int    discard;			/* If the mbuff or queue needs to be discard */
     union {
-	struct mbuff    *p_mbuff;
-	struct mb_queue  mbq;
+	struct mbuff    *p_mbuff;	/* Pointer to a simple mbuff */
+	struct mb_queue  mbq;		/* Queue of mbuff            */
     } mb;				/* Queue of mbuff or a simple mbuff */
     struct msg          *p_next;
 };
