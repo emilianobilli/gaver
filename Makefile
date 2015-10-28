@@ -60,6 +60,9 @@ input.o: input.c input.h
 dataio.o: dataio.c dataio.h
 	$(CC) $(OBJ) dataio.c
 
+configk.o: configk.c configk.h
+	$(CC) $(OBJ) configk.c
+
 start.o: start.c start_var.h start.h
 	$(CC) $(OBJ) start.c
 common.o: common.c
