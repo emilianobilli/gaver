@@ -36,10 +36,11 @@
 int loadcfgk (int argc, char *argv[], struct configk *cfg)
 {
     int opt, val;
+    long long int llval;
     char *endptr;
     struct servent *sent;
 
-    while ((opt = getopt(argc,argv, "a:p:S:s:m:M:d")) != -1)
+    while ((opt = getopt(argc,argv, "a:p:S:s:m:M:l:")) != -1)
     {
 	switch (opt)
 	{
@@ -51,12 +52,12 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 		}
 		break;
 	    case 'p':
-		if (strcmp("default", optarg))
+		if (!strcmp("default", optarg))
 		{
 		    /* Check what is the default port */
 		    sent = getservbyname("gaver", "udp");
 		    if (sent != NULL)
-			cfg->port = htons(sent->s_port);
+			cfg->port = sent->s_port;
 		    else
 		    {
 			fprintf(stderr, "Service gaver not found\n");
@@ -84,8 +85,31 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 		}
 		break;
 	    case 'S':
+		    errno = 0;
+		    llval = strtoll(optarg,&endptr, 10);
+		    
+		    if ((errno == ERANGE && 
+		        (val == LLONG_MAX || val == LLONG_MIN)) ||
+                	(errno != 0 && val == 0)) 
+		    {
+			perror("socket_bps");
+			return -1;
+		    }
+		    cfg->socket_bps = (u_int64_t) llval;
 		break;
 	    case 's':
+		    errno = 0;
+		    llval = strtoll(optarg,&endptr, 10);
+		    
+		    if ((errno == ERANGE && 
+		        (val == LLONG_MAX || val == LLONG_MIN)) ||
+                	(errno != 0 && val == 0)) 
+		    {
+			perror("overal_bps");
+			return -1;
+		    }
+		    cfg->overal_bps = (u_int64_t) llval;
+
 		break;
 	    case 'm':
 		errno = 0;
@@ -106,7 +130,8 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 		break;
 	    case 'M':
 		break;
-	    case 'd':
+	    case 'l':
+		printf ("%s\n", optarg);
 		if (strlen(optarg) >= UNIX_PATH_MAX)
 		{
 		    fprintf(stderr, "Listen Socket Name Out of Range\n");
