@@ -170,7 +170,7 @@ size_t alloc_msg_chain( struct msg_queue *queue, size_t len)
 	p_buff = alloc_msg();
 	if ( p_buff != NULL ) {
 	    p_buff->p_next = NULL;
-	    p_buff->mb.p_mbuff = NULL;
+	    p_buff->mb.mbp = NULL;
 	    msg_enqueue(queue, p_buff);
 	}
 	else
@@ -226,7 +226,7 @@ size_t alloc_mbuff_chain( struct msg_queue *queue, size_t len)
 	    p_buff = alloc_msg();
 	    if (p_buff != NULL) {
 		p_buff->p_next = NULL;
-	        p_buff->mb.p_mbuff = m_buff;
+	        p_buff->mb.mbp = m_buff;
 		msg_enqueue(queue, p_buff);
 	    }
 	    else {

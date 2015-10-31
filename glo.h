@@ -31,8 +31,11 @@
 
 EXTERN int mtu;			/* MTU Max */
 EXTERN int ifudp;		/* Socket UDP */
+EXTERN int api_socket;		/* Socket For the Api */
 EXTERN int output_timer;	/* Timer for outgoing packages */
-EXTERN int syn_timer;		/* Timer for syn packages */
+EXTERN int refresh_timer;	/* Timer for refresh tokens */
+EXTERN u_int64_t overal_bps;	/* Max Overal Speed measured in bits per seconds */
+EXTERN u_int64_t socket_bps;	/* Max Socket Speed measured in bits per seconds */
 EXTERN u_int64_t input_wait;	/* Time in nsec for waiting other message */
 
 #endif /* _GLO_H */

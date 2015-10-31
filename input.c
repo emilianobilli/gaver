@@ -96,7 +96,7 @@ void *input (void *arg)
 	alloc_mbuff_chain(&rxq, 1);
 	msgptr = msg_dequeue(&rxq);
 	if ( msgptr != NULL ) {
-	    ret = recvmbuff(ifudp, msgptr->mb.p_mbuff);
+	    ret = recvmbuff(ifudp, msgptr->mb.mbp);
 	    if (ret == -1) {
 		where = "recvmbuff()";
 		goto panic;

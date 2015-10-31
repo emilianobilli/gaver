@@ -126,6 +126,19 @@ EXTERN int event_timer(struct timespec *time);
  *======================================================================================*/
 EXTERN int gettimerexp(int fd, u_int64_t *exp);
 
+
+/*======================================================================================*
+ * update_token()									*
+ * 	avtok: Tokens disponibles, debe ser un valor entre 0 y 1 -> [0;1)		*
+ * 	reftok: Cantidad de tokens a actualizar, de acuerdo a la velocidad -> (0;MAX]	*
+ *	cwrp: Porcentaje disponible a utilizar del refresh, este valor se ajusto de 	*
+ *		acuerdo a la congestion actual, toma un valor entre [0;100]		*
+ *	rwinav: Ventana disponible para emision, este parametro deberia ser igual a 	*
+ *		la ventana anunciada por el receptor - la cantidad de paquetes en vuelo *
+ *======================================================================================*/
+EXTERN double update_token (double avtok, double reftok, u_int8_t cwrp, double rwinav);
+
+
 /*======================================================================================*
  * PANIC()										*
  *======================================================================================*/

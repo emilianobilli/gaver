@@ -7,6 +7,8 @@ struct timeout {
     struct mbuff    *mptr;
 };
 
+
+
 #define IO_NONE		  0x00  /* 0000 */
 #define IO_WAITING_MEM    0x04	/* 0100 */
 #define IO_READ_PENDING   0x01	/* 0001 */
@@ -74,6 +76,16 @@ struct sock {
     u_int16_t   so_host_gvport;
     u_int16_t	so_local_gvport;
     int		so_state;
+
+
+    int		so_mtu;			/* Mtu for the socket	*/
+    u_int64_t   so_upload_speed;
+    u_int64_t   so_download_speed;
+
+    double	so_refresh_tokens;
+    double	so_vacant_tokens;
+
+    u_int8_t	so_capwin;		/* Congestion Avoidance Percent Window */
 
 
     u_int64_t	so_dseq_out;		/* Data seq out         */
@@ -196,10 +208,10 @@ struct msg *mbufftomsg (struct mbuff *mb, int clone, int discard)
 	if (clone)
 	{
 	    mbnew = clone_mbuff(mb);
-	    mptr->mb.p_mbuff = mbnew;
+	    mptr->mb.mbp = mbnew;
 	}
 	else
-	    mptr->mb.p_mbuff = mb;
+	    mptr->mb.mbp = mb;
 	mptr->discard = discard;
     }
     return mptr;
@@ -244,10 +256,10 @@ size_t mbqtomsgq (struct msg_queue *msgq, struct mb_queue *mbq, size_t len, int 
 
 		break;
 	    }
-	    mptr->mb.p_mbuff = mbnew;
+	    mptr->mb.mbp = mbnew;
 	}
 	else
-	    mptr->mb.p_mbuff = mbptr;
+	    mptr->mb.mbp = mbptr;
 
 	mptr->discard = discard;
 	i++;

@@ -230,7 +230,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 	if (queue->size == 1) 
 	{
 	    msgptr = msg_dequeue(queue);
-	    mbptr =  msgptr->mb.p_mbuff;
+	    mbptr =  msgptr->mb.mbp;
 
 	    if (msgptr->msg_type != MSG_MBUFF_CARRIER ) {
 		/*
@@ -293,7 +293,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 	    	
 		msgptr = msg_dequeue(queue);
 
-		mbptr  = msgptr->mb.p_mbuff;
+		mbptr  = msgptr->mb.mbp;
 	    
 		if (msgptr->msg_type != MSG_MBUFF_CARRIER ) {
 		/*
@@ -339,7 +339,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 		for ( i = 0; i <= qsz -1 && i <= MAX_OUTPUT_MSG -1; i++ ) 
 		{
 		    msgptr = msg_dequeue(&tmpq);
-		    mbptr  = msgptr->mb.p_mbuff;
+		    mbptr  = msgptr->mb.mbp;
 		    if (mmsg[i].msg_len == mbptr->m_hdrlen + mbptr->m_datalen) 
 		    {
 			/*

@@ -95,7 +95,6 @@ int ipv4_udp_socket_nbo ( u_int32_t addr, u_int16_t port)
 int ipv4_udp_socket (const char *ipv4_addr, u_int16_t port)
 {
     struct sockaddr_in addr;
-    int udp_socket;
 
     addr.sin_port   = htons(port);
     addr.sin_family = AF_INET;
