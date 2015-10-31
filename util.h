@@ -28,6 +28,8 @@
 #endif
 
 
+
+
 /*
  * Macros to conver from gbps, mbps and kbsp to bps
  */
@@ -36,6 +38,7 @@
 #define MBPS_TOBPS(x) ((x) * 1000000)
 #define KBPS_TOBPS(x) ((x) * 1000)
 
+#define PACKETS_PER_ROUND 100
 
 #define TS_SEC  0
 #define TS_NSEC 1
@@ -44,7 +47,6 @@
  * clock_monotonic()		 							*
  *======================================================================================*/ 
 EXTERN void clock_monotonic(struct timespec *ts);
-
 
 /*======================================================================================*
  * htonll():			 							*
@@ -88,6 +90,21 @@ EXTERN void gettimestamp_fnbo (struct timespec *ts, u_int64_t *vts);
  *======================================================================================*/ 
 EXTERN void timestamp_tnbo (u_int64_t *vts, struct timespec *ts);
 
+
+/*======================================================================================*
+ * Return packets per second based in overal speed					*
+ *======================================================================================*/
+EXTERN double getpksec (u_int64_t speed_bps, int mtu);
+
+/*======================================================================================*
+ * Return the necesary time to send PACKETS_PER_ROUND					*
+ *======================================================================================*/
+EXTERN double getreftime (u_int64_t speed_bps, int mtu);
+
+/*======================================================================================*
+ * Return the numbers of packages available to send for each refresh_time		*
+ *======================================================================================*/
+EXTERN double getpkrtime (u_int64_t speed_bps, int mtu, double refresh_time);
 
 /*======================================================================================*
  * Return the packets per seconds 							*

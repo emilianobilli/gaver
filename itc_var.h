@@ -28,5 +28,4 @@ EXTERN pthread_t thread_table[THREAD_TABLE_SZ];
 
 EXTERN int itc_event;	/* Signal ITC event file descriptor */
 
-
 #endif /* itc_var.h */

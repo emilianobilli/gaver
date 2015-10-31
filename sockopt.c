@@ -65,6 +65,32 @@ int unix_socket(const char *path)
     return unix_socket;
 }
 
+int __ipv4_udp_socket(struct sockaddr_in *addr)
+{
+    int udp_socket;
+
+    udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
+    if ( udp_socket == -1 )
+	return -1;
+
+    if (bind(udp_socket, 
+	    (struct sockaddr *)addr, 
+	    (socklen_t)sizeof(struct sockaddr_in)) == -1 )
+	return -1;
+
+    return udp_socket;
+}
+
+int ipv4_udp_socket_nbo ( u_int32_t addr, u_int16_t port)
+{
+    struct sockaddr_in saddr;
+    
+    saddr.sin_port = port;
+    saddr.sin_addr.s_addr = addr;
+    saddr.sin_family = AF_INET;
+
+    return __ipv4_udp_socket(&saddr);
+}
 
 int ipv4_udp_socket (const char *ipv4_addr, u_int16_t port)
 {
@@ -75,16 +101,7 @@ int ipv4_udp_socket (const char *ipv4_addr, u_int16_t port)
     addr.sin_family = AF_INET;
     inet_aton(ipv4_addr, &(addr.sin_addr));
 
-    udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
-    if ( udp_socket == -1 )
-	return -1;
-
-    if (bind(udp_socket, 
-	    (struct sockaddr *)&addr, 
-	    (socklen_t)sizeof(struct sockaddr_in)) == -1 )
-	return -1;
-
-    return udp_socket;
+    return __ipv4_udp_socket(&addr);
 }
 
 

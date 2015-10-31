@@ -24,6 +24,10 @@ extern int unix_socket_client(const char *path);
 
 extern int ipv4_udp_socket (const char *ipv4_addr, u_int16_t port);
 
+extern int ipv4_udp_socket_nbo (u_int32_t addr, u_int16_t port);
+
+extern int __ipv4_udp_socket (struct sockaddr_in *addr);
+
 extern int iptos_throughput(int sd);
 
 extern int set_rcvbuf(int socket, u_int32_t buff_size );

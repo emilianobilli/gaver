@@ -40,6 +40,8 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
     char *endptr;
     struct servent *sent;
 
+    memset(cfg,0,sizeof(struct configk));
+
     while ((opt = getopt(argc,argv, "a:p:S:s:m:M:l:")) != -1)
     {
 	switch (opt)
@@ -47,7 +49,7 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 	    case 'a':
 		if (!inet_aton(optarg,&(cfg->addr)))
 		{
-		    perror("inet_aton");
+		    fprintf(stderr,"Invalid addr: %s\n", optarg);
 		    return -1;
 		}
 		break;
@@ -131,7 +133,6 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 	    case 'M':
 		break;
 	    case 'l':
-		printf ("%s\n", optarg);
 		if (strlen(optarg) >= UNIX_PATH_MAX)
 		{
 		    fprintf(stderr, "Listen Socket Name Out of Range\n");
@@ -150,11 +151,13 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 
 void dumpcfgk (FILE *f, struct configk *cfg)
 {
-    fprintf(f, "Addr: %s\nPort: %d\nUnix Socket Api: %s\nMtu:  %d\n", 
+    fprintf(f, "Addr: %s\nPort: %d\nUnix Socket Api: %s\nMtu:  %d\nOveral Bps: %ld\nSocket Bps: %ld\n", 
 		inet_ntoa(cfg->addr),
 		ntohs(cfg->port),
 		cfg->listen_api,
-		cfg->mtu);
+		cfg->mtu,
+		cfg->overal_bps,
+		cfg->socket_bps);
     return;		
 }
 

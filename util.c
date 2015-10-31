@@ -27,7 +27,9 @@
 #include <unistd.h>
 #include <endian.h>
 #include "util.h"
+
 #define NSEC_IN_SEC 1000000000
+
 
 /*======================================================================================*
  * distance(): d(a,b) -> | a - b | = | b - a |   					*
@@ -135,6 +137,32 @@ void gettimestamp (struct timespec *ts, u_int64_t *vts)
 }
 
 /*======================================================================================*
+ * Return packets per second based in overal speed					*
+ *======================================================================================*/
+double getpksec (u_int64_t speed_bps, int mtu)
+{
+    return (double) speed_bps / (double) 8 / (double) mtu;
+}
+
+/*======================================================================================*
+ * Return the necesary time to send PACKETS_PER_ROUND					*
+ *======================================================================================*/
+double getreftime (u_int64_t speed_bps, int mtu)
+{
+    return (double) PACKETS_PER_ROUND / getpksec(speed_bps,mtu);	
+}
+
+
+/*======================================================================================*
+ * Return the numbers of packages available to send for each refresh_time		*
+ *======================================================================================*/
+double getpkrtime (u_int64_t speed_bps, int mtu, double refresh_time)
+{
+    return getpksec(speed_bps,mtu) * refresh_time;
+}
+
+
+/*======================================================================================*
  * Return the packets per seconds 							*
  *======================================================================================*/ 
 long pksec (long bandwith, int mtu)
@@ -198,6 +226,25 @@ int gettimerexp(int fd, u_int64_t *exp)
     }
     return ret;
 }
+
+/*======================================================================================*
+ * update_token()									*
+ * 	avtok: Tokens disponibles, debe ser un valor entre 0 y 1 -> [0;1)		*
+ * 	reftok: Cantidad de tokens a actualizar, de acuerdo a la velocidad -> (0;MAX]	*
+ *	cwrp: Porcentaje disponible a utilizar del refresh, este valor se ajusto de 	*
+ *		acuerdo a la congestion actual, toma un valor entre [0;100]		*
+ *	rwinav: Ventana disponible para emision, este parametro deberia ser igual a 	*
+ *		la ventana anunciada por el receptor - la cantidad de paquetes en vuelo *
+ *======================================================================================*/
+double update_token (double avtok, double reftok, u_int8_t cwrp, double rwinav)
+{
+    double token =  avtok + (reftok * (double) (cwrp/100));
+    if ( token > 0.0 && token < 1.0 )
+        return token;
+    else
+        return ( token < rwinav ) ? token : rwinav;
+}
+
 
 
 /*======================================================================================*
