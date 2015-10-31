@@ -151,6 +151,9 @@ size_t  msgnmove (struct msg_queue *dst, struct msg_queue *src, size_t n)
     size_t i;
     struct msg *mptr;
 
+    if (n == 0)
+	return 0;
+
     for ( i = 0; i <= n-1; i++ ) {
 	mptr = msg_dequeue(src);
 	if (mptr == NULL)

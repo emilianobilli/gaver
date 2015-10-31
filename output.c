@@ -141,6 +141,7 @@ void *output (void *arg)
 
 	    if (ieinfo.prio == PRIO_NOR_QUEUE)
 	    {
+		
 		if (nor_queue->size > 0)
 		    msg_nor_pending = 1;
 		else
@@ -149,6 +150,7 @@ void *output (void *arg)
 
 	    if (ieinfo.prio == PRIO_RET_QUEUE)
 	    {
+		
 		if (ret_queue->size > 0)
 		    msg_ret_pending = 1;
 		else
@@ -196,7 +198,7 @@ void *output (void *arg)
 	if (kernelq.size > 0)
 	    itc_writeto(KERNEL_LAYER_THREAD,&kernelq, 0);
 
-	if (msg_sent >= 8333)
+	if (msg_sent >= 83333*2)
 	    pthread_exit(&ret);
     }
 

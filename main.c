@@ -29,9 +29,9 @@ int main(void)
     itc_init();
 
     ipt.tv_sec  = 0;
-    ipt.tv_nsec = pktime(MBPS_TOBPS(100), 1500); 
+    ipt.tv_nsec = pktime(MBPS_TOBPS(200), 1500); 
 
-/*    itc_block_signal(); */
+    itc_block_signal(); 
     itc_event = itc_signalfd_init();
 
     if (itc_event == -1) {
@@ -56,13 +56,11 @@ int main(void)
     q.head = NULL;
     q.tail = NULL;
 
-    ret = alloc_mbuff_chain(&q, 8333);
+    ret = alloc_mbuff_chain(&q, 83333);
 
     thread_table[KERNEL_LAYER_THREAD] = pthread_self();
     pthread_create(&thread_table[NETOUT_LAYER_THREAD], NULL, output, NULL);
 
-
-    sleep(12);
 
     in.sin_family = AF_INET;
     in.sin_port	  = 300;
@@ -74,23 +72,18 @@ int main(void)
 
     in3.sin_family = AF_INET;
     in3.sin_port	  = 300;
-    inet_aton("4.256.4.4", &in3.sin_addr.s_addr);
+    inet_aton("4.4.4.4", &in3.sin_addr.s_addr);
 
     p= q.head;
-    for ( i = 0; i <= 8333-1; i++ )
+    for ( i = 0; i <= 83333-1; i++ )
     {	
-/*	p->msg_type = MSG_TYPE_CARRIER; */
-	p->mb.p_mbuff->m_need_ts = 1;
-	p->mb.p_mbuff->m_tsoff = 3;
-	p->mb.p_mbuff->m_datalen = 1460;
-	p->mb.p_mbuff->m_hdrlen  = 8;
-	if (( i % 2 ) == 0)
-	    memcpy(&(p->mb.p_mbuff->m_outside_addr), &in, sizeof(struct sockaddr_in));
-	else
-	    memcpy(&(p->mb.p_mbuff->m_outside_addr), &in2, sizeof(struct sockaddr_in));
-	
-	if (( i % 100) == 0)
-	    memcpy(&(p->mb.p_mbuff->m_outside_addr), &in, sizeof(struct sockaddr_in));
+	p->msg_type = MSG_MBUFF_CARRIER; 
+	p->mb.mbp->m_need_ts = 1;
+	p->mb.mbp->m_tsoff = 3;
+	p->mb.mbp->m_datalen = 1460;
+	p->mb.mbp->m_hdrlen  = 8;
+	memcpy(&(p->mb.mbp->m_outside_addr), &in, sizeof(struct sockaddr_in));
+
 	p = p->p_next;
     }
 
@@ -101,6 +94,31 @@ int main(void)
     printf ("IFUDP: %d\n", ifudp);
 
     itc_writeto(NETOUT_LAYER_THREAD, &q, PRIO_NOR_QUEUE);
+
+        
+    q.size = 0;
+    q.head = NULL;
+    q.tail = NULL;
+
+    p = q.head;
+
+
+    ret = alloc_mbuff_chain(&q, 83333);
+    printf("Ret: %d\n", ret);
+    p = q.head;
+    for ( i = 0; i <= 83333-1; i++ )
+    {	
+	p->msg_type = MSG_MBUFF_CARRIER; 
+	p->mb.mbp->m_need_ts = 1;
+	p->mb.mbp->m_tsoff = 3;
+	p->mb.mbp->m_datalen = 1460;
+	p->mb.mbp->m_hdrlen  = 8;
+	memcpy(&(p->mb.mbp->m_outside_addr), &in, sizeof(struct sockaddr_in));
+
+	p = p->p_next;
+    }
+
+    itc_writeto(NETOUT_LAYER_THREAD, &q, PRIO_RET_QUEUE);
 
     pthread_join(thread_table[NETOUT_LAYER_THREAD], (void **)&tret);
 
