@@ -30,20 +30,22 @@
 #define UNIX_PATH_MAX    108
 
 struct configk {
-    struct in_addr addr; /* Network bit order addr */
-    u_int16_t      port; /* Network bit order port */
-    char 	   listen_api[UNIX_PATH_MAX];
-    int sched;
-    int mtu;
-    u_int64_t overal_bps; /* Velocidad Maxima */	
-    u_int64_t socket_bps; /* Velocidad Maxima por socket */
+    struct in_addr	addr;		/* Network bit order addr */
+    u_int16_t		port;		/* Network bit order port */
+    char		listen_api[UNIX_PATH_MAX];
+    int			sched;
+    int			mtu;
+    u_int64_t		overal_bps;	/* Velocidad Maxima */	
+    u_int64_t		socket_bps;	/* Velocidad Maxima por socket */
+    u_int32_t		rmem;		/* Memoria Maxima por Socket para lectura   */
+    u_int32_t		wmem;		/* Memoria Maxima por Socket para escritura */
 };
 
 #ifndef _CONFIGK_CODE
-/*==================================================================================*
- * loadcfgk(): Load the command line configuration passed in argc and *argv[]   *
- *		   The function force to exit process when error ocurs		    *
- *==================================================================================*/
+/*======================================================================================*
+ * loadcfgk(): Load the command line configuration passed in argc and *argv[]		*
+ *		   The function force to exit process when error ocurs			*
+ *======================================================================================*/
 EXTERN int loadcfgk (int argc, char *argv[], struct configk *cfg);
 EXTERN void dumpcfgk (FILE *f, struct configk *cfg);
 #endif

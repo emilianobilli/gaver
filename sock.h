@@ -8,6 +8,16 @@ struct timeout {
 };
 
 
+enum {
+    CTRL_CLOSE = 1,
+    CTRL_BIND,
+    CTRL_LISTEN,
+    CTRL_CONNECT_REQ,
+    CTRL_ACCEPT_REQ,
+    CTRL_ESTABLISHED
+};
+
+
 
 #define IO_NONE		  0x00  /* 0000 */
 #define IO_WAITING_MEM    0x04	/* 0100 */
@@ -20,12 +30,12 @@ struct timeout {
 
 
 
-struct sock *new_sk( int dev_gv )
+struct sock *new_sk( int sd )
 {
     struct sock *nsk = NULL;		/* New Socket */
     int nsd;				/* New Socket Descriptor */
 
-    nsd = accept(dev_gv,(struct sockaddr *)NULL, (socklen_t *)NULL);
+    nsd = accept(sd,(struct sockaddr *)NULL, (socklen_t *)NULL);
     if ( nsd != -1 )
     {
 	nsk = getfreesock();
@@ -34,34 +44,20 @@ struct sock *new_sk( int dev_gv )
 	    init_sock(nsk);
 	    setusedsock(nsk);
 	    nsk->so_loctrl       = nsd;
-	    nsk->so_loctrl_state = 0; /*!!!!!!!!!!!!!! Definir estados */
+	    nsk->so_loctrl_state = CTRL_CLOSE;
 	    nsk->so_state        = GV_CLOSE;
 	    nsk->so_local_gvport = NO_GVPORT;
 	}
-	else {
+	else 
+	{
 	    /*
              * No hay slots
              */
 	    close(nsd);
 	}
     }
-    else {
-	/*
-	 * Panic ???
-	 */
-    }
     return nsk;
 }
-
-
-
-do_connect
-
-do_accept
-
-do_bind
-
-do_listen
 
 
 

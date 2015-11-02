@@ -29,13 +29,15 @@
 #include "input_var.h"
 #include "start_var.h"
 
-EXTERN int mtu;			/* MTU Max */
-EXTERN int ifudp;		/* Socket UDP */
-EXTERN int api_socket;		/* Socket For the Api */
-EXTERN int output_timer;	/* Timer for outgoing packages */
-EXTERN int refresh_timer;	/* Timer for refresh tokens */
-EXTERN u_int64_t overal_bps;	/* Max Overal Speed measured in bits per seconds */
-EXTERN u_int64_t socket_bps;	/* Max Socket Speed measured in bits per seconds */
-EXTERN u_int64_t input_wait;	/* Time in nsec for waiting other message */
+EXTERN int mtu;			/* MTU Max 						*/
+EXTERN int ifudp;		/* Socket UDP 						*/
+EXTERN int api_socket;		/* Socket For the Api 					*/
+EXTERN int output_timer;	/* Timer for outgoing packages 				*/
+EXTERN int refresh_timer;	/* Timer for refresh tokens 				*/
+EXTERN u_int32_t local_addr;	/* Gaver Local Addres					*/
+EXTERN u_int16_t local_port;	/* Gaver Local Port					*/
+EXTERN u_int64_t overal_bps;	/* Max Overal Speed measured in bits per seconds	*/
+EXTERN u_int64_t socket_bps;	/* Max Socket Speed measured in bits per seconds	*/
+EXTERN u_int64_t input_wait;	/* Time in nsec for waiting other message		*/
 
 #endif /* _GLO_H */

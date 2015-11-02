@@ -396,7 +396,6 @@ ssize_t sendmbuff (int sd, void *bufdata, size_t lendata, void *bufhdr, size_t l
 #endif
 
 #ifdef USE_SENDTO
-
     if (lenhdr + lendata > SENDTO_MAX_BUFFER)
 	/*
          * De momento falla de manera sileciosa

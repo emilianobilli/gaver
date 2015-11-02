@@ -272,6 +272,7 @@ ssize_t recvdata (int sdux, struct mb_queue *q, size_t len, size_t mtu )
     /* Averiguar cuantos bytes hay en cola */
     if (ioctl(sdux, SIOCINQ, &value) == -1)
 	return (ssize_t)-1;
+
     btor = ( ATOMIC_READ > len ) ? len : ATOMIC_READ;
     btor = ( value > btor ) ? btor : value;
 

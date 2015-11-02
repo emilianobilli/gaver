@@ -29,10 +29,11 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-/*==================================================================================*
- * loadcfgk(): Load the command line configuration passed in argc and *argv[]   *
- *		   The function force to exit process when error ocurs		    *
- *==================================================================================*/
+
+/*======================================================================================*
+ * loadcfgk(): Load the command line configuration passed in argc and *argv[]		*
+ *		   The function force to exit process when error ocurs			*
+ *======================================================================================*/
 int loadcfgk (int argc, char *argv[], struct configk *cfg)
 {
     int opt, val;
@@ -42,7 +43,7 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 
     memset(cfg,0,sizeof(struct configk));
 
-    while ((opt = getopt(argc,argv, "a:p:S:s:m:M:l:")) != -1)
+    while ((opt = getopt(argc,argv, "a:p:S:s:m:M:l:r:w:")) != -1)
     {
 	switch (opt)
 	{
@@ -113,6 +114,30 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 		    cfg->overal_bps = (u_int64_t) llval;
 
 		break;
+	    case 'r':
+		    errno = 0;
+		    llval = strtoll(optarg,&endptr, 10);
+		    
+		    if ((errno == ERANGE && 
+		        (val == LONG_MAX || val == LONG_MIN)) ||
+                	(errno != 0 && val == 0)) 
+		    {
+			perror("rmem");
+			return -1;
+		    }
+		    cfg->rmem = (u_int64_t) llval;
+	    case 'w':
+		    errno = 0;
+		    llval = strtoll(optarg,&endptr, 10);
+		    
+		    if ((errno == ERANGE && 
+		        (val == LONG_MAX || val == LONG_MIN)) ||
+                	(errno != 0 && val == 0)) 
+		    {
+			perror("wmem");
+			return -1;
+		    }
+		    cfg->wmem = (u_int32_t) llval;
 	    case 'm':
 		errno = 0;
 		val = strtol(optarg,&endptr,10);
@@ -151,13 +176,15 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 
 void dumpcfgk (FILE *f, struct configk *cfg)
 {
-    fprintf(f, "Addr: %s\nPort: %d\nUnix Socket Api: %s\nMtu:  %d\nOveral Bps: %ld\nSocket Bps: %ld\n", 
+    fprintf(f, "Addr: %s\nPort: %d\nUnix Socket Api: %s\nMtu:  %d\nOveral Bps: %ld\nSocket Bps: %ldRead Memory: %ld\nWrite Memory: %ld\n", 
 		inet_ntoa(cfg->addr),
 		ntohs(cfg->port),
 		cfg->listen_api,
 		cfg->mtu,
 		cfg->overal_bps,
-		cfg->socket_bps);
+		cfg->socket_bps,
+		cfg->rmem,
+		cfg->wmem);
     return;		
 }
 
