@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include "output.h"
+#include "sockopt.h"
 #include "gaver.h"
 #include "mbuff_queue.h"
 #include "mbuff.h"
@@ -56,17 +57,10 @@ int wait_event(int timer_event, int itc_event, u_int8_t *event)
     
     max = (timer_event > itc_event) ? timer_event : itc_event;
     
-    while(1) {
-	ret = select(max+1, &read_event, NULL, NULL, NULL);
-	if (ret == -1) {
-	    if (errno == EINTR)
-		continue;
-	    else
-		return -1;
-	}
-	else
-	    break;
-    }
+    ret = select_nosignal(max+1, &read_event, NULL, NULL, NULL);
+    if (ret == -1)
+	return -1;
+
     *event = 0;
     if (FD_ISSET(timer_event, &read_event))
 	*event |= TIMER_EXPIRATION;

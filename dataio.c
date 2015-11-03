@@ -27,6 +27,7 @@
 #include "dataio.h"
 #include "itc.h"
 #include "types.h"
+#include "sockopt.h"
 #include "glo.h"
 #include "mbuff.h"
 #include "mbuff_queue.h"
@@ -37,20 +38,7 @@
 
 PRIVATE ssize_t recvdata (int sdux, struct mb_queue *q, size_t len, size_t mtu );
 PRIVATE ssize_t senddata (int sdux, struct mb_queue *txq, struct mb_queue *no_sent, int discard);
-PRIVATE int select_nosignal (int max, fd_set *read, fd_set *write, fd_set *excep, struct timeval *tout);
 PRIVATE int fill_fdset (struct msg_queue *queue, fd_set *set);
-
-int select_nosignal ( int max, fd_set *read, fd_set *write, fd_set *except, struct timeval *tout)
-{
-    int ret;
-    while (1)
-    {
-	    ret = select(max+1, read, write, except, tout);
-	    if ( ret >= 0 || (ret == -1 && errno != EINTR ))
-		break;	
-    }
-    return ret;
-}
 
 int fill_fdset (struct msg_queue *queue, fd_set *set)
 {
@@ -250,7 +238,7 @@ panic:
 }
 
 
-ssize_t recvdata (int sdux, struct mb_queue *q, size_t len, size_t mtu )
+ssize_t recvdata (int sdux, struct mb_queue *q, size_t len, size_t payload_len )
 {
     struct msghdr msg;
     struct iovec *iodata;
@@ -276,7 +264,7 @@ ssize_t recvdata (int sdux, struct mb_queue *q, size_t len, size_t mtu )
     btor = ( ATOMIC_READ > len ) ? len : ATOMIC_READ;
     btor = ( value > btor ) ? btor : value;
 
-    if (alloc_mbuff_payload(&t1, btor, mtu) == 0)
+    if (alloc_mbuff_payload(&t1, btor, payload_len) == 0)
 	return (ssize_t)0;
 
     iodata = (struct iovec *)calloc(sizeof(struct iovec), t1.size);
@@ -288,7 +276,7 @@ ssize_t recvdata (int sdux, struct mb_queue *q, size_t len, size_t mtu )
     {
 	mbptr = mbuff_dequeue(&t1);
 	iodata[i].iov_base = mbptr->m_payload;
-	iodata[i].iov_len  = mtu;
+	iodata[i].iov_len  = payload_len;
 	mbuff_enqueue(&t2, mbptr);
 	i++;
     }
@@ -327,10 +315,10 @@ ssize_t recvdata (int sdux, struct mb_queue *q, size_t len, size_t mtu )
     while(ret > 0)
     {
 	mbptr = mbuff_dequeue(&t2);
-	if (ret >= mtu) 
+	if (ret >= payload_len) 
 	{
-	    mbptr->m_datalen = mtu;
-	    ret -= mtu;
+	    mbptr->m_datalen = payload_len;
+	    ret -= payload_len;
 	}
 	else
 	{

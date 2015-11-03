@@ -22,5 +22,6 @@
 #define EXTERN extern
 #define PRIVATE static
 
+typedef signed char s_int8_t;
 
 #endif /* _TYPES_H */

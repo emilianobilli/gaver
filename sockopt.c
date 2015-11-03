@@ -20,7 +20,8 @@
 #include <netinet/ip.h>
 #include <sys/un.h>
 #include <string.h>
-
+#include <errno.h>
+#include <sys/select.h>
 
 int unix_socket_client(const char *path)
 {
@@ -126,3 +127,15 @@ int set_nofrag(int sd)
     return setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(int));
 }
 
+int select_nosignal ( int max, fd_set *read, fd_set *write, fd_set *except, struct timeval *tout)
+{
+    int ret;
+    errno = 0;
+    while (1)
+    {
+	    ret = select(max+1, read, write, except, tout);
+	    if ( ret >= 0 || (ret == -1 && errno != EINTR ))
+		break;	
+    }
+    return ret;
+}

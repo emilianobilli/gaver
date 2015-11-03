@@ -18,6 +18,10 @@
 #ifndef _SOCKOPT_H
 #define _SOCKOPT_H
 
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <netinet/ip.h>
+
 extern int unix_socket(const char *path);
 
 extern int unix_socket_client(const char *path);
@@ -35,5 +39,7 @@ extern int set_rcvbuf(int socket, u_int32_t buff_size );
 extern int set_sndbuf(int socket, u_int32_t buff_size );
 
 extern int set_nofrag(int sd);
+
+extern int select_nosignal (int max, fd_set *read, fd_set *write, fd_set *excep, struct timeval *tout);
 
 #endif
