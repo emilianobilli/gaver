@@ -30,6 +30,33 @@
 #include <netdb.h>
 
 
+
+
+void usage(void)
+{
+    int i;
+    char *usage_str = "\nUsage:\n gvd [config parameters]\n\nConfig Parameters:\n";
+    char *cfg[] = { " -a <addr>\t\tIp Address\n",
+		    " -p <port>\t\tPort\n",
+		    " -S <mbps>\t\tOveral Speed measured in bit per seconds\n",
+		    " -s <mbps>\t\tSocket Speed: Maximun per socket speed measured in bit per seconds\n",
+		    " -r <bytes>\t\tRead Max Buffer Per Socket\n",
+		    " -w <byets>\t\tWrite Max Buffer Per Socket\n",
+		    " -m <bytes>\t\tMtu Size\n",
+		    " -l <path>\t\tUnix Socket Api\n",
+		    " -h       \t\tShow This Help\n",
+		    NULL };
+    char *end = "\nReport Bugs to: <emiliano.billi@gmail.com>\n";
+    printf("%s", usage_str);
+    
+    for ( i = 0; cfg[i]; i++ )
+	printf("%s",cfg[i]);
+
+    printf("%s", end);
+    return;
+}
+
+
 /*======================================================================================*
  * loadcfgk(): Load the command line configuration passed in argc and *argv[]		*
  *		   The function force to exit process when error ocurs			*
@@ -43,7 +70,7 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 
     memset(cfg,0,sizeof(struct configk));
 
-    while ((opt = getopt(argc,argv, "a:p:S:s:m:M:l:r:w:")) != -1)
+    while ((opt = getopt(argc,argv, "a:p:S:s:m:l:r:w:h")) != -1)
     {
 	switch (opt)
 	{
@@ -155,7 +182,8 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 		}
 		cfg->mtu = val;
 		break;
-	    case 'M':
+	    case 'h':
+		return -1;
 		break;
 	    case 'l':
 		if (strlen(optarg) >= UNIX_PATH_MAX)
@@ -165,10 +193,23 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 		}
 		strcpy(cfg->listen_api, optarg);
 		break;
+
 	    default:
+		return -1;
 		break;
 	}
     }
+    if(!cfg->port)
+    {
+	fprintf(stderr,"Config: Port number is mandatory\n");
+	return -1;
+    }
+    if(!strlen(cfg->listen_api))
+    {
+	fprintf(stderr,"Config: Listen Api is mandatory\n");
+	return -1;
+    }
+
     return 0;
 }
 
@@ -176,7 +217,7 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 
 void dumpcfgk (FILE *f, struct configk *cfg)
 {
-    fprintf(f, "Addr: %s\nPort: %d\nUnix Socket Api: %s\nMtu:  %d\nOveral Bps: %ld\nSocket Bps: %ldRead Memory: %ld\nWrite Memory: %ld\n", 
+    fprintf(f, "Addr: %s\nPort: %d\nUnix Socket Api: %s\nMtu:  %d\nOveral Bps: %ld\nSocket Bps: %ld\nRead Memory: %u\nWrite Memory: %u\n", 
 		inet_ntoa(cfg->addr),
 		ntohs(cfg->port),
 		cfg->listen_api,
