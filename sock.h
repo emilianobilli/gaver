@@ -19,48 +19,14 @@ enum {
 
 
 
-#define IO_NONE		  0x00  /* 0000 */
-#define IO_WAITING_MEM    0x04	/* 0100 */
-#define IO_READ_PENDING   0x01	/* 0001 */
-#define IO_WRITE_PENDING  0x02  /* 0010 */
-#define IO_RW_PENDING     0x03  /* 0011 = IO_READ_PENDING | IO_WRITE_PENDING */
+#define DATA_IO_NONE		0x00	/* 0000 */
+#define DATA_IO_WAITING_MEM	0x04	/* 0100 */
+#define DATA_IO_READ_PENDING	0x01	/* 0001 */
+#define DATA_IO_WRITE_PENDING	0x02	/* 0010 */
+#define DATA_IO_RW_PENDING	0x03	/* 0011 = IO_READ_PENDING | IO_WRITE_PENDING */
 
 #define MAX_SOCKETS	  256
 #define NO_GVPORT         0x0000
-
-
-
-struct sock *new_sk( int sd )
-{
-    struct sock *nsk = NULL;		/* New Socket */
-    int nsd;				/* New Socket Descriptor */
-
-    nsd = accept(sd,(struct sockaddr *)NULL, (socklen_t *)NULL);
-    if ( nsd != -1 )
-    {
-	nsk = getfreesock();
-	if (nsk != NULL)
-	{
-	    init_sock(nsk);
-	    setusedsock(nsk);
-	    nsk->so_loctrl       = nsd;
-	    nsk->so_loctrl_state = CTRL_CLOSE;
-	    nsk->so_state        = GV_CLOSE;
-	    nsk->so_local_gvport = NO_GVPORT;
-	}
-	else 
-	{
-	    /*
-             * No hay slots
-             */
-	    close(nsd);
-	}
-    }
-    return nsk;
-}
-
-
-
 
 struct sock {
     int 	so_lodata;
@@ -93,10 +59,17 @@ struct sock {
 
     size_t wmem_size;			/* Write buffer size    */
     size_t rmem_size;			/* Read  buffer size    */
+    
+    /*
+
     struct mb_queue wmemq;
     struct mb_queue rmemq;
-    struct mb_queue sentq;	/* In Flyght */
-    struct mb_queue roooq;	/* Reception Out Of Order */
+    struct mb_queue sentq;	In Flyght 
+    struct mb_queue roooq;	Reception Out Of Order 
+
+    struct seq_lost_queue lostq;	 Queue of lost Trasport Data Unit (mbuff)
+
+    */
 
     struct sock *so_next;
 };
@@ -370,11 +343,7 @@ void init_sock_table(void)
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 void init_sock(struct sock *soptr)
 {
-    /*
-     * 
-     * Codigo para inicializar la estructura sock
-     *
-     */
+    memset(soptr,0,sizeof(struct sock));
     return;
 }
 

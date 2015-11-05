@@ -30,8 +30,6 @@
 #include <netdb.h>
 
 
-
-
 void usage(void)
 {
     int i;
@@ -74,129 +72,134 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
     {
 	switch (opt)
 	{
-	    case 'a':
-		if (!inet_aton(optarg,&(cfg->addr)))
-		{
-		    fprintf(stderr,"Invalid addr: %s\n", optarg);
+	case 'a':
+	    if (!inet_aton(optarg,&(cfg->addr)))
+	    {
+	        fprintf(stderr,"Invalid addr: %s\n", optarg);
+	        return -1;
+	    }
+	    break;
+	case 'p':
+	    if (!strcmp("default", optarg))
+	    {
+	        /* Check what is the default port */
+	        sent = getservbyname("gaver", "udp");
+	        if (sent != NULL)
+	    	cfg->port = sent->s_port;
+	        else
+	        {
+	    	    fprintf(stderr, "Service gaver not found\n");
 		    return -1;
 		}
-		break;
-	    case 'p':
-		if (!strcmp("default", optarg))
-		{
-		    /* Check what is the default port */
-		    sent = getservbyname("gaver", "udp");
-		    if (sent != NULL)
-			cfg->port = sent->s_port;
-		    else
-		    {
-			fprintf(stderr, "Service gaver not found\n");
-			return -1;
-		    }
-		}
-		else
-		{ 
-		    errno = 0;
-		    val = strtol(optarg,&endptr,10);
+	    }
+	    else
+	    { 
+	        errno = 0;
+	        val = strtol(optarg,&endptr,10);
 
-		    if ((errno == ERANGE && 
-		        (val == LONG_MAX || val == LONG_MIN)) ||
-                	(errno != 0 && val == 0)) 
-		    {
-            		perror("port");
-            		return -1;
-		    }
-		    if ( val > 65535 || val <= 0 )
-		    {
-			fprintf(stderr,"Config: Port out of range\n");
-			return -1;
-		    }
-		    cfg->port = htons(val);
-		}
-		break;
-	    case 'S':
-		    errno = 0;
-		    llval = strtoll(optarg,&endptr, 10);
-		    
-		    if ((errno == ERANGE && 
-		        (val == LLONG_MAX || val == LLONG_MIN)) ||
-                	(errno != 0 && val == 0)) 
-		    {
-			perror("socket_bps");
-			return -1;
-		    }
-		    cfg->socket_bps = (u_int64_t) llval;
-		break;
-	    case 's':
-		    errno = 0;
-		    llval = strtoll(optarg,&endptr, 10);
-		    
-		    if ((errno == ERANGE && 
-		        (val == LLONG_MAX || val == LLONG_MIN)) ||
-                	(errno != 0 && val == 0)) 
-		    {
-			perror("overal_bps");
-			return -1;
-		    }
-		    cfg->overal_bps = (u_int64_t) llval;
-
-		break;
-	    case 'r':
-		    errno = 0;
-		    llval = strtoll(optarg,&endptr, 10);
-		    
-		    if ((errno == ERANGE && 
-		        (val == LONG_MAX || val == LONG_MIN)) ||
-                	(errno != 0 && val == 0)) 
-		    {
-			perror("rmem");
-			return -1;
-		    }
-		    cfg->rmem = (u_int64_t) llval;
-	    case 'w':
-		    errno = 0;
-		    llval = strtoll(optarg,&endptr, 10);
-		    
-		    if ((errno == ERANGE && 
-		        (val == LONG_MAX || val == LONG_MIN)) ||
-                	(errno != 0 && val == 0)) 
-		    {
-			perror("wmem");
-			return -1;
-		    }
-		    cfg->wmem = (u_int32_t) llval;
-	    case 'm':
-		errno = 0;
-		val = strtol(optarg,&endptr,10);
-		if ((errno == ERANGE && 
-		    (val == LONG_MAX || val == LONG_MIN)) ||
-            	    (errno != 0 && val == 0)) 
+	        if ((errno == ERANGE && 
+	            (val == LONG_MAX || val == LONG_MIN)) ||
+        	    (errno != 0 && val == 0)) 
 		{
-            	    perror("mtu");
+            	    perror("port");
             	    return -1;
 		}
-		if ( val > 9216 || val <= 0 )
+		if ( val > 65535 || val <= 0 )
 		{
-		    fprintf(stderr,"Config: Mtu out of range");
+		    fprintf(stderr,"Config: Port out of range\n");
 		    return -1;
 		}
-		cfg->mtu = val;
-		break;
-	    case 'h':
+		cfg->port = htons(val);
+	    }
+	    break;
+	case 'S':
+	    errno = 0;
+	    llval = strtoll(optarg,&endptr, 10);
+	    
+	    if ((errno == ERANGE && 
+	        (val == LLONG_MAX || val == LLONG_MIN)) ||
+            	(errno != 0 && val == 0)) 
+	    {
+		perror("socket_bps");
 		return -1;
-		break;
-	    case 'l':
-		if (strlen(optarg) >= UNIX_PATH_MAX)
+	    }
+	    cfg->socket_bps = (u_int64_t) llval;
+	    break;
+	case 's':
+	    errno = 0;
+	    llval = strtoll(optarg,&endptr, 10);
+	    
+	    if ((errno == ERANGE && 
+	        (val == LLONG_MAX || val == LLONG_MIN)) ||
+            	(errno != 0 && val == 0)) 
 		{
-		    fprintf(stderr, "Listen Socket Name Out of Range\n");
+		    perror("overal_bps");
 		    return -1;
 		}
-		strcpy(cfg->listen_api, optarg);
-		break;
+	    cfg->overal_bps = (u_int64_t) llval;
 
-	    default:
+	    break;
+	case 'r':
+	    errno = 0;
+	    llval = strtoll(optarg,&endptr, 10);
+	    
+	    if ((errno == ERANGE && 
+	        (val == LONG_MAX || val == LONG_MIN)) ||
+            	(errno != 0 && val == 0)) 
+	    {
+		perror("rmem");
 		return -1;
-		break;
+	    }
+	    cfg->rmem = (u_int64_t) llval;
+	    break;
+
+	case 'w':
+	    errno = 0;
+	    llval = strtoll(optarg,&endptr, 10);
+	    
+	    if ((errno == ERANGE && 
+	        (val == LONG_MAX || val == LONG_MIN)) ||
+            	(errno != 0 && val == 0)) 
+	        {
+	    	    perror("wmem");
+		    return -1;
+		}
+	        cfg->wmem = (u_int32_t) llval;
+	    break;
+
+	case 'm':
+	    errno = 0;
+	    val = strtol(optarg,&endptr,10);
+	    if ((errno == ERANGE && 
+	        (val == LONG_MAX || val == LONG_MIN)) ||
+    	        (errno != 0 && val == 0)) 
+	    {
+                perror("mtu");
+                return -1;
+	    }
+	    if ( val > 9216 || val <= 0 )
+	    {
+	        fprintf(stderr,"Config: Mtu out of range");
+	        return -1;
+	    }
+	    cfg->mtu = val;
+	    break;
+
+	case 'h':
+	    return -1;
+	    break;
+	case 'l':
+	    if (strlen(optarg) >= UNIX_PATH_MAX)
+	    {
+	        fprintf(stderr, "Listen Socket Name Out of Range\n");
+	        return -1;
+	    }
+	    strcpy(cfg->listen_api, optarg);
+	    break;
+
+	default:
+	    return -1;
+	    break;
 	}
     }
     if(!cfg->port)

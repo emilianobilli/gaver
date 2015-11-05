@@ -28,6 +28,7 @@
 #include "output_var.h"
 #include "input_var.h"
 #include "start_var.h"
+#include "ver.h"
 
 EXTERN int mtu;			/* MTU Max 						*/
 EXTERN int ifudp;		/* Socket UDP 						*/

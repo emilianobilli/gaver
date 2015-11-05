@@ -46,8 +46,9 @@ struct configk {
  * loadcfgk(): Load the command line configuration passed in argc and *argv[]		*
  *		   The function force to exit process when error ocurs			*
  *======================================================================================*/
-EXTERN int loadcfgk (int argc, char *argv[], struct configk *cfg);
+EXTERN int  loadcfgk (int argc, char *argv[], struct configk *cfg);
 EXTERN void dumpcfgk (FILE *f, struct configk *cfg);
+EXTERN void usage(void);
 #endif
 
 #endif /* configk.h */
