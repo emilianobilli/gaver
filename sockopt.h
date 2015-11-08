@@ -21,25 +21,35 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <netinet/ip.h>
+#include "types.h"
 
-extern int unix_socket(const char *path);
+#ifdef _SOCKOPT_CODE
+#undef EXTERN
+#define EXTERN
+#endif
 
-extern int unix_socket_client(const char *path);
+EXTERN int unix_socket(const char *path);
 
-extern int ipv4_udp_socket (const char *ipv4_addr, u_int16_t port);
+EXTERN int unix_socket_client(const char *path);
 
-extern int ipv4_udp_socket_nbo (u_int32_t addr, u_int16_t port);
+EXTERN int ipv4_udp_socket (const char *ipv4_addr, u_int16_t port);
 
-extern int __ipv4_udp_socket (struct sockaddr_in *addr);
+EXTERN int ipv4_udp_socket_nbo (u_int32_t addr, u_int16_t port);
 
-extern int iptos_throughput(int sd);
+EXTERN int __ipv4_udp_socket (struct sockaddr_in *addr);
 
-extern int set_rcvbuf(int socket, u_int32_t buff_size );
+EXTERN int iptos_throughput(int sd);
 
-extern int set_sndbuf(int socket, u_int32_t buff_size );
+EXTERN int set_reuseaddr(int socket);
 
-extern int set_nofrag(int sd);
+EXTERN int set_reuseaddr_unix(const char *path);
 
-extern int select_nosignal (int max, fd_set *read, fd_set *write, fd_set *excep, struct timeval *tout);
+EXTERN int set_rcvbuf(int socket, u_int32_t buff_size );
+
+EXTERN int set_sndbuf(int socket, u_int32_t buff_size );
+
+EXTERN int set_nofrag(int sd);
+
+EXTERN int select_nosignal (int max, fd_set *read, fd_set *write, fd_set *excep, struct timeval *tout);
 
 #endif

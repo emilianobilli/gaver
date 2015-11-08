@@ -212,6 +212,16 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 	fprintf(stderr,"Config: Listen Api is mandatory\n");
 	return -1;
     }
+    if (!cfg->overal_bps)
+    {
+	fprintf(stderr,"Config: Overal Speed is mandatory\n");
+	return -1;
+    }
+    if (!cfg->mtu)
+    {
+	fprintf(stderr,"Config: Mtu is mandatory\n");
+	return -1;
+    }
 
     return 0;
 }
@@ -220,7 +230,7 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 
 void dumpcfgk (FILE *f, struct configk *cfg)
 {
-    fprintf(f, "Addr: %s\nPort: %d\nUnix Socket Api: %s\nMtu:  %d\nOveral Bps: %ld\nSocket Bps: %ld\nRead Memory: %u\nWrite Memory: %u\n", 
+    fprintf(f, "GaVer\n=====\nAddr: %s\nPort: %d\nUnix Socket Api: %s\nMtu:  %d\nOveral Bps: %ld\nSocket Bps: %ld\nRead Memory: %u\nWrite Memory: %u\n", 
 		inet_ntoa(cfg->addr),
 		ntohs(cfg->port),
 		cfg->listen_api,

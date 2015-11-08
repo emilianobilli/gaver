@@ -16,12 +16,17 @@
  */
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 #include <sys/un.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/select.h>
+
+#define SOCK_OPT_CODE
+#include "sockopt.h"
 
 int unix_socket_client(const char *path)
 {
@@ -54,6 +59,9 @@ int unix_socket(const char *path)
 
     unix_socket = socket(AF_UNIX, SOCK_STREAM, 0);
     if (unix_socket == -1)
+	return -1;
+
+    if (set_reuseaddr_unix(path) == -1)
 	return -1;
 
     if (bind(unix_socket, 
@@ -120,6 +128,32 @@ int set_sndbuf(int socket, u_int32_t buff_size )
 {
     return setsockopt(socket, SOL_SOCKET, SO_SNDBUF, &buff_size, sizeof(u_int32_t));
 }
+
+int set_reuseaddr(int socket)
+{
+    int val = 1;
+    return setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(int));
+}
+
+int set_reuseaddr_unix(const char *path)
+{
+    struct stat sb;
+
+    errno = 0;
+    if (stat(path, &sb) == -1)
+    {
+	if (errno == ENOENT)
+	    return 0;
+	else
+	    return -1;
+    }
+    if ( (sb.st_mode & S_IFMT) == S_IFSOCK )
+    {
+	return unlink(path);
+    }
+    return -1;
+}
+
 
 int set_nofrag(int sd)
 {
