@@ -44,10 +44,12 @@ struct sock {
     u_int64_t   so_upload_speed;
     u_int64_t   so_download_speed;
 
+    double      so_refresh_syn;
     double	so_refresh_tokens;
     double	so_vacant_tokens;
 
     u_int8_t	so_capwin;		/* Congestion Avoidance Percent Window */
+    size_t	so_host_win;		/* Ventana declarada por el receptor   */
 
 
     u_int64_t	so_dseq_out;		/* Data seq out         */

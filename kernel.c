@@ -24,33 +24,65 @@
 #define KEVENT_SERVER(e)		( (e) & EPOLLIN  )
 
 
-    pkev = &kevents[0];
-    for ( i = 0, pkev = ; 
 
-    if (  == server_api )
+    while(1)
     {
-	if (KEVENT_SERVER(event))
-	{
-	    errno = 0;
-	    sock = new_sk(server_api);
-	    if (sock != NULL)
-		kevent_add_socket(sock->so_loctrl);
-	    else
-		if ( errno == ENFILE  ||
-		     errno == ENOBUFS ||
-		     errno == ENOMEM  ||
-		     errno == EPROT )
-		     panic();
-	}
-	else if (KEVENT_SERVER_ERROR(event))
-	{	
-	    /*
-             * ToDo Manejar los El Panic
-             */
-	    panic();
-	}
-    }
+	/*
+         * Wait for events
+         */
+	nkevens = kevent_wait(-1);
 
+	for ( i = 0, pkev = &kevent[0]; i <= nkevents -1; i++, pkev++ )
+	{
+	    /*
+             * Look if a new socket is waiting for accept
+             */
+	    if ( pkev->data.fd == server_api )
+	    {
+		if (KEVENT_SERVER(pkev->events))
+		{
+		    errno = 0;
+		    sock = new_sk(server_api);
+		    if (sock != NULL)
+			kevent_add_socket(sock->so_loctrl);
+		    else
+		    if ( errno == ENFILE  ||
+			 errno == ENOBUFS ||
+		         errno == ENOMEM  ||
+			 errno == EPROT )
+		         panic();
+		}
+		else if (KEVENT_SERVER_ERROR(pkev->events))
+		{	
+		/*
+        	 * ToDo Manejar los Panic
+    	         */
+		    panic();
+		}
+	    }
+	    else if ( pkev->data.fd == refresh_timer && 
+		      KEVENT_TIMER(pkev->events) )
+	    {
+		/*
+		 * Time to update tokens
+		 */
+		if (gettimerexp(refresh_timer, &ntimes) == -1)
+		{
+		    panic();
+		}
+		do_update_tokens(&so_used, ntimes);
+
+	    }
+	    else if ( pkev->data.fd == itc_event && 
+		      KEVENT_ITC(pkev->events) )
+	    {
+		/*
+		 * Itc Event
+                 */
+
+
+	    }
+	}
 /*
  * This is the JSON message when the connection is established with the api
  */
@@ -95,7 +127,58 @@ struct sock *new_sk( int sd )
     return nsk;
 }
 
+void do_update_tokens (struct sockqueue *sk, u_int64_t times)
+{
+    struct sockqueue tmp;
+    struct sock *ptr;
 
+    init_sock_queue(&tmp);
+    
+    /*
+	Part of the sock structure
+	--------------------------
+	double  	so_refresh_syn;
+        double		so_refresh_tokens;
+        double		so_available_tokens;
+        u_int8_t	so_capwin;	
+	size_t		so_hostwin;		
+
+	struct msg_queue 
+
+    */
+    while (ptr = sock_dequeue(sk))
+    {
+	if (ptr->so_state == GV_ESTABLISHED)
+	{
+	    if (ptr->so_available_tokens > 1.0)
+		/*
+    		 * Se le resta la parte entera
+                 */
+		ptr->so_available_tokens = ptr->so_available_tokens - floor(ptr->so_available_tokens);
+
+	    /* 
+    	    * At this point the value of so_available_tokens is in the set [0;1)
+            */
+	
+	    ptr->so_available_tokens += update_token(ptr->so_available_tokens,
+						     ptr->so_refresh_toekns,
+						     ptr->so_capwin,
+						     ptr->so_hostwin-ptr->so_sentq.size) * (double) times;
+
+	    ptr->so_refresh_syn += (ptr->so_refresh_tokens / PACKET_PER_ROUND) * (double) times;
+	    /*
+             * When so_refresh_syn >= 1 -> The kernel dispatch the syn msg and substract 
+	     *			       the integer value
+	     *
+             */
+	}
+	sock_enqueue(&tmp,ptr);
+    }
+    sk->size = tmp.size;
+    sk->head = tmp.head;
+    sk->tail = tmp.tail;
+    return;
+}
 
 
 /*======================================================================================*
