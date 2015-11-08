@@ -60,6 +60,9 @@
 		    panic();
 		}
 	    }
+	    /*
+	     * Looks if is time to refresh tokens and syn
+             */
 	    else if ( pkev->data.fd == refresh_timer && 
 		      KEVENT_TIMER(pkev->events) )
 	    {
@@ -71,17 +74,37 @@
 		    panic();
 		}
 		do_update_tokens(&so_used, ntimes);
-
 	    }
+	    /*
+	     * Look if another thread send a message
+	     */
 	    else if ( pkev->data.fd == itc_event && 
 		      KEVENT_ITC(pkev->events) )
 	    {
 		/*
 		 * Itc Event
                  */
-
-
 	    }
+	    
+	    /*
+	     * Look if soctrl send a api message
+	     */
+	    else 
+	    {
+		sock = getsockbysoctrl(ptr->data.fd);
+		if (sock != NULL)
+		{
+
+    
+		}
+	    }
+	/*
+         * Finally: 
+	 *	- Check if a socket have tokens available to send
+         *	- Check if a socket needs to send syn message
+	 *	- flush all queues
+	 */
+
 	}
 /*
  * This is the JSON message when the connection is established with the api
@@ -114,7 +137,7 @@ struct sock *new_sk( int sd )
 	    nsk->so_loctrl_state = CTRL_CLOSE;
 	    nsk->so_state        = GV_CLOSE;
 	    nsk->so_lodata	 = -1;
-	    nsk->so_lodata_statu = DATA_IO_NONE;
+	    nsk->so_lodata_state = DATA_IO_NONE;
 	    nsk->so_local_gvport = NO_GVPORT;
 	    send_status(nsd, 0, "Sucess");
 	}
@@ -127,45 +150,65 @@ struct sock *new_sk( int sd )
     return nsk;
 }
 
+/*======================================================================================*
+ * pfloat()										*
+ *======================================================================================*/
+double pfloat (double value)
+{
+    return value - floor(value);
+}
+
+
+/*======================================================================================*
+ * do_update_tokens()									*
+ *======================================================================================*/
 void do_update_tokens (struct sockqueue *sk, u_int64_t times)
 {
     struct sockqueue tmp;
     struct sock *ptr;
+    size_t hw, sq;
 
     init_sock_queue(&tmp);
     
     /*
 	Part of the sock structure
 	--------------------------
-	double  	so_refresh_syn;
-        double		so_refresh_tokens;
-        double		so_available_tokens;
+	double  	so_resyn;
+        double		so_retok;
+        double		so_avtok;
         u_int8_t	so_capwin;	
 	size_t		so_hostwin;		
 
-	struct msg_queue 
+	struct msg_queue so_sentq;
 
     */
     while (ptr = sock_dequeue(sk))
     {
 	if (ptr->so_state == GV_ESTABLISHED)
 	{
-	    if (ptr->so_available_tokens > 1.0)
+	    if (ptr->so_avtok > (double) 1.0)
 		/*
     		 * Se le resta la parte entera
                  */
-		ptr->so_available_tokens = ptr->so_available_tokens - floor(ptr->so_available_tokens);
+		ptr->so_avtok = pfloat(ptr->so_avtok);
 
 	    /* 
     	    * At this point the value of so_available_tokens is in the set [0;1)
             */
 	
-	    ptr->so_available_tokens += update_token(ptr->so_available_tokens,
-						     ptr->so_refresh_toekns,
-						     ptr->so_capwin,
-						     ptr->so_hostwin-ptr->so_sentq.size) * (double) times;
+	    hw = ptr->so_hostwin;		/* Host Window */
+	    sq = ptr->so_sentq.size;		/* Sent Queue  */
 
-	    ptr->so_refresh_syn += (ptr->so_refresh_tokens / PACKET_PER_ROUND) * (double) times;
+	    if ( hw > sq )
+		ptr->so_avtok += update_token(ptr->so_avtok,
+					      ptr->so_retok,
+					      ptr->so_capwin,
+					      hw-sq) * (double) times;
+	    else
+		/* The other alternative is that the value is 0 */
+		ptr->so_avtok = 0;
+
+	    ptr->so_resyn += (ptr->so_retok / PACKET_PER_ROUND) * (double) times;
 	    /*
              * When so_refresh_syn >= 1 -> The kernel dispatch the syn msg and substract 
 	     *			       the integer value

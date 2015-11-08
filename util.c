@@ -160,6 +160,15 @@ double getpkrtime (u_int64_t speed_bps, int mtu, double refresh_time)
     return getpksec(speed_bps,mtu) * refresh_time;
 }
 
+/*======================================================================================*
+ * Return the float point of the value							*
+ *======================================================================================*/
+double pfloat (double value)
+{
+    return value - floor(value);
+}
+
+
 
 /*======================================================================================*
  * Return the packets per seconds 							*

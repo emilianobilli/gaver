@@ -10,6 +10,7 @@ struct timeout {
 
 enum {
     CTRL_CLOSE = 1,
+    CTRL_NEW,
     CTRL_BIND,
     CTRL_LISTEN,
     CTRL_CONNECT_REQ,
@@ -44,9 +45,9 @@ struct sock {
     u_int64_t   so_upload_speed;
     u_int64_t   so_download_speed;
 
-    double      so_refresh_syn;
-    double	so_refresh_tokens;
-    double	so_vacant_tokens;
+    double      so_resyn;
+    double	so_retok;
+    double	so_avtok;
 
     u_int8_t	so_capwin;		/* Congestion Avoidance Percent Window */
     size_t	so_host_win;		/* Ventana declarada por el receptor   */
