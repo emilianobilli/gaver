@@ -183,9 +183,9 @@ long pksec (long bandwith, int mtu)
 /*======================================================================================*
  * Return the necesaty time in ns between one packet and other to keep the speed	*
  *======================================================================================*/
-long pktime (long bandwith, int mtu)
+long pktime (u_int64_t bandwith, int mtu)
 {
-    return NSEC_IN_SEC / pksec(bandwith, mtu);
+    return NSEC_IN_SEC / (long) getpksec(bandwith, mtu);
 }
 
 /*======================================================================================*

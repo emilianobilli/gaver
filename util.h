@@ -118,7 +118,7 @@ EXTERN long pksec (long bandwith, int mtu);
 /*======================================================================================*
  * Return the necesaty time in ns between one packet and other to keep the speed	*
  *======================================================================================*/
-EXTERN long pktime (long bandwith, int mtu);
+EXTERN long pktime (u_int64_t bandwith, int mtu);
 
 /*======================================================================================*
  * event_timer()									*
