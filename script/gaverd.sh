@@ -1,9 +1,23 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:          gvd
+# Required-Start:    $network
+# Required-Stop:     $network 
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: start GaVer daemon (gvd)
+### END INIT INFO
+
 #
 # Load the module to parse the config file 
 #
 source config-parser.sh;
-config_parser "gvconfig.ini";
 
+CONFIG_FILE="/opt/gaver/etc/gvd.ini"
+
+config_parser $CONFIG_FILE;
+# Parse Config file
 config.section.Bin;
 bin=$gvd;
 pid=$pid;
@@ -18,10 +32,11 @@ cfg_wmem=$wmem;
 config.section.Api;
 cfg_listen=$listen_api;
 
-echo $bind
+# Ser if the daemon are there
+test -x $bin || exit 0
 
-if [ -x $bin ]
-then 
+function make_arg()
+{
     args="";
     if [ "($cfg_addr)" != "" ]
     then
@@ -59,9 +74,25 @@ then
     then
 	args=$args"-P $pid "
     fi
-else
-    echo "Unable to find $bin"
-fi
+    echo $args
+}
+ARG=`make_arg`
 
-echo $args
-start-stop-daemon --start --exec "$bin $arg"
+case $1 in
+    start)
+	echo "Starting GaVer"
+	start-stop-daemon --start --exec $bin --pidfile $pid --umask 022 -- $ARG
+	;;
+    stop)
+	echo "Stoping GaVer"
+	start-stop-daemon --stop --pidfile $pid
+	if [ $? == "0" ]
+	then
+	    rm -f $pid
+	fi
+	;;
+    *)
+	echo "Usage: /etc/init.d/gaverd {start|stop}"
+	exit 1
+	;;
+esac

@@ -18,7 +18,7 @@ int writepid (const char *pidfile)
     pid_t pid = getpid();
     int fd;
 
-    fd = open(pidfile, O_CREAT | O_WRONLY);
+    fd = open(pidfile, O_CREAT | O_WRONLY, S_IRWXU);
     if (fd == -1)
 	return -1;
 
@@ -131,6 +131,7 @@ int main (int argc, char *argv[])
     /*
      * This function daemonize the process
      */
+    umask(S_IWGRP | S_IWOTH);
     if (daemon(0,0)==-1)
     {
 	close(api_socket);
@@ -142,6 +143,7 @@ int main (int argc, char *argv[])
 	exit(EXIT_FAILURE);
     }
 
+    
     if (writepid(gvcfg.pid_file)==-1)
     {
 	close(api_socket);
