@@ -17,6 +17,7 @@
 #define _CONFIGK_CODE
 #include "configk.h"
 #include <sys/socket.h>
+#include <linux/limits.h>
 #include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,6 +43,7 @@ void usage(void)
 		    " -w <byets>\t\tWrite Max Buffer Per Socket\n",
 		    " -m <bytes>\t\tMtu Size\n",
 		    " -l <path>\t\tUnix Socket Api\n",
+		    " -P <path>\t\tPid File\n",
 		    " -h       \t\tShow This Help\n",
 		    NULL };
     char *end = "\nReport Bugs to: <emiliano.billi@gmail.com>\n";
@@ -68,7 +70,7 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 
     memset(cfg,0,sizeof(struct configk));
 
-    while ((opt = getopt(argc,argv, "a:p:S:s:m:l:r:w:h")) != -1)
+    while ((opt = getopt(argc,argv, "a:p:P:S:s:m:l:r:w:h")) != -1)
     {
 	switch (opt)
 	{
@@ -196,7 +198,14 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 	    }
 	    strcpy(cfg->listen_api, optarg);
 	    break;
-
+	case 'P':
+	    if (strlen(optarg) >= NAME_MAX)
+	    {
+	        fprintf(stderr, "Pid file Out of Range\n");
+	        return -1;
+	    }
+	    strcpy(cfg->pid_file, optarg);
+	    break;
 	default:
 	    return -1;
 	    break;
@@ -217,6 +226,11 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 	fprintf(stderr,"Config: Overal Speed is mandatory\n");
 	return -1;
     }
+    if (!cfg->pid_file)
+    {
+	fprintf(stderr,"Config: Pid file is mandatory\n");
+	return -1;
+    }
     if (!cfg->mtu)
     {
 	fprintf(stderr,"Config: Mtu is mandatory\n");
@@ -230,7 +244,7 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 
 void dumpcfgk (FILE *f, struct configk *cfg)
 {
-    fprintf(f, "GaVer\n=====\nAddr: %s\nPort: %d\nUnix Socket Api: %s\nMtu:  %d\nOveral Bps: %ld\nSocket Bps: %ld\nRead Memory: %u\nWrite Memory: %u\n", 
+    fprintf(f, "GaVer\n=====\nAddr: %s\nPort: %d\nUnix Socket Api: %s\nMtu:  %d\nOveral Bps: %ld\nSocket Bps: %ld\nRead Memory: %u\nWrite Memory: %u\nPid File: %s\n", 
 		inet_ntoa(cfg->addr),
 		ntohs(cfg->port),
 		cfg->listen_api,
@@ -238,7 +252,8 @@ void dumpcfgk (FILE *f, struct configk *cfg)
 		cfg->overal_bps,
 		cfg->socket_bps,
 		cfg->rmem,
-		cfg->wmem);
+		cfg->wmem,
+		cfg->pid_file);
     return;		
 }
 

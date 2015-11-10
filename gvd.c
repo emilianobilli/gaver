@@ -1,7 +1,9 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
-
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "configk.h"
 #include "heap.h"
@@ -10,6 +12,25 @@
 #include "util.h"
 #include "glo.h"
 
+int writepid (const char *pidfile)
+{
+    char buff[20];
+    pid_t pid = getpid();
+    int fd;
+
+    fd = open(pidfile, O_CREAT | O_WRONLY);
+    if (fd == -1)
+	return -1;
+
+    sprintf(buff,"%d", pid);
+    if (write(fd, buff, strlen(buff)) == -1)
+    {
+	close(fd);
+	return -1;
+    }
+    close(fd);
+    return 0;
+}
 
 
 int main (int argc, char *argv[])
@@ -52,6 +73,7 @@ int main (int argc, char *argv[])
     {
 	close(api_socket);
 	perror("ipv4_udp_socket_nbo");
+
 	exit(EXIT_FAILURE);
     }
 
@@ -106,5 +128,33 @@ int main (int argc, char *argv[])
 	exit(EXIT_FAILURE);
     }
 
+    /*
+     * This function daemonize the process
+     */
+    if (daemon(0,0)==-1)
+    {
+	close(api_socket);
+	close(ifudp);
+	close(itc_event);
+	close(output_timer);
+	close(refresh_timer);
+	perror("daemon");
+	exit(EXIT_FAILURE);
+    }
+
+    if (writepid(gvcfg.pid_file)==-1)
+    {
+	close(api_socket);
+	close(ifudp);
+	close(itc_event);
+	close(output_timer);
+	close(refresh_timer);
+	exit(EXIT_FAILURE);
+    }    
+    
+    while (1)
+	sleep(5);
+
     return 0;
 }
+

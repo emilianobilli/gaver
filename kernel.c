@@ -85,12 +85,11 @@
 		 * Itc Event
                  */
 	    }
-	    
-	    /*
-	     * Look if soctrl send a api message
-	     */
 	    else 
 	    {
+		/*
+	        * Look if soctrl send a api message
+	        */
 		sock = getsockbysoctrl(ptr->data.fd);
 		if (sock != NULL)
 		{
@@ -158,18 +157,12 @@ double pfloat (double value)
     return value - floor(value);
 }
 
-
 /*======================================================================================*
- * do_update_tokens()									*
+ * do_update_tokens_sock()									*
  *======================================================================================*/
-void do_update_tokens (struct sockqueue *sk, u_int64_t times)
+void do_update_tokens_sock (struct sock *sk, u_int64_t times)
 {
-    struct sockqueue tmp;
-    struct sock *ptr;
     size_t hw, sq;
-
-    init_sock_queue(&tmp);
-    
     /*
 	Part of the sock structure
 	--------------------------
@@ -180,42 +173,51 @@ void do_update_tokens (struct sockqueue *sk, u_int64_t times)
 	size_t		so_hostwin;		
 
 	struct msg_queue so_sentq;
-
     */
-    while (ptr = sock_dequeue(sk))
-    {
-	if (ptr->so_state == GV_ESTABLISHED)
-	{
-	    if (ptr->so_avtok > (double) 1.0)
-		/*
-    		 * Se le resta la parte entera
-                 */
-		ptr->so_avtok = pfloat(ptr->so_avtok);
 
+    if (sk->so_state == GV_ESTABLISHED) 
+    {
+	if (sk->so_avtok > (double) 1.0)
+	    /*
+    	     * Se le resta la parte entera
+             */
+	    ptr->so_avtok = pfloat(ptr->so_avtok);
 	    /* 
     	    * At this point the value of so_available_tokens is in the set [0;1)
             */
+	hw = sk->so_hostwin;		/* Host Window */
+	sq = sk->so_sentq.size;		/* Sent Queue  */
+	if ( hw > sq )
+	    sk->so_avtok += update_token(sk->so_avtok,
+					 sk->so_retok,
+					 sk->so_capwin,
+					 hw-sq) * (double) times;
+	else
+	    /* The other alternative is that the value is 0 */
+	    sk->so_avtok = 0;
 	
-	    hw = ptr->so_hostwin;		/* Host Window */
-	    sq = ptr->so_sentq.size;		/* Sent Queue  */
+	sk->so_resyn += (ptr->so_retok / PACKET_PER_ROUND) * (double) times;
+	/*
+         * When so_refresh_syn >= 1 -> The kernel dispatch the syn msg and substract 
+	 *			       the integer value
+	 *
+         */
+    }
+    return;
+}
 
-	    if ( hw > sq )
-		ptr->so_avtok += update_token(ptr->so_avtok,
-					      ptr->so_retok,
-					      ptr->so_capwin,
-					      hw-sq) * (double) times;
-	    else
-		/* The other alternative is that the value is 0 */
-		ptr->so_avtok = 0;
 
-	    ptr->so_resyn += (ptr->so_retok / PACKET_PER_ROUND) * (double) times;
-	    /*
-             * When so_refresh_syn >= 1 -> The kernel dispatch the syn msg and substract 
-	     *			       the integer value
-	     *
-             */
-	}
-	sock_enqueue(&tmp,ptr);
+
+void do_update_tokens (struct sockqueue *sk, u_int64_t times)
+{
+    struct sockqueue tmp;
+    struct sock *skp;
+    
+    init_sock_queue(&tmp);
+        
+    while (skp = sock_dequeue(sk)) {
+	do_update_tokens_sock(skp,times);
+	sock_enqueue(&tmp,skp);
     }
     sk->size = tmp.size;
     sk->head = tmp.head;

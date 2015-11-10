@@ -21,6 +21,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <stdio.h>
+#include <linux/limits.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -33,6 +34,7 @@ struct configk {
     struct in_addr	addr;		/* Network bit order addr */
     u_int16_t		port;		/* Network bit order port */
     char		listen_api[UNIX_PATH_MAX];
+    char		pid_file[NAME_MAX];
     int			sched;
     int			mtu;
     u_int64_t		overal_bps;	/* Velocidad Maxima */	
