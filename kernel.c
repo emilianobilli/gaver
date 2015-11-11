@@ -16,7 +16,8 @@
 #define SERVER_EVENTS		EPOLLIN | EPOLLERR
 
 
-#define KEVENT_SOCKET_ERROR(e)		( ( (e) & EPOLLRDHUP ) || ( (e) & EPOLLERR ) || ( (e) & EPOLLHUP ) )
+#define KEVENT_SOCKET_CLOSE(e) 		( ( (e) & EPOLLRDHUP ) || ( (e) & EPOLLHUP ) )
+#define KEVENT_SOCKET_ERROR(e)		( (e) & EPOLLERR ) 
 #define KEVENT_SERVER_ERROR(e)		( (e) & EPOLLERR )
 #define KEVENT_ITC(e)			( (e) & EPOLLIN  )
 #define KEVENT_TIMER(e)			( (e) & EPOLLIN  )
@@ -34,9 +35,7 @@
 
 	for ( i = 0, pkev = &kevent[0]; i <= nkevents -1; i++, pkev++ )
 	{
-	    /*
-             * Look if a new socket is waiting for accept
-             */
+	    /* Look if a new socket is waiting for accept */
 	    if ( pkev->data.fd == server_api )
 	    {
 		if (KEVENT_SERVER(pkev->events))
@@ -52,32 +51,24 @@
 			 errno == EPROT )
 		         panic();
 		}
-		else if (KEVENT_SERVER_ERROR(pkev->events))
+		if (KEVENT_SERVER_ERROR(pkev->events))
 		{	
-		/*
-        	 * ToDo Manejar los Panic
-    	         */
+		/* ToDo Manejar los Panic */
 		    panic();
 		}
 	    }
-	    /*
-	     * Looks if is time to refresh tokens and syn
-             */
+	    /* Looks if is time to refresh tokens and syn */
 	    else if ( pkev->data.fd == refresh_timer && 
 		      KEVENT_TIMER(pkev->events) )
 	    {
-		/*
-		 * Time to update tokens
-		 */
+		/* Time to update tokens */
 		if (gettimerexp(refresh_timer, &ntimes) == -1)
 		{
 		    panic();
 		}
 		do_update_tokens(&so_used, ntimes);
 	    }
-	    /*
-	     * Look if another thread send a message
-	     */
+	    /* Look if another thread send a message */
 	    else if ( pkev->data.fd == itc_event && 
 		      KEVENT_ITC(pkev->events) )
 	    {
@@ -87,20 +78,29 @@
 	    }
 	    else 
 	    {
-		/*
-	        * Look if soctrl send a api message
-	        */
-		sock = getsockbysoctrl(ptr->data.fd);
+		/* Look if soctrl send a api message */
+		sock = getsockbysoctrl(pkev->data.fd);
 		if (sock != NULL)
 		{
-
-    
+		    if (KEVENT_SOCKET(pkev->events))
+		    {
+			/* Mensaje de api */
+		    }
+		    if (KEVENT_SOCKET_CLOSE(pkev->events))
+		    {
+			/* Evaluar que paso */
+		    }
+		    if (KEVENT_SOCKET_ERROR(pkev->events))
+		    {
+			/* ?? */
+		    }
 		}
 	    }
 	/*
          * Finally: 
 	 *	- Check if a socket have tokens available to send
          *	- Check if a socket needs to send syn message
+	 *	- Check if a timer expire
 	 *	- flush all queues
 	 */
 
@@ -178,13 +178,9 @@ void do_update_tokens_sock (struct sock *sk, u_int64_t times)
     if (sk->so_state == GV_ESTABLISHED) 
     {
 	if (sk->so_avtok > (double) 1.0)
-	    /*
-    	     * Se le resta la parte entera
-             */
+	    /* Se le resta la parte entera */
 	    ptr->so_avtok = pfloat(ptr->so_avtok);
-	    /* 
-    	    * At this point the value of so_available_tokens is in the set [0;1)
-            */
+	    /* At this point the value of so_available_tokens is in the set [0;1) */
 	hw = sk->so_hostwin;		/* Host Window */
 	sq = sk->so_sentq.size;		/* Sent Queue  */
 	if ( hw > sq )
@@ -206,8 +202,9 @@ void do_update_tokens_sock (struct sock *sk, u_int64_t times)
     return;
 }
 
-
-
+/*======================================================================================*
+ * kevent_init()									*
+ *======================================================================================*/
 void do_update_tokens (struct sockqueue *sk, u_int64_t times)
 {
     struct sockqueue tmp;
