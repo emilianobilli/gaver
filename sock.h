@@ -9,10 +9,7 @@ struct timeout {
 
 
 enum {
-    CTRL_CLOSE = 1,
-    CTRL_NEW,
-    CTRL_BIND,
-    CTRL_LISTEN,
+    CTRL_NONE = 1,
     CTRL_CONNECT_REQ,
     CTRL_ACCEPT_REQ,
     CTRL_ESTABLISHED

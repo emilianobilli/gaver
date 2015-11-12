@@ -42,4 +42,7 @@ EXTERN u_int64_t overal_bps;	/* Max Overal Speed measured in bits per seconds	*/
 EXTERN u_int64_t socket_bps;	/* Max Socket Speed measured in bits per seconds	*/
 EXTERN u_int64_t input_wait;	/* Time in nsec for waiting other message		*/
 
+/* !!!!!!!!!!!! Ojo que no se esta cargando la configuracion en las variables globales */
+
+
 #endif /* _GLO_H */

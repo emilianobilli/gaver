@@ -105,6 +105,10 @@
 	 */
 
 	}
+
+
+
+
 /*
  * This is the JSON message when the connection is established with the api
  */
@@ -133,7 +137,7 @@ struct sock *new_sk( int sd )
 	    init_sock(nsk);
 	    setusedsock(nsk);
 	    nsk->so_loctrl       = nsd;
-	    nsk->so_loctrl_state = CTRL_CLOSE;
+	    nsk->so_loctrl_state = CTRL_NONE;
 	    nsk->so_state        = GV_CLOSE;
 	    nsk->so_lodata	 = -1;
 	    nsk->so_lodata_state = DATA_IO_NONE;
