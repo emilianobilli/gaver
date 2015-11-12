@@ -76,7 +76,15 @@ int main (int argc, char *argv[])
     api_socket = unix_socket(gvcfg.listen_api);
     if (api_socket == -1)
     {
-	perror("socket_unix");
+	perror("Api:socket_unix");
+	exit(EXIT_FAILURE);
+    }
+
+    errno = 0;
+    api_socket = unix_socket(gvcfg.netstat);
+    if (api_socket == -1)
+    {
+	perror("NetStat:socket_unix");
 	exit(EXIT_FAILURE);
     }
 

@@ -29,6 +29,7 @@ cfg_os=$overal_bps;
 cfg_ss=$socket_bps;
 cfg_rmem=$rmem;
 cfg_wmem=$wmem;
+cfg_netstat=$netstat;
 config.section.Api;
 cfg_listen=$listen_api;
 
@@ -74,9 +75,19 @@ function make_arg()
     then
 	args=$args"-P $pid "
     fi
+    if [ "($cfg_netstat)" != "" ]
+    then
+	args=$args"-n $cfg_netstat "
+    fi
     echo $args
 }
 ARG=`make_arg`
+
+if [ $2 == "debug" ]
+then
+    echo $ARG
+    exit 0
+fi
 
 case $1 in
     start)

@@ -44,6 +44,7 @@ void usage(void)
 		    " -m <bytes>\t\tMtu Size\n",
 		    " -l <path>\t\tUnix Socket Api\n",
 		    " -P <path>\t\tPid File\n",
+		    " -n <path>\t\tNetstat File\n",
 		    " -h       \t\tShow This Help\n",
 		    NULL };
     char *end = "\nReport Bugs to: <emiliano.billi@gmail.com>\n";
@@ -70,7 +71,7 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 
     memset(cfg,0,sizeof(struct configk));
 
-    while ((opt = getopt(argc,argv, "a:p:P:S:s:m:l:r:w:h")) != -1)
+    while ((opt = getopt(argc,argv, "a:p:P:S:s:m:l:r:w:n:h")) != -1)
     {
 	switch (opt)
 	{
@@ -206,6 +207,14 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 	    }
 	    strcpy(cfg->pid_file, optarg);
 	    break;
+	case 'n':
+	    if (strlen(optarg) >= NAME_MAX)
+	    {
+	        fprintf(stderr, "Net stat file Out of Range\n");
+	        return -1;
+	    }
+	    strcpy(cfg->netstat, optarg);
+	    break;
 	default:
 	    return -1;
 	    break;
@@ -244,7 +253,7 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 
 void dumpcfgk (FILE *f, struct configk *cfg)
 {
-    fprintf(f, "GaVer\n=====\nAddr: %s\nPort: %d\nUnix Socket Api: %s\nMtu:  %d\nOveral Bps: %ld\nSocket Bps: %ld\nRead Memory: %u\nWrite Memory: %u\nPid File: %s\n", 
+    fprintf(f, "GaVer\n=====\nAddr: %s\nPort: %d\nUnix Socket Api: %s\nMtu:  %d\nOveral Bps: %ld\nSocket Bps: %ld\nRead Memory: %u\nWrite Memory: %u\nPid File: %s\nNetstat Socket: %s\n", 
 		inet_ntoa(cfg->addr),
 		ntohs(cfg->port),
 		cfg->listen_api,
@@ -253,7 +262,8 @@ void dumpcfgk (FILE *f, struct configk *cfg)
 		cfg->socket_bps,
 		cfg->rmem,
 		cfg->wmem,
-		cfg->pid_file);
+		cfg->pid_file,
+		cfg->netstat);
     return;		
 }
 

@@ -35,6 +35,7 @@ struct configk {
     u_int16_t		port;		/* Network bit order port */
     char		listen_api[UNIX_PATH_MAX];
     char		pid_file[NAME_MAX];
+    char		netstat[NAME_MAX];
     int			sched;
     int			mtu;
     u_int64_t		overal_bps;	/* Velocidad Maxima */	
