@@ -381,6 +381,22 @@ struct sock *bind_gvport(struct sock *sk, u_int16_t gvport)
     return NULL;
 }
 
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * bind_free_gvport(): 									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+struct sock *bind_free_gvport(struct sock *sk)
+{
+    int i = 1;
+    while (sk_gvport[i] != NULL && i++ < sizeof(u_int16_t) );
+    if ( i == sizeof(u_int16_t) )
+	return NULL; 
+
+    sk_gvport[i] = sk;
+    sk->so_local_gvport = (u_int16_t) i;
+    return sk;
+}
+
+
 struct sock *close_gvport_sk (struct sock *sk)
 {
     sk_gvport[sk->so_local_gvport] = NULL;
