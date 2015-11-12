@@ -1,16 +1,28 @@
+#include <errno.h>
+#include <string.h>
 #include "common.h"
 #include "apitypes.h"
+#include "gaver.h"
+#include "sock.h"
+
+
+void clean_msg(void *m)
+{
+    memset(m,0,sizeof(GVMSGAPISZ));
+}
 
 
 
 
+int (struct sock *sk, struct msg_queue *txq)
 
     struct gv_req_api msg;	/* Api Request  */
     struct gv_rep_api rep;	/* Api Response */
 
-    memset(&msg,0,sizeof(struct gv_req_api);
+    clean_msg(&msg);
+    clean_msg(&rep);
     
-    if (read_msg(sk, &msg, GVMSGAPISZ) == -1)
+    if (read_msg(sk->so_local_ctrl, &msg, GVMSGAPISZ) == -1)
 	return -1;
 
     switch (msg.msg_type)
@@ -29,12 +41,10 @@
 	     *
 	     */
 	    /* Test if the socket have a port assigned */
-
-	    bzero(&rep, sizeof(struct gv_rep_api));
-	    if (sock->so_local_gvport == NO_GVPORT &&
-		sock->so_state == GV_CLOSE)
+	    if (sk->so_local_gvport == NO_GVPORT &&
+		sk->so_state == GV_CLOSE)
 	    {
-		skptr = bind_gvport(sock,msg.bind.vport);
+		skptr = bind_gvport(sk,msg.bind.vport);
 		if (skptr != NULL)
 		{
 		    rep.status = COMMAND_SUCCESS;
@@ -45,15 +55,15 @@
 		else
 		{
 		    rep.status = COMMAND_FAIL;
-		    rep.fail.error_code = EADDRINUSE;
+		    rep.fail.error_code = (u_int16_t) EADDRINUSE;
 		}
 	    }
 	    else
 	    {
 		rep.status = COMMAND_FAIL;
-		rep.fail.error_code = EINVAL;
+		rep.fail.error_code = (u_int16_t) EINVAL;
 	    }
-	    if (write_msg(sk,&rep,GVMSGAPISZ) == -1)
+	    if (write_msg(sk->so_local_ctrl,&rep,GVMSGAPISZ) == -1)
 	    {
 		/* ?? */
 	    }
@@ -64,20 +74,18 @@
 	case MSG_LISTEN:
 	
 	    /* If the socket have a port assigned put in passive open */
-	    bzero(&rep, sizeof(struct gv_rep_api));
-
-	    if (sock->so_local_gvport == NO_GVPORT || 
-		sock->so_state != GV_CLOSE)
+	    if (sk->so_local_gvport == NO_GVPORT || 
+		sk->so_state != GV_CLOSE)
 	    {
 		rep.status = COMMAND_FAIL;
-		rep.fail.error_code = EOPNOTSUPP;
+		rep.fail.error_code = (u_int16_t) EOPNOTSUPP;
 	    }
 	    else
 	    {
-		sock->so_state = GV_LISTEN;
+		sk->so_state = GV_LISTEN;
 		rep.status = COMMAND_SUCCESS;
 	    }
-	    if (write_msg(sk,&rep,GVMSGAPISZ) == -1)
+	    if (write_msg(sk->so_local_ctrl,&rep,GVMSGAPISZ) == -1)
 	    {
 		/* ?? */
 	    }

@@ -34,6 +34,7 @@
 EXTERN int mtu;			/* MTU Max 						*/
 EXTERN int ifudp;		/* Socket UDP 						*/
 EXTERN int api_socket;		/* Socket For the Api 					*/
+EXTERN int netstat_socket;	/* Socket For Netstat					*/
 EXTERN int output_timer;	/* Timer for outgoing packages 				*/
 EXTERN int refresh_timer;	/* Timer for refresh tokens 				*/
 EXTERN u_int32_t local_addr;	/* Gaver Local Addres					*/
@@ -41,8 +42,8 @@ EXTERN u_int16_t local_port;	/* Gaver Local Port					*/
 EXTERN u_int64_t overal_bps;	/* Max Overal Speed measured in bits per seconds	*/
 EXTERN u_int64_t socket_bps;	/* Max Socket Speed measured in bits per seconds	*/
 EXTERN u_int64_t input_wait;	/* Time in nsec for waiting other message		*/
-
-/* !!!!!!!!!!!! Ojo que no se esta cargando la configuracion en las variables globales */
+EXTERN double ipkt;		/* Inter Packet Time					*/
+EXTERN double rft;		/* Refresh Time						*/
 
 
 #endif /* _GLO_H */

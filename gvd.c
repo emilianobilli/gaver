@@ -73,7 +73,7 @@ int main (int argc, char *argv[])
      * Create the Unix Socket for the API
      */
     errno = 0;
-    api_socket = unix_socket(gvcfg.listen_api);
+    api_socket = unix_socket(gvcfg.listen_api);		/* api_socket -> Global Global Socket */
     if (api_socket == -1)
     {
 	perror("Api:socket_unix");
@@ -81,7 +81,7 @@ int main (int argc, char *argv[])
     }
 
     errno = 0;
-    api_socket = unix_socket(gvcfg.netstat);
+    netstat_socket = unix_socket(gvcfg.netstat);	/* netstat_socket -> Global Socket */
     if (api_socket == -1)
     {
 	perror("NetStat:socket_unix");
@@ -92,7 +92,7 @@ int main (int argc, char *argv[])
      * Create the UDP Socket for Gaver
      */
     errno = 0;
-    ifudp = ipv4_udp_socket_nbo(gvcfg.addr.s_addr,gvcfg.port);
+    ifudp = ipv4_udp_socket_nbo(gvcfg.addr.s_addr,gvcfg.port);	/* ifudp -> Global Socket */
     if (ifudp == -1)
     {
 	close(api_socket);
@@ -101,6 +101,9 @@ int main (int argc, char *argv[])
 	exit(EXIT_FAILURE);
     }
 
+    local_addr = gvcfg.addr.s_addr;	/* Global */
+    local_port = gvcfg.port;		/* Global */
+
     /* Init the Heap */
     init_heap();
 
@@ -108,7 +111,7 @@ int main (int argc, char *argv[])
     errno = 0;
     itc_init();
     itc_block_signal(); 
-    itc_event = itc_signalfd_init();
+    itc_event = itc_signalfd_init();		/* Global */
     if (itc_event == -1) 
     {
 	close(api_socket);
@@ -122,9 +125,9 @@ int main (int argc, char *argv[])
     itp.tv_sec  = 0;
     itp.tv_nsec = pktime(gvcfg.overal_bps, gvcfg.mtu);
 
-    fprintf(stderr, "Inter Packet Time: %lf Sec\n", ttod(&itp));
+    ipkt =  ttod(&itp);			/* Global */
 
-    output_timer = event_timer(&itp); 
+    output_timer = event_timer(&itp);		/* Global Timer fd */
     if (output_timer == -1) 
     {
 	close(api_socket);
@@ -138,9 +141,10 @@ int main (int argc, char *argv[])
     errno = 0;
     refresh = getreftime(gvcfg.overal_bps, gvcfg.mtu);
 
-    fprintf(stderr,"Refresh Time: %lf Sec\n", refresh);
+    rft = refresh;				/* Global */
+
     dtot(&refresh,&rt);
-    refresh_timer = event_timer(&rt);
+    refresh_timer = event_timer(&rt);		/* Global Timer fd */
 
     if (refresh_timer == -1)
     {
