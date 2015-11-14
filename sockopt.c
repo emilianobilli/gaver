@@ -154,6 +154,10 @@ int set_reuseaddr_unix(const char *path)
     return -1;
 }
 
+int icmp_socket(void)
+{
+    return socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+}
 
 int set_nofrag(int sd)
 {

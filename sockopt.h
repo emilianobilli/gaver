@@ -50,6 +50,8 @@ EXTERN int set_sndbuf(int socket, u_int32_t buff_size );
 
 EXTERN int set_nofrag(int sd);
 
+EXTERN int icmp_socket(void);
+
 EXTERN int select_nosignal (int max, fd_set *read, fd_set *write, fd_set *excep, struct timeval *tout);
 
 #endif

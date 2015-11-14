@@ -15,172 +15,191 @@
     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SOCK_H
-#define _SOCK_H
-
-#include "mbuff.h"
-#include "types.h"
+#define _SOCK_CODE
+#include "sock.h"
+#include "sock_var.h"
 #include <sys/types.h>
 #include <arpa/inet.h>
-#include <netinet/in.h>
-
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * CONTROL SOCKET STATE									    *
- *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-enum {
-    CTRL_NONE = 1,
-    CTRL_CONNECT_REQ,
-    CTRL_ACCEPT_REQ,
-    CTRL_ESTABLISHED
-};
-
-#define DATA_IO_NONE		0x00	/* 0000 */
-#define DATA_IO_WAITING_MEM	0x04	/* 0100 */
-#define DATA_IO_READ_PENDING	0x01	/* 0001 */
-#define DATA_IO_WRITE_PENDING	0x02	/* 0010 */
-#define DATA_IO_RW_PENDING	0x03	/* 0011 = IO_READ_PENDING | IO_WRITE_PENDING */
-
-#define MAX_SOCKETS	  256
-#define NO_GVPORT         0x0000
-
-typedef struct in_addr in_addr;
+#include <string.h>
 
 
-struct sock {
-    int 	so_lodata;
-    int 	so_lodata_state;	/* DATAIO_READ_PENDING | DATAIO_WRITE_PENDING */
-    int 	so_loctrl;
-    int 	so_loctrl_state;
-    in_addr	so_host_addr;
-    u_int16_t	so_host_port;
-    u_int16_t   so_host_gvport;
-    u_int16_t	so_local_gvport;
-    int		so_state;
-
-
-    int		so_mtu;			/* Mtu for the socket	*/
-    u_int64_t   so_upload_speed;
-    u_int64_t   so_download_speed;
-
-    double      so_resyn;
-    double	so_retok;
-    double	so_avtok;
-
-    u_int8_t	so_capwin;		/* Congestion Avoidance Percent Window */
-    size_t	so_host_win;		/* Ventana declarada por el receptor   */
-
-
-    u_int64_t	so_dseq_out;		/* Data seq out         */
-    u_int64_t	so_cseq_out;		/* Contrl seq out       */
-    u_int64_t	so_dseq_exp;		/* Data seq expected    */
-    u_int64_t   so_cseq_exp;		/* Control seq expected */
-
-
-    size_t wmem_size;			/* Write buffer size    */
-    size_t rmem_size;			/* Read  buffer size    */
-    
-    /*
-
-    struct mb_queue wmemq;
-    struct mb_queue rmemq;
-    struct mb_queue sentq;	In Flyght 
-    struct mb_queue roooq;	Reception Out Of Order 
-
-    struct seq_lost_queue lostq;	 Queue of lost Trasport Data Unit (mbuff)
-
-    */
-
-    struct sock *so_next;
-};
-
-struct sockqueue {
-    size_t size;
-    struct sock *head;
-    struct sock *tail;
-};
-
-
-#ifdef _SOCK_CODE
-#undef EXTERN
-#define EXTERN
-#endif
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * init_sock_table(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-EXTERN void init_sock_table(void);
+void init_sock_table(void)
+{
+    int n;
+
+    init_sock_queue(&so_used);
+    init_sock_queue(&so_free);
+
+    for ( n = 0; n <= MAX_SOCKETS-1; n++ )
+    {
+	init_sock(&sktable[n]);
+	sock_enqueue(&so_free, &sktable[n]);
+    }
+    return;
+}
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * init_sock(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-EXTERN void init_sock(struct sock *soptr);
+void init_sock(struct sock *soptr)
+{
+    memset(soptr,0,sizeof(struct sock));
+    return;
+}
+
 
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * init_sock_queue(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-EXTERN void init_sock_queue(struct sockqueue *q);
-
+void init_sock_queue(struct sockqueue *q)
+{
+    q->head = NULL;
+    q->tail = NULL;
+    q->size = 0;
+}
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * getsockbygvport(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-EXTERN struct sock *getsockbygvport(u_int16_t gvport);
+struct sock *getsockbygvport(u_int16_t gvport)
+{
+    return sk_gvport[gvport];
+}
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * bind_gvport(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-EXTERN struct sock *bind_gvport(struct sock *sk, u_int16_t gvport);
+struct sock *bind_gvport(struct sock *sk, u_int16_t gvport)
+{
+    if ( sk_gvport[gvport] == NULL )
+    {
+	sk_gvport[gvport] = sk;
+	sk->so_local_gvport = gvport;
+	return sk;
+    }
+    return NULL;
+}
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * bind_free_gvport(): 									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+struct sock *bind_free_gvport(struct sock *sk)
+{
+    int i = 1;
+    while (sk_gvport[i] != NULL && i++ < sizeof(u_int16_t) );
+    if ( i == sizeof(u_int16_t) )
+	return NULL; 
+
+    sk_gvport[i] = sk;
+    sk->so_local_gvport = (u_int16_t) i;
+    return sk;
+}
 
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * bind_free_gvport(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-EXTERN struct sock *bind_free_gvport(struct sock *sk);
-
-
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * bind_free_gvport(): 									    *
- *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-EXTERN struct sock *close_gvport_sk (struct sock *sk);
+struct sock *close_gvport_sk (struct sock *sk)
+{
+    sk_gvport[sk->so_local_gvport] = NULL;
+    sk->so_local_gvport = NO_GVPORT;
+    return sk;
+}
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * close_gvport_gvport 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-EXTERN struct sock *close_gvport_gvport(u_int16_t gvport);
+struct sock *close_gvport_gvport(u_int16_t gvport)
+{
+    struct sock *sk = sk_gvport[gvport];
+    if ( sk != NULL )
+	return close_gvport_sk(sk);
+    return NULL;
+}
+
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * getsockbysodata(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-EXTERN struct sock *getsockbysodata(int so_data);
+struct sock *getsockbysodata(int so_data)
+{
+    struct sock *ptr;
+    
+    ptr = so_used.head;
+    while (ptr != NULL)
+    {
+	if (ptr->so_lodata == so_data)
+	    return ptr;
+	ptr = ptr->so_next;
+    }
+    return NULL;
+}
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * getsockbysoctrl(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-EXTERN struct sock *getsockbysoctrl(int so_ctrl);
+struct sock *getsockbysoctrl(int so_ctrl)
+{
+    struct sock *ptr;
 
+    ptr = so_used.head;
+    while (ptr != NULL)
+    {
+	if (ptr->so_loctrl == so_ctrl)
+	    return ptr;
+	ptr = ptr->so_next;
+    }
+    return NULL;
+}
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * setusedsock(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-EXTERN void setusedsock(struct sock *sk);
-
+void setusedsock(struct sock *sk)
+{
+    sock_enqueue(&so_used, sk);
+}
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * getfreesock(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-EXTERN struct sock *getfreesock(void);
-
+struct sock *getfreesock(void)
+{
+    return sock_dequeue(&so_free);
+}
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * sock_dequeue(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-EXTERN struct sock *sock_dequeue(struct sockqueue *q);
-
-
+struct sock *sock_dequeue(struct sockqueue *q)
+{
+    struct sock *so;
+    
+    so = q->head;
+    if (so != NULL) {
+	q->head = so->so_next;
+	if (q->head == NULL)
+	    q->tail = NULL;
+	q->size--;
+	so->so_next = NULL;
+    }
+    return so;
+}
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * sock_enqueue(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-EXTERN void sock_enqueue (struct sockqueue *q, struct sock *soptr);
-
-#endif
+void sock_enqueue (struct sockqueue *q, struct sock *soptr)
+{
+    soptr->so_next = NULL;
+    if (q->tail == NULL && q->head == NULL)
+        q->head = soptr;
+    else
+        q->tail->so_next = soptr;	
+    q->tail = soptr;
+    q->size++;
+}

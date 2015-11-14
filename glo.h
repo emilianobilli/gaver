@@ -28,6 +28,7 @@
 #include "output_var.h"
 #include "input_var.h"
 #include "start_var.h"
+#include "sock_var.h"
 #include "configk_var.h"
 #include "ver.h"
 
