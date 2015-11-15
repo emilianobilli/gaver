@@ -26,20 +26,14 @@
 #include "sock.h"
 
 
-static void clean_msg(void *m)
-{
-    memset(m,0,sizeof(GVMSGAPISZ));
-}
-
-
 int do_socket_request(struct sock *sk, struct msg_queue *txq)
 {
     struct gv_req_api msg;	/* Api Request  */
     struct gv_rep_api rep;	/* Api Response */
     struct sock *skptr;		/* Pointer to Sock Struct */
 
-    clean_msg(&msg);
-    clean_msg(&rep);
+    memset(&msg, 0,sizeof(GVMSGAPISZ) );
+    memset(&rep, 0,sizeof(GVMSGAPISZ) );
     
     if (read_msg(sk->so_loctrl, &msg, GVMSGAPISZ) == -1)
 	return -1;
