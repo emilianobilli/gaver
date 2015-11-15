@@ -48,6 +48,12 @@ int writepid (const char *pidfile)
     return 0;
 }
 
+int dupstderr (const char *kmsg)
+{
+    int fd = open(kmsg, O_CREAT | O_WRONLY, S_IRWXU);
+    if (fd != -1)
+	return dup2(fd,STDERR_FILENO);
+}
 
 int main (int argc, char *argv[])
 {
@@ -179,8 +185,14 @@ int main (int argc, char *argv[])
 	close(itc_event);
 	close(output_timer);
 	close(refresh_timer);
+	perror("writepid");
 	exit(EXIT_FAILURE);
     }    
+
+    
+
+    dupstderr("/opt/gaver/run/kmsg");
+    perror("dupstderr");
     
     /* 
      * Finaly dispach the kernel
