@@ -2,6 +2,7 @@
 #include <sys/epoll.h>
 #include <sys/types.h>
 #include "sockopt.h"
+#include "kernel_api.h"
 #include "types.h"
 #include "glo.h"
 #include "itc_var.h"

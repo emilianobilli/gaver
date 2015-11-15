@@ -30,6 +30,7 @@ cfg_ss=$socket_bps;
 cfg_rmem=$rmem;
 cfg_wmem=$wmem;
 cfg_netstat=$netstat;
+cfg_error=$error;
 config.section.Api;
 cfg_listen=$listen_api;
 
@@ -79,14 +80,21 @@ function make_arg()
     then
 	args=$args"-n $cfg_netstat "
     fi
+    if [ -z "($cfg_error)" ]
+    then
+	args=$args"-e $cfg_error "
+    fi
     echo $args
 }
 ARG=`make_arg`
 
-if [ $2 == "debug" ]
+if [ $# -eq 2 ]
 then
-    echo $ARG
-    exit 0
+    if [ $2 == "debug" ]
+    then
+	echo $ARG
+        exit 0
+    fi
 fi
 
 case $1 in

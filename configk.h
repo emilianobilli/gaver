@@ -36,6 +36,7 @@ struct configk {
     char		listen_api[UNIX_PATH_MAX];
     char		pid_file[NAME_MAX];
     char		netstat[NAME_MAX];
+    char 		error[NAME_MAX];
     int			sched;
     int			mtu;
     u_int64_t		overal_bps;	/* Velocidad Maxima */	

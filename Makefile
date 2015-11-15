@@ -21,8 +21,8 @@ OBJ_LIB:= -c -Wall -fPIC
 LINK:= -lrt -lm -lpthread
 SHARED:= -shared 
 
-all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o gvd.o configk.o sock.o common.o
-	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o configk.o sock.o gvd.o common.o -o gvd $(LINK)
+all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o gvd.o configk.o sock.o common.o kernel_api.o
+	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o configk.o sock.o gvd.o common.o kernel_api.o -o gvd $(LINK)
 
 libgv.so: libgv.o gv_err.o common.o
 	$(CC) $(SHARED) libgv.o common.o gv_err.o -o libgv.so
@@ -38,6 +38,9 @@ itc.o: itc.c itc.h itc_var.h
 
 heap.o: heap.c heap.h heap_var.h
 	$(CC) $(OBJ) heap.c 
+
+kernel_api.o: kernel_api.c kernel_api.h
+	$(CC) $(OBJ) kernel_api.c
 
 mbuff_queue.o: mbuff_queue.c mbuff_queue.h mbuff.h
 	$(CC) $(OBJ) mbuff_queue.c
@@ -83,6 +86,9 @@ install_lib: libgv.so
 	sudo cp gv_err.h   /usr/include/gaver/
 	sudo cp libgv.h    /usr/include/gaver/
 	sudo cp libgv.so   /usr/lib/
+
+install: gvd
+	-cp gvd /opt/gaver/bin
 
 clean:
 	-rm -Rf *.o

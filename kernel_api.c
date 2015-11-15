@@ -1,28 +1,47 @@
+/*
+    This file is part of GaVer
+
+    GaVer is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Foobar is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
 #include <errno.h>
 #include <string.h>
 #include "common.h"
+#include "mbuff.h"
+#include "glo.h"
 #include "apitypes.h"
 #include "gaver.h"
 #include "sock.h"
 
 
-void clean_msg(void *m)
+static void clean_msg(void *m)
 {
     memset(m,0,sizeof(GVMSGAPISZ));
 }
 
 
-
-
-int (struct sock *sk, struct msg_queue *txq)
-
+int do_socket_request(struct sock *sk, struct msg_queue *txq)
+{
     struct gv_req_api msg;	/* Api Request  */
     struct gv_rep_api rep;	/* Api Response */
+    struct sock *skptr;		/* Pointer to Sock Struct */
 
     clean_msg(&msg);
     clean_msg(&rep);
     
-    if (read_msg(sk->so_local_ctrl, &msg, GVMSGAPISZ) == -1)
+    if (read_msg(sk->so_loctrl, &msg, GVMSGAPISZ) == -1)
 	return -1;
 
     switch (msg.msg_type)
@@ -36,38 +55,34 @@ int (struct sock *sk, struct msg_queue *txq)
 	case MSG_BIND:
 
 	    /*
-	     *
-             * !!!!!!!!!!!!! Ojo con el Network byte order 
-	     *
-	     */
+                 !!!!!!!! Ojo con el network byte Order 
+	    */
+
 	    /* Test if the socket have a port assigned */
 	    if (sk->so_local_gvport == NO_GVPORT &&
 		sk->so_state == GV_CLOSE)
 	    {
-		skptr = bind_gvport(sk,msg.bind.vport);
+		skptr = bind_gvport(sk,msg.un.bind.vport);
 		if (skptr != NULL)
 		{
 		    rep.status = COMMAND_SUCCESS;
-		    rep.success.addr  = local_addr;
-		    rep.success.port  = local_port;
-		    rep.success.vport = msg.bind.vport;
+		    rep.un.success.addr  = local_addr;
+		    rep.un.success.port  = local_port;
+		    rep.un.success.vport = msg.un.bind.vport;
 		}
 		else
 		{
 		    rep.status = COMMAND_FAIL;
-		    rep.fail.error_code = (u_int16_t) EADDRINUSE;
+		    rep.un.fail.error_code = (u_int16_t) EADDRINUSE;
 		}
 	    }
 	    else
 	    {
 		rep.status = COMMAND_FAIL;
-		rep.fail.error_code = (u_int16_t) EINVAL;
+		rep.un.fail.error_code = (u_int16_t) EINVAL;
 	    }
-	    if (write_msg(sk->so_local_ctrl,&rep,GVMSGAPISZ) == -1)
-	    {
-		/* ?? */
-	    }
-
+	    if (write_msg(sk->so_loctrl,&rep,GVMSGAPISZ) == -1)
+		return -1;
 
 	break;
 
@@ -78,17 +93,15 @@ int (struct sock *sk, struct msg_queue *txq)
 		sk->so_state != GV_CLOSE)
 	    {
 		rep.status = COMMAND_FAIL;
-		rep.fail.error_code = (u_int16_t) EOPNOTSUPP;
+		rep.un.fail.error_code = (u_int16_t) EOPNOTSUPP;
 	    }
 	    else
 	    {
 		sk->so_state = GV_LISTEN;
 		rep.status = COMMAND_SUCCESS;
 	    }
-	    if (write_msg(sk->so_local_ctrl,&rep,GVMSGAPISZ) == -1)
-	    {
-		/* ?? */
-	    }
+	    if (write_msg(sk->so_loctrl,&rep,GVMSGAPISZ) == -1)
+		return -1;
 	    
 
 	break;
@@ -105,4 +118,5 @@ int (struct sock *sk, struct msg_queue *txq)
 	    /* Protocol violation */
 	break;
     }
-    
+    return 0;
+}    

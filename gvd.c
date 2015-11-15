@@ -48,17 +48,12 @@ int writepid (const char *pidfile)
     return 0;
 }
 
-int dupstderr (const char *kmsg)
-{
-    int fd = open(kmsg, O_CREAT | O_WRONLY, S_IRWXU);
-    if (fd != -1)
-	return dup2(fd,STDERR_FILENO);
-}
 
 int main (int argc, char *argv[])
 {
     struct timespec itp;
     struct timespec rt;
+    int    err = -1;
     double refresh;
 
     if (argc == 1)
@@ -75,6 +70,7 @@ int main (int argc, char *argv[])
 
     dumpcfgk(stdout,&gvcfg);
 
+
     /*
      * Create the Unix Socket for the API
      */
@@ -82,15 +78,16 @@ int main (int argc, char *argv[])
     api_socket = unix_socket(gvcfg.listen_api);		/* api_socket -> Global Global Socket */
     if (api_socket == -1)
     {
-	perror("Api:socket_unix");
+	PANIC(errno, "gvd", "api_socket");
 	exit(EXIT_FAILURE);
     }
 
     errno = 0;
     netstat_socket = unix_socket(gvcfg.netstat);	/* netstat_socket -> Global Socket */
-    if (api_socket == -1)
+    if (netstat_socket == -1)
     {
-	perror("NetStat:socket_unix");
+	close(api_socket);
+	PANIC(errno, "gvd", "netstat");
 	exit(EXIT_FAILURE);
     }
 
@@ -102,8 +99,8 @@ int main (int argc, char *argv[])
     if (ifudp == -1)
     {
 	close(api_socket);
-	perror("ipv4_udp_socket_nbo");
-
+	close(netstat_socket);
+	PANIC(errno, "gvd", "ipv4_udp_socket_nbo");
 	exit(EXIT_FAILURE);
     }
 
@@ -120,9 +117,10 @@ int main (int argc, char *argv[])
     itc_event = itc_signalfd_init();		/* Global */
     if (itc_event == -1) 
     {
+	close(netstat_socket);
 	close(api_socket);
 	close(ifudp);
-	perror("itc_signalfd_init");
+	PANIC(errno,"gvd","itc_signalfd_init");
 	exit(EXIT_FAILURE);
     }
 
@@ -137,9 +135,10 @@ int main (int argc, char *argv[])
     if (output_timer == -1) 
     {
 	close(api_socket);
+	close(netstat_socket);
 	close(ifudp);
 	close(itc_event);
-	perror("event_timer(itp)");
+	PANIC(errno, "gvd","event_timer(itp)");
 	exit(EXIT_FAILURE);
     }
 
@@ -152,19 +151,34 @@ int main (int argc, char *argv[])
     dtot(&refresh,&rt);
     refresh_timer = event_timer(&rt);		/* Global Timer fd */
 
-    if (refresh_timer == -1)
-    {
+    if (refresh_timer == -1) {
 	close(api_socket);
 	close(ifudp);
+	close(netstat_socket);
 	close(itc_event);
 	close(output_timer);
-	perror("event_timer(&rt)");
+	PANIC(errno, "gvd", "event_timer(&rt)");
 	exit(EXIT_FAILURE);
     }
 
+    errno = 0;
+    if (gvcfg.error) {
+        err = open(gvcfg.error, O_CREAT | O_WRONLY, S_IRWXU);
+	if (err == -1) {
+	    close(api_socket);
+	    close(ifudp);
+	    close(itc_event);
+	    close(output_timer);
+	    close(refresh_timer);
+	    close(netstat_socket);
+	    PANIC(errno,"gvd","daemon");
+	    exit(EXIT_FAILURE);
+	}
+    }
     /*
      * This function daemonize the process
      */
+    errno = 0;
     umask(S_IWGRP | S_IWOTH);
     if (daemon(0,0)==-1)
     {
@@ -172,28 +186,30 @@ int main (int argc, char *argv[])
 	close(ifudp);
 	close(itc_event);
 	close(output_timer);
+	close(netstat_socket);
 	close(refresh_timer);
-	perror("daemon");
+	PANIC(errno,"gvd","daemon");
 	exit(EXIT_FAILURE);
     }
-
     
+    if (err != -1) {
+	dup2(err,STDERR_FILENO);
+	close(err);
+    }
+	    
+    errno = 0;
     if (writepid(gvcfg.pid_file)==-1)
     {
 	close(api_socket);
 	close(ifudp);
 	close(itc_event);
 	close(output_timer);
+	close(netstat_socket);
 	close(refresh_timer);
-	perror("writepid");
+	PANIC(errno,"gvd","writepid");
 	exit(EXIT_FAILURE);
     }    
 
-    
-
-    dupstderr("/opt/gaver/run/kmsg");
-    perror("dupstderr");
-    
     /* 
      * Finaly dispach the kernel
      */
