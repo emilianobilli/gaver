@@ -163,6 +163,9 @@ void *kernel(void *arg)
     kevent_add_itc(itc_event);
     kevent_add_socket_server(api_socket);
 
+    init_sock_table();
+
+
     /*
      * Falta iniciar los socks
      */
