@@ -80,7 +80,7 @@ function make_arg()
     then
 	args=$args"-n $cfg_netstat "
     fi
-    if [ -z "($cfg_error)" ]
+    if [ "($cfg_error)" != "" ]
     then
 	args=$args"-e $cfg_error "
     fi

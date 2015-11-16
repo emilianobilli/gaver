@@ -83,7 +83,10 @@ struct sock {
 
     struct mb_queue wmemq;
     struct mb_queue rmemq;
-    struct mb_queue sentq;	In Flyght 
+    */
+    struct mb_queue so_sentq;		/* In Flyght 		*/
+
+    /*
     struct mb_queue roooq;	Reception Out Of Order 
 
     struct seq_lost_queue lostq;	 Queue of lost Trasport Data Unit (mbuff)

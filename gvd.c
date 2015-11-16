@@ -25,6 +25,7 @@
 #include "heap.h"
 #include "itc.h"
 #include "sockopt.h"
+#include "kernel.h"
 #include "util.h"
 #include "glo.h"
 
@@ -213,6 +214,8 @@ int main (int argc, char *argv[])
     /* 
      * Finaly dispach the kernel
      */
+
+    kernel(NULL);
 
     while (1)
 	sleep(5);

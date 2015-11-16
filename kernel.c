@@ -1,7 +1,27 @@
+/*
+    This file is part of GaVer
+
+    GaVer is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Foobar is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #include <stdio.h>
 #include <sys/epoll.h>
 #include <sys/types.h>
+#include <math.h>
+#include <errno.h>
+#include <unistd.h>
 #include "sockopt.h"
+#include "util.h"
 #include "kernel_api.h"
 #include "types.h"
 #include "glo.h"
@@ -20,18 +40,18 @@
 #define SERVER_EVENTS		EPOLLIN | EPOLLERR
 
 
-#define KEVENT_SOCKET_CLOSE(e) 		( ( (e) & EPOLLRDHUP ) || ( (e) & EPOLLHUP ) )
-#define KEVENT_SOCKET_ERROR(e)		( (e) & EPOLLERR ) 
-#define KEVENT_SERVER_ERROR(e)		( (e) & EPOLLERR )
-#define KEVENT_ITC(e)			( (e) & EPOLLIN  )
-#define KEVENT_TIMER(e)			( (e) & EPOLLIN  )
-#define KEVENT_SOCKET(e)		( (e) & EPOLLIN  )
-#define KEVENT_SERVER(e)		( (e) & EPOLLIN  )
+#define KEVENT_SOCKET_CLOSE(e) 	( ( (e) & EPOLLRDHUP ) || ( (e) & EPOLLHUP ) )
+#define KEVENT_SOCKET_ERROR(e)	( (e) & EPOLLERR ) 
+#define KEVENT_SERVER_ERROR(e)	( (e) & EPOLLERR )
+#define KEVENT_ITC(e)		( (e) & EPOLLIN  )
+#define KEVENT_TIMER(e)		( (e) & EPOLLIN  )
+#define KEVENT_SOCKET(e)	( (e) & EPOLLIN  )
+#define KEVENT_SERVER(e)	( (e) & EPOLLIN  )
 
 /*
  * This is the JSON message when the connection is established with the api
  */
-#define JSON_TEMPLATE "{\"Gaver\":\"%s\",\"Status\":\"%d\",\"Reason\":\"%s\"}";
+#define JSON_TEMPLATE "{\"Gaver\":\"%s\",\"Status\":\"%d\",\"Reason\":\"%s\"}"
 #define JSON_BUFFER   512
 
 
@@ -57,11 +77,6 @@ PRIVATE  struct epoll_event *pkev;
  * new_sk()										*
  *======================================================================================*/
 PRIVATE struct sock *new_sk( int sd );
-
-/*======================================================================================*
- * pfloat()										*
- *======================================================================================*/
-PRIVATE double pfloat (double value);
 
 /*======================================================================================*
  * do_update_tokens_sock()								*
@@ -126,9 +141,31 @@ PRIVATE ssize_t sendall (int sd, void *buff, size_t len);
 /*======================================================================================*
  * send_status()									*
  *======================================================================================*/
-PRIVATE int send_status(sd, int status, char *reason);
+PRIVATE int send_status(int sd, int status, char *reason);
 
 
+void *kernel(void *arg)
+{
+    struct sock *sk;		/* Sock Struct		*/
+    u_int64_t ntimes;
+    int nkevents;		/* Events Ready		*/
+    int do_close;		/* If a socket fail	*/
+    int i;
+    char *where;		/* Panic		*/
+
+
+    /*
+     * Add all Kernel Events
+     */
+
+    kevent_init();
+    kevent_add_timer(refresh_timer);
+    kevent_add_itc(itc_event);
+    kevent_add_socket_server(api_socket);
+
+    /*
+     * Falta iniciar los socks
+     */
 
 
     while(1)
@@ -136,30 +173,32 @@ PRIVATE int send_status(sd, int status, char *reason);
 	/*
          * Wait for events
          */
-	nkevens = kevent_wait(-1);
+	nkevents = kevent_wait(-1);
 
-	for ( i = 0, pkev = &kevent[0]; i <= nkevents -1; i++, pkev++ )
+	for ( i = 0, pkev = &kevents[0]; i <= nkevents -1; i++, pkev++ )
 	{
 	    /* Look if a new socket is waiting for accept */
-	    if ( pkev->data.fd == server_api )
+	    if ( pkev->data.fd == api_socket )
 	    {
 		if (KEVENT_SERVER(pkev->events))
 		{
 		    errno = 0;
-		    sock = new_sk(server_api);
-		    if (sock != NULL)
-			kevent_add_socket(sock->so_loctrl);
+		    sk = new_sk(api_socket);
+		    if (sk != NULL)
+			kevent_add_socket(sk->so_loctrl);
 		    else
 		    if ( errno == ENFILE  ||
 			 errno == ENOBUFS ||
 		         errno == ENOMEM  ||
-			 errno == EPROT )
-		         panic();
+			 errno == EPROTO ) {
+		         where = "new_sk";
+			 goto panic;
+		    }
 		}
 		if (KEVENT_SERVER_ERROR(pkev->events))
 		{	
-		/* ToDo Manejar los Panic */
-		    panic();
+		    where = "Api Server Error";
+		    goto panic;
 		}
 	    }
 	    /* Looks if is time to refresh tokens and syn */
@@ -169,7 +208,8 @@ PRIVATE int send_status(sd, int status, char *reason);
 		/* Time to update tokens */
 		if (gettimerexp(refresh_timer, &ntimes) == -1)
 		{
-		    panic();
+		    where = "gettimerexp";
+		    goto panic;
 		}
 		do_update_tokens(&so_used, ntimes);
 	    }
@@ -183,15 +223,21 @@ PRIVATE int send_status(sd, int status, char *reason);
 	    }
 	    else 
 	    {
+		do_close = 0;
 		/* Look if soctrl send a api message */
-		sock = getsockbysoctrl(pkev->data.fd);
-		if (sock != NULL)
+		sk = getsockbysoctrl(pkev->data.fd);
+		if (sk != NULL)
 		{
 		    if (KEVENT_SOCKET(pkev->events))
 		    {
 			/* Mensaje de api */
+			if(do_socket_request(sk,NULL) == -1)
+			    do_close = 1;
+			else {
+			    /* Hacer Algo */
+			}
 		    }
-		    if (KEVENT_SOCKET_CLOSE(pkev->events))
+		    if (KEVENT_SOCKET_CLOSE(pkev->events) || do_close)
 		    {
 			/* Evaluar que paso */
 		    }
@@ -210,7 +256,11 @@ PRIVATE int send_status(sd, int status, char *reason);
 	 */
 
 	}
-
+    }
+panic:
+    PANIC(errno,"kernel",where);
+    return NULL;
+}
 
 
 
@@ -241,7 +291,7 @@ struct sock *new_sk( int sd )
 	}
 	else 
 	{
-	    send_status(nds,-1, "Maximun Open Gv Socket Reached");
+	    send_status(nsd,-1, "Maximun Open Gv Socket Reached");
 	    close(nsd);
 	}
     }
@@ -249,15 +299,7 @@ struct sock *new_sk( int sd )
 }
 
 /*======================================================================================*
- * pfloat()										*
- *======================================================================================*/
-double pfloat (double value)
-{
-    return value - floor(value);
-}
-
-/*======================================================================================*
- * do_update_tokens_sock()									*
+ * do_update_tokens_sock()								*
  *======================================================================================*/
 void do_update_tokens_sock (struct sock *sk, u_int64_t times)
 {
@@ -278,9 +320,10 @@ void do_update_tokens_sock (struct sock *sk, u_int64_t times)
     {
 	if (sk->so_avtok > (double) 1.0)
 	    /* Se le resta la parte entera */
-	    ptr->so_avtok = pfloat(ptr->so_avtok);
-	    /* At this point the value of so_available_tokens is in the set [0;1) */
-	hw = sk->so_hostwin;		/* Host Window */
+	    sk->so_avtok = pfloat(sk->so_avtok);
+
+	/* At this point the value of so_available_tokens is in the set [0;1) */
+	hw = sk->so_host_win;		/* Host Window */
 	sq = sk->so_sentq.size;		/* Sent Queue  */
 	if ( hw > sq )
 	    sk->so_avtok += update_token(sk->so_avtok,
@@ -291,7 +334,7 @@ void do_update_tokens_sock (struct sock *sk, u_int64_t times)
 	    /* The other alternative is that the value is 0 */
 	    sk->so_avtok = 0;
 	
-	sk->so_resyn += (ptr->so_retok / PACKET_PER_ROUND) * (double) times;
+	sk->so_resyn += (sk->so_retok / PACKETS_PER_ROUND) * (double) times;
 	/*
          * When so_refresh_syn >= 1 -> The kernel dispatch the syn msg and substract 
 	 *			       the integer value
@@ -311,7 +354,7 @@ void do_update_tokens (struct sockqueue *sk, u_int64_t times)
     
     init_sock_queue(&tmp);
         
-    while (skp = sock_dequeue(sk)) {
+    while ( (skp = sock_dequeue(sk)) ) {
 	do_update_tokens_sock(skp,times);
 	sock_enqueue(&tmp,skp);
     }
@@ -370,7 +413,7 @@ int kevent_add_itc(int itcsd)
 {
     struct epoll_event ev;
     ev.events  = ITC_EVENTS;
-    ev.data.fd = timersd;
+    ev.data.fd = itcsd;
 
     return epoll_ctl(keventfd, EPOLL_CTL_ADD, itcsd, &ev);
 }
@@ -382,7 +425,7 @@ int kevent_add_socket_server(int sd)
 {
     struct epoll_event ev;
     ev.events  = SERVER_EVENTS;
-    ev.data.fd = timersd;
+    ev.data.fd = sd;
 
     return epoll_ctl(keventfd, EPOLL_CTL_ADD, sd, &ev);
 }
@@ -438,7 +481,7 @@ ssize_t sendall (int sd, void *buff, size_t len)
     ptr = buff;
     while (sent < len)
     {
-	ret = send(sd, &ptr[sent], len - sent, MSG_NOSIGNAL)
+	ret = send(sd, &ptr[sent], len - sent, MSG_NOSIGNAL);
 	if (ret == -1)
 	{
 	    if (errno == EINTR)
@@ -454,12 +497,12 @@ ssize_t sendall (int sd, void *buff, size_t len)
 /*======================================================================================*
  * send_status()									*
  *======================================================================================*/
-int send_status(sd, int status, char *reason)
+int send_status(int sd, int status, char *reason)
 {
     u_int8_t buff[JSON_BUFFER] = {0};
 
-    sprintf(buff,JSON_TENPLATE,GAVER_VERSION,status,reason);
+    sprintf((char *)buff,JSON_TEMPLATE,GAVER_VERSION,status,reason);
 
-    return (int) sendall(sd,buff,strlen(buff));
+    return (int) sendall(sd,buff,strlen((char *)buff));
 }
 

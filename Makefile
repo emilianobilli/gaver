@@ -21,8 +21,8 @@ OBJ_LIB:= -c -Wall -fPIC
 LINK:= -lrt -lm -lpthread
 SHARED:= -shared 
 
-all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o gvd.o configk.o sock.o common.o kernel_api.o
-	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o configk.o sock.o gvd.o common.o kernel_api.o -o gvd $(LINK)
+all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o gvd.o configk.o sock.o common.o kernel_api.o kernel.o
+	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o configk.o sock.o gvd.o common.o kernel_api.o kernel.o -o gvd $(LINK)
 
 libgv.so: libgv.o gv_err.o common.o
 	$(CC) $(SHARED) libgv.o common.o gv_err.o -o libgv.so
@@ -41,6 +41,9 @@ heap.o: heap.c heap.h heap_var.h
 
 kernel_api.o: kernel_api.c kernel_api.h
 	$(CC) $(OBJ) kernel_api.c
+
+kernel.o: kernel.c kernel.h
+	$(CC) $(OBJ) kernel.c
 
 mbuff_queue.o: mbuff_queue.c mbuff_queue.h mbuff.h
 	$(CC) $(OBJ) mbuff_queue.c
