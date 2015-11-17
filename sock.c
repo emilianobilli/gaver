@@ -23,6 +23,7 @@
 #include <string.h>
 
 
+
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * init_sock_table(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -33,11 +34,20 @@ void init_sock_table(void)
     init_sock_queue(&so_used);
     init_sock_queue(&so_free);
 
+    for ( n = 0; n <= MAX_PORTS-1; n++ )
+	sk_gvport[n] = NULL;
+
+    
+    sk_gvport[NO_GVPORT] = &dummy;
+
+
     for ( n = 0; n <= MAX_SOCKETS-1; n++ )
     {
 	init_sock(&sktable[n]);
 	sock_enqueue(&so_free, &sktable[n]);
     }
+
+
     return;
 }
 

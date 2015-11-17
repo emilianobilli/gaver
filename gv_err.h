@@ -24,8 +24,6 @@ extern __thread int gv_errno;
  *	This is the list errors caused by the api 
  */
 #define OSERROR   0x0000		/* Check errno                   */
-#define ENVERROR  0x0001		/* Enviroment variables error    */
-#define KRNERROR  0x0002		/* Unable to connect with Kernel */
 
 
 #endif

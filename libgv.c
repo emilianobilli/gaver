@@ -32,7 +32,7 @@ int gv_listen_api_msg (int sd, u_int8_t backlog)
 
     memset(&msg, 0, sizeof(struct gv_req_api));
 
-    msg.msg_type = MSG_CONNECT;
+    msg.msg_type = MSG_LISTEN;
     msg.un.listen.backlog = backlog;
 
     if (write_msg(sd, &msg, GVMSGAPISZ) == -1)

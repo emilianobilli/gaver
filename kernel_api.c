@@ -81,7 +81,6 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 	break;
 
 	case MSG_LISTEN:
-	
 	    /* If the socket have a port assigned put in passive open */
 	    if (sk->so_local_gvport == NO_GVPORT || 
 		sk->so_state != GV_CLOSE)
@@ -96,8 +95,7 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 	    }
 	    if (write_msg(sk->so_loctrl,&rep,GVMSGAPISZ) == -1)
 		return -1;
-	    
-
+	
 	break;
 	case MSG_ACCEPT:
 	    /* Accept is in passive open */

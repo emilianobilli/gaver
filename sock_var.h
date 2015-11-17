@@ -19,10 +19,18 @@
 
 #include "sock.h"
 
+#define MAX_PORTS 0xFFFF
+
+
 EXTERN struct sock sktable[MAX_SOCKETS];
-EXTERN struct sock *sk_gvport[sizeof(u_int16_t)];
+EXTERN struct sock *sk_gvport[MAX_PORTS];
 EXTERN struct sockqueue so_used;
 EXTERN struct sockqueue so_free;
+
+/*
+ * dummy socket != NULL
+ */
+EXTERN struct sock dummy;
 
 
 #endif /* sock_var.h */

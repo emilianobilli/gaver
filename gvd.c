@@ -181,7 +181,7 @@ int main (int argc, char *argv[])
      */
     errno = 0;
     umask(S_IWGRP | S_IWOTH);
-    if (daemon(0,0)==-1)
+/*    if (daemon(0,0)==-1)
     {
 	close(api_socket);
 	close(ifudp);
@@ -192,7 +192,8 @@ int main (int argc, char *argv[])
 	PANIC(errno,"gvd","daemon");
 	exit(EXIT_FAILURE);
     }
-    
+*/
+
     if (err != -1) {
 	dup2(err,STDERR_FILENO);
 	close(err);

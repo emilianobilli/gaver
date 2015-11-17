@@ -165,7 +165,6 @@ void *kernel(void *arg)
 
     init_sock_table();
 
-
     /*
      * Falta iniciar los socks
      */
@@ -243,6 +242,7 @@ void *kernel(void *arg)
 		    if (KEVENT_SOCKET_CLOSE(pkev->events) || do_close)
 		    {
 			/* Evaluar que paso */
+			kevent_del_socket(pkev->data.fd);
 		    }
 		    if (KEVENT_SOCKET_ERROR(pkev->events))
 		    {
