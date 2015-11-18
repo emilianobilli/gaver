@@ -58,8 +58,6 @@
 /*
  * Global Private Vars
  */
-
-
 PRIVATE  int keventfd;
 PRIVATE  struct epoll_event kevents[MAX_EVENTS];
 PRIVATE  struct epoll_event *pkev;
@@ -169,7 +167,6 @@ void *kernel(void *arg)
      * Falta iniciar los socks
      */
 
-
     while(1)
     {
 	/*
@@ -207,6 +204,7 @@ void *kernel(void *arg)
 	    else if ( pkev->data.fd == refresh_timer && 
 		      KEVENT_TIMER(pkev->events) )
 	    {
+		errno = 0;
 		/* Time to update tokens */
 		if (gettimerexp(refresh_timer, &ntimes) == -1)
 		{
