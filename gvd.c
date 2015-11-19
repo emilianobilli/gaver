@@ -105,8 +105,8 @@ int main (int argc, char *argv[])
 	exit(EXIT_FAILURE);
     }
 
-    local_addr = gvcfg.addr.s_addr;	/* Global */
-    local_port = gvcfg.port;		/* Global */
+    local_addr = gvcfg.addr.s_addr;	/* Global NBO */
+    local_port = gvcfg.port;		/* Global NBO */
 
     /* Init the Heap */
     init_heap();
@@ -125,10 +125,16 @@ int main (int argc, char *argv[])
 	exit(EXIT_FAILURE);
     }
 
+
+    overal_bps	= realspeed(gvcfg.overal_bps);
+    socket_bps	= gvcfg.socket_bps;
+    free_bps	= overal_bps;
+    mtu		= gvcfg.mtu;
+
     /* Inter Packet Time */
     errno = 0;
     itp.tv_sec  = 0;
-    itp.tv_nsec = pktime(gvcfg.overal_bps, gvcfg.mtu);
+    itp.tv_nsec = pktime(overal_bps, mtu);
 
     ipkt =  ttod(&itp);			/* Global */
 
@@ -145,7 +151,7 @@ int main (int argc, char *argv[])
 
     /* Refresh Time      */
     errno = 0;
-    refresh = getreftime(gvcfg.overal_bps, gvcfg.mtu);
+    refresh = getreftime(overal_bps, mtu);
 
     rft = refresh;				/* Global */
 

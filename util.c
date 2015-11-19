@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <endian.h>
 #include "util.h"
+#include "defs.h"
 
 #define NSEC_IN_SEC 1000000000
 
@@ -64,6 +65,15 @@ double ttod (struct timespec *t)
 {
     return (double) ( (double) t->tv_sec ) + ( (double) t->tv_nsec / (double) NSEC_IN_SEC );
 }
+
+/*======================================================================================*
+ * realspeed(): Return the real clock speed 						*
+ *======================================================================================*/ 
+u_int64_t realspeed(u_int64_t speed)
+{
+    return speed * ( (double) REAL_SPEED/100 );
+}
+
 
 /*======================================================================================*
  * dtot(): Double to Timespec	 							*

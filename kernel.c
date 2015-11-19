@@ -26,6 +26,7 @@
 #include "types.h"
 #include "glo.h"
 #include "itc_var.h"
+#include "defs.h"
 #include "itc.h"
 
 
@@ -272,11 +273,20 @@ panic:
 struct sock *new_sk( int sd )
 {
     struct sock *nsk = NULL;		/* New Socket */
+    u_int64_t speed;
     int nsd;				/* New Socket Descriptor */
 
     nsd = accept(sd,(struct sockaddr *)NULL, (socklen_t *)NULL);
     if ( nsd != -1 )
     {
+	if (!free_bps)
+	{
+	    send_status (nsd,-1,"Not speed available");
+	    close(nsd);
+	}
+	else
+	    speed = (free_bps > socket_bps) ? socket_bps : free_bps;
+
 	nsk = getfreesock();
 	if (nsk != NULL)
 	{
@@ -286,6 +296,18 @@ struct sock *new_sk( int sd )
 	    nsk->so_loctrl_state = CTRL_NONE;
 	    nsk->so_state        = GV_CLOSE;
 	    nsk->so_lodata	 = -1;
+	    nsk->so_capwin	 = START_CAPWIN;		/* Start Congestion Avoidance */
+
+	    nsk->so_resyn	 = 0;
+	    nsk->so_avtok	 = 0;
+	    
+    	    nsk->so_retok	 = getreftime(speed, mtu);	/* Cantidad de tokens a actualizar */
+
+	    nsk->so_mtu		 = mtu;				/* Global MTU */
+	    nsk->so_speed	 = speed;			/* Configured Speed */
+
+	    free_bps 		-= speed;			/* Update available speed */
+
 	    nsk->so_lodata_state = DATA_IO_NONE;
 	    nsk->so_local_gvport = NO_GVPORT;
 	    send_status(nsd, 0, "Sucess");

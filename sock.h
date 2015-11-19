@@ -59,8 +59,7 @@ struct sock {
 
 
     int		so_mtu;			/* Mtu for the socket	*/
-    u_int64_t   so_upload_speed;
-    u_int64_t   so_download_speed;
+    u_int64_t   so_speed;
 
     double      so_resyn;
     double	so_retok;

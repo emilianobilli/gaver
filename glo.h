@@ -43,6 +43,7 @@ EXTERN u_int16_t local_port;	/* Gaver Local Port					*/
 EXTERN u_int64_t overal_bps;	/* Max Overal Speed measured in bits per seconds	*/
 EXTERN u_int64_t socket_bps;	/* Max Socket Speed measured in bits per seconds	*/
 EXTERN u_int64_t input_wait;	/* Time in nsec for waiting other message		*/
+EXTERN u_int64_t free_bps;	/* Available Speed					*/
 EXTERN double ipkt;		/* Inter Packet Time					*/
 EXTERN double rft;		/* Refresh Time						*/
 
