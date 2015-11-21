@@ -90,6 +90,9 @@ void *output (void *arg)
     /*
      * All itc signal used for comunicacion MUST be blocked
      */
+
+    arg = NULL;
+
     itc_block_signal();
 
     

@@ -31,6 +31,7 @@ enum {
     CTRL_NONE = 1,
     CTRL_CONNECT_REQ,
     CTRL_ACCEPT_REQ,
+    CTRL_ACCEPT_REQ_1,
     CTRL_ACCEPT_PEND,
     CTRL_ESTABLISHED
 };
@@ -79,6 +80,9 @@ struct sock {
     size_t wmem_size;			/* Write buffer size    */
     size_t rmem_size;			/* Read  buffer size    */
     
+
+    struct mbuff *cnt_req;		/* Connection Req	*/
+
     /*
 
     struct mb_queue wmemq;

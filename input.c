@@ -104,6 +104,8 @@ void *input (void *arg)
     msg_recv = 0;		/* Global */
     bytes_recv = 0;		/* Global */
 
+    arg = NULL;
+
     while(1)
     {
 	/*

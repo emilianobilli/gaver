@@ -43,6 +43,12 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 	case MSG_CONNECT:
 	    if (sk->so_state != GV_CLOSE)
 	    {
+		/*
+		 * Esto es un error en el orden de las llamadas a las 
+		 * funciones, se supone que se esta realizando una llamada
+		 * a connect con un socket ya conectado, por consiguiente
+		 * falla
+		 */
 		rep.status = COMMAND_FAIL;
 		rep.un.fail.error_code = (u_int16_t) EOPNOTSUPP;
 
@@ -51,6 +57,15 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 	    }
 
 	    if (sk->so_local_gvport == NO_GVPORT)
+		/*
+		 * El socket no esta ligado a ningun puerto
+		 * ya que no se realizo de forma explicita con 
+		 * la llamada a funcion bind(), por 
+		 * consiguiente se busca un puerto libre y se
+		 * lo liga, esta llamada a funcion no deberia
+	         * fallar ya que hay 2^16 puertos disponibles y
+		 * solamtente 255 sockets.
+		 */
 		bind_free_gvport(sk);
 	
 	    /*
@@ -126,7 +141,7 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 		 * aceptar una conexion, pero todavia no llego
 		 * ninguna solicitud por parte del Par, por 
 	         * consiguiente el proceso de la capa superior 
-		 *se bloquea
+		 * se bloquea
 		 */
 		sk->so_loctrl_state = CTRL_ACCEPT_REQ;
 

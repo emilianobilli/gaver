@@ -67,7 +67,8 @@ void usage(void)
  *======================================================================================*/
 int loadcfgk (int argc, char *argv[], struct configk *cfg)
 {
-    int opt, val;
+    int opt;
+    long val;
     long long int llval;
     char *endptr;
     struct servent *sent;

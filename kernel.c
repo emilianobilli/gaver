@@ -163,6 +163,7 @@ void *kernel(void *arg)
     struct msg_queue io_queue_in;	/* Data IO Queue for Input  */
     struct msg_queue io_queue_out;	/* Data IO Queue for Output */
 
+    arg = NULL;
 
     /* Add all Kernel Events  */
     kevent_init();

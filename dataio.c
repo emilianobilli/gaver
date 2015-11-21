@@ -76,6 +76,8 @@ void *dataio (void *arg)
     fd_set wset, rset;
     char   *where;
 
+    arg = NULL;
+
     itc_block_signal();
 
     init_msg_queue(&wpenq);

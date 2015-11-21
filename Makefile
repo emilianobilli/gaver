@@ -16,13 +16,13 @@
 #
 
 CC := gcc
-OBJ:= -c -Wall -ggdb 
+OBJ:= -c -Wall -ggdb -Wextra
 OBJ_LIB:= -c -Wall -fPIC
 LINK:= -lrt -lm -lpthread
 SHARED:= -shared 
 
-all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o gvd.o configk.o sock.o common.o kernel_api.o kernel.o
-	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o configk.o sock.o gvd.o common.o kernel_api.o kernel.o -o gvd $(LINK)
+all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o gvd.o configk.o sock.o common.o kernel_api.o kernel.o timers.o
+	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o configk.o sock.o gvd.o common.o kernel_api.o kernel.o timers.o -o gvd $(LINK)
 
 libgv.so: libgv.o gv_err.o common.o
 	$(CC) $(SHARED) libgv.o common.o gv_err.o -o libgv.so
@@ -68,6 +68,9 @@ dataio.o: dataio.c dataio.h
 
 configk.o: configk.c configk.h
 	$(CC) $(OBJ) configk.c
+
+timers.o: timers.h timers.c
+	$(CC) $(OBJ) timers.c
 
 start.o: start.c start_var.h start.h
 	$(CC) $(OBJ) start.c
