@@ -39,6 +39,7 @@ struct configk {
     char 		error[NAME_MAX];
     int			sched;
     int			mtu;
+    int			debug;		/* Debug Mode -- No daemon */
     u_int64_t		overal_bps;	/* Velocidad Maxima */	
     u_int64_t		socket_bps;	/* Velocidad Maxima por socket */
     u_int32_t		rmem;		/* Memoria Maxima por Socket para lectura   */

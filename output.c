@@ -109,6 +109,7 @@ void *output (void *arg)
 
     msg_nor_pending = 0;
     msg_ret_pending = 0;
+
     while(1) 
     {
 	ret = wait_event(output_timer, itc_event, &event);

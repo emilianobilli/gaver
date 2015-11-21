@@ -19,11 +19,13 @@
 
 #include <sys/types.h>
 #include <netinet/in.h>
+#include "defs.h"
 #include "gaver.h"
 
 
 #define DO_TS   1		/* When is necesary put TS */
 #define DONT_TS 0
+
 
 struct mbuff {
     struct mbuff       *m_next;
@@ -34,7 +36,7 @@ struct mbuff {
     u_int64_t		m_input_ts[2];		/* Input TS         */
     size_t		m_hdrlen;
     size_t		m_datalen;
-    unsigned char	m_payload[PAYLOAD_SIZE];
+    unsigned char	m_payload[PAYLOAD_SIZE(MAX_MTU_SIZE)];
 };
 
 

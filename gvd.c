@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 
 #include "configk.h"
+#include "gaver.h"
 #include "heap.h"
 #include "itc.h"
 #include "sockopt.h"
@@ -126,17 +127,20 @@ int main (int argc, char *argv[])
     }
 
 
-    overal_bps	= realspeed(gvcfg.overal_bps);
-    socket_bps	= gvcfg.socket_bps;
-    free_bps	= overal_bps;
-    mtu		= gvcfg.mtu;
+    overal_bps	= realspeed(gvcfg.overal_bps);	/* Global Real Speed	*/
+    socket_bps	= gvcfg.socket_bps;		/* Global Socket Speed	*/
+    free_bps	= overal_bps;			/* Global Free Speed	*/
+    if (!gvcfg.mtu)
+	mtu 	= DFL_MTU;
+    else
+	mtu	= gvcfg.mtu;			/* Global MTU		*/
 
     /* Inter Packet Time */
     errno = 0;
     itp.tv_sec  = 0;
     itp.tv_nsec = pktime(overal_bps, mtu);
 
-    ipkt =  ttod(&itp);			/* Global */
+    ipkt =  ttod(&itp);				/* Global */
 
     output_timer = event_timer(&itp);		/* Global Timer fd */
     if (output_timer == -1) 
@@ -169,7 +173,7 @@ int main (int argc, char *argv[])
     }
 
     errno = 0;
-    if (gvcfg.error) {
+    if (gvcfg.error || !gvcfg.debug) {
         err = open(gvcfg.error, O_CREAT | O_WRONLY, S_IRWXU);
 	if (err == -1) {
 	    close(api_socket);
@@ -187,6 +191,7 @@ int main (int argc, char *argv[])
      */
     errno = 0;
     umask(S_IWGRP | S_IWOTH);
+    if (!gvcfg.debug)
     if (daemon(0,0)==-1)
     {
 	close(api_socket);

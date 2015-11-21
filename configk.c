@@ -16,6 +16,7 @@
  */
 #define _CONFIGK_CODE
 #include "configk.h"
+#include "defs.h"
 #include <sys/socket.h>
 #include <linux/limits.h>
 #include <sys/types.h>
@@ -46,6 +47,7 @@ void usage(void)
 		    " -P <path>\t\tPid File\n",
 		    " -n <path>\t\tNetstat File\n",
 		    " -e <path>\t\tError File\n",
+		    " -d       \t\tDebug Mode\n",
 		    " -h       \t\tShow This Help\n",
 		    NULL };
     char *end = "\nReport Bugs to: <emiliano.billi@gmail.com>\n";
@@ -72,7 +74,7 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 
     memset(cfg,0,sizeof(struct configk));
 
-    while ((opt = getopt(argc,argv, "a:p:P:S:s:m:l:r:w:n:e:h")) != -1)
+    while ((opt = getopt(argc,argv, "a:p:P:S:s:m:l:r:w:n:e:hd")) != -1)
     {
 	switch (opt)
 	{
@@ -181,7 +183,7 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
                 perror("mtu");
                 return -1;
 	    }
-	    if ( val > 9216 || val <= 0 )
+	    if ( val > MAX_MTU_SIZE || val <= 0 )
 	    {
 	        fprintf(stderr,"Config: Mtu out of range");
 	        return -1;
@@ -224,6 +226,9 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 	    }
 	    strcpy(cfg->error, optarg);
 	    break;
+	case 'd':
+	    cfg->debug = 1;
+	    break;
 	default:
 	    return -1;
 	    break;
@@ -247,11 +252,6 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
     if (!cfg->pid_file)
     {
 	fprintf(stderr,"Config: Pid file is mandatory\n");
-	return -1;
-    }
-    if (!cfg->mtu)
-    {
-	fprintf(stderr,"Config: Mtu is mandatory\n");
 	return -1;
     }
 

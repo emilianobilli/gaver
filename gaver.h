@@ -128,13 +128,5 @@ enum {
     GV_CLOSE_WAIT,
 };
 
-
-#define IP_HDRSIZE 20
-#define IP_OPTSIZE 40
-#define UDP_HDRSIZE 8
-
-#define DFL_MTU 1500
-#define PAYLOAD_SIZE (DFL_MTU-IP_HDRSIZE-IP_OPTSIZE-UDP_HDRSIZE)
-
 #endif /* _GAVER_H */
 

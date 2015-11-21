@@ -41,6 +41,25 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
     switch (msg.msg_type)
     {
 	case MSG_CONNECT:
+	    if (sk->so_state != GV_CLOSE)
+	    {
+		rep.status = COMMAND_FAIL;
+		rep.un.fail.error_code = (u_int16_t) EOPNOTSUPP;
+
+		if (write_msg(sk->so_loctrl,&rep,GVMSGAPISZ) == -1)
+		return -1;
+	    }
+
+	    if (sk->so_local_gvport == NO_GVPORT)
+		bind_free_gvport(sk);
+	
+	    /*
+	     * Generar Mensaje y cambiar status
+             *
+	     */
+
+	    /* sk->so_state = GV_CONNECT_SENT; */
+
 	    /* Assign a port is not have 
 	       Error is in active open */
 
@@ -97,8 +116,33 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 		return -1;
 	
 	break;
+
 	case MSG_ACCEPT:
 	    /* Accept is in passive open */
+    
+	    if (sk->so_state == GV_LISTEN) 
+		/*
+		 * En esta etapa, la capa superior pide 
+		 * aceptar una conexion, pero todavia no llego
+		 * ninguna solicitud por parte del Par, por 
+	         * consiguiente el proceso de la capa superior 
+		 *se bloquea
+		 */
+		sk->so_loctrl_state = CTRL_ACCEPT_REQ;
+
+	    else if (sk->so_state == GV_CONNECT_RCVD)
+	    {
+		/*
+		 * En esta etapa ya habia llegado un intento de conexion
+		 * pero todavia la capa superior no habia aceptado.
+		 * Al aceptar el mensaje, se debe enviar un accept
+		 */
+	    }
+	    else
+	    {
+		rep.status = COMMAND_FAIL;
+		rep.un.fail.error_code = (u_int16_t) EOPNOTSUPP;
+	    } 
 
 	break;
 

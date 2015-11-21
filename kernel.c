@@ -22,6 +22,8 @@
 #include <unistd.h>
 #include "sockopt.h"
 #include "util.h"
+#include "mbuff.h"
+#include "mbuff_queue.h"
 #include "kernel_api.h"
 #include "types.h"
 #include "glo.h"
@@ -150,23 +152,38 @@ void *kernel(void *arg)
     int nkevents;		/* Events Ready		*/
     int do_close;		/* If a socket fail	*/
     int i;
+    ssize_t ret;
     char *where;		/* Panic		*/
+    struct itc_event_info ieinfo;
+    struct msg_queue tx_ctr_queue;	/* Output Control    */
+    struct msg_queue tx_ret_queue;	/* Output Retransmit */
+    struct msg_queue tx_nor_queue;	/* Output Normal     */
+    struct msg_queue tx_input_queue;	/* Output Input	     */
+    struct msg_queue rx_queue;		/* Input  Queue      */
+    struct msg_queue io_queue_in;	/* Data IO Queue for Input  */
+    struct msg_queue io_queue_out;	/* Data IO Queue for Output */
 
 
-    /*
-     * Add all Kernel Events
-     */
-
+    /* Add all Kernel Events  */
     kevent_init();
     kevent_add_timer(refresh_timer);
     kevent_add_itc(itc_event);
     kevent_add_socket_server(api_socket);
 
+    
+    /* Init all queues */
+    init_msg_queue(&tx_ctr_queue);
+    init_msg_queue(&tx_ret_queue);
+    init_msg_queue(&tx_nor_queue);
+    init_msg_queue(&tx_input_queue);
+    init_msg_queue(&rx_queue);
+    init_msg_queue(&io_queue_in);
+    init_msg_queue(&io_queue_out);
+
+    /* Init sock Table */
     init_sock_table();
 
-    /*
-     * Falta iniciar los socks
-     */
+    thread_table[KERNEL_LAYER_THREAD] = pthread_self();
 
     while(1)
     {
@@ -218,6 +235,19 @@ void *kernel(void *arg)
 	    else if ( pkev->data.fd == itc_event && 
 		      KEVENT_ITC(pkev->events) )
 	    {
+		ret = itc_read_event(itc_event, &ieinfo);
+		if (ret == -1)
+	        {
+		    where = "itc_read_event()";
+		    goto panic;
+		}
+
+		if (ieinfo.src == NETOUT_LAYER_THREAD)
+		    itc_readfrom(NETOUT_LAYER_THREAD, &tx_input_queue, 0);
+		if (ieinfo.src == NETINP_LAYER_THREAD)
+		    itc_readfrom(NETINP_LAYER_THREAD, &rx_queue, 0);
+		if (ieinfo.src == DATAIO_LAYER_THREAD)
+		    itc_readfrom(DATAIO_LAYER_THREAD, &io_queue_in, 0);
 		/*
 		 * Itc Event
                  */
