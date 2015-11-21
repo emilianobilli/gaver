@@ -56,6 +56,7 @@ void mbuff_insert (struct mb_queue *queue, struct mbuff *mb)
 	if (mb->m_hdr.seq < queue->head->m_hdr.seq) {
 	    mb->m_next  = queue->head;
 	    queue->head = mb;
+	    queue->size++;
 	}
 	else {
 	    init_mbuff_queue(&tmp);

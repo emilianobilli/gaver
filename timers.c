@@ -31,10 +31,54 @@ static struct etqueue {
 } etq;
 
 
+static struct exptimer *et_dequeue(struct etqueue *q);
+static void et_enqueue (struct etqueue *q, struct exptimer *et);
+static void init_etq    (struct etqueue *q);
+
+
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * insert_et(): 									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 void et_insert(struct exptimer *et,struct etqueue *q)
 {
+    struct exptimer *etptr;
+    struct etqueue  tmp;
+    double det;
+
+    det = ttod2(&(et->et_et));
+
+    if (q->size == 0 || det > ttod2(&(q->tail->et_et)) )
+	et_enqueue(q,et);
+    else {
+	if (det < ttod2(&(q->head->et_et))) {
+	    et->et_next = q->head;
+	    q->head = et;
+	    q->size++;
+	}
+	else {
+	    init_etq(&tmp);
+	    while (( etptr = et_dequeue(q)) != NULL ) {
+		if (ttod2(&(etptr->et_et)) < det)
+		    et_enqueue(&tmp, etptr);
+		else {
+		    et_enqueue(&tmp, et);
+		    et_enqueue(&tmp, etptr);
+		    break;
+		}
+	    }
+	    tmp.tail->et_next = q->head;
+	    tmp.tail = q->tail;
+	    tmp.size += q->size;
+	    q->head = tmp.head;
+	    q->tail = tmp.tail;
+	    q->size = tmp.size;
+	}
+    }	    
     return;
 }
+
+
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * et_dequeue(): 									    *
@@ -83,9 +127,10 @@ int  register_et (struct sock *sk, struct mbuff *mb, struct timespec *when)
 	et->et_sk    = sk;
 	et->et_mb    = mb;
 	et->attempts = 0;
+	et->et_next  = NULL;
 	clock_monotonic(&now);
-	dnow  = ttod(&now);
-	dwhen = ttod(when);
+	dnow  = ttod2(&now);
+	dwhen = ttod2(when);
 	dnow  = dnow + dwhen;
 	dtot(&dnow, &(et->et_et));
 	et_insert(et,&etq);
@@ -104,8 +149,8 @@ void refresh_et (struct exptimer *et, struct timespec *when)
 
     et->attempts++;
     
-    dw  = ttod(when);
-    det = ttod(&(et->et_et));    
+    dw  = ttod2(when);
+    det = ttod2(&(et->et_et));    
 
     det = det + dw;
     dtot(&det,&(et->et_et));
@@ -154,10 +199,12 @@ struct exptimer *get_expired  (struct timespec *now)
 	clock_monotonic(&ts);
 	now = &ts;
     }
-    dnow = ttod(now);			/* Actual Time */
-    det  = ttod(&etq.head->et_et);	/* The node that expire first */
+    if (etq.size != 0) {
+	dnow = ttod2(now);			/* Actual Time */
+        det  = ttod2(&etq.head->et_et);	/* The node that expire first */
             
-    if (dnow > det)
-	return et_dequeue(&etq);
+	if (dnow > det)
+	    return et_dequeue(&etq);
+    }
     return NULL;
 }

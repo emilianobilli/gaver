@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <netinet/ip.h>
 #include <sys/un.h>
 #include <string.h>

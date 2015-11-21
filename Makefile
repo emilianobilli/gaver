@@ -16,7 +16,7 @@
 #
 
 CC := gcc
-OBJ:= -c -Wall -ggdb -Wextra
+OBJ:= -c -Wall -ggdb 
 OBJ_LIB:= -c -Wall -fPIC
 LINK:= -lrt -lm -lpthread
 SHARED:= -shared 

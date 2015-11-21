@@ -28,7 +28,11 @@
 #include "util.h"
 #include "defs.h"
 
-#define NSEC_IN_SEC 1000000000
+#define NSEC_IN_SEC   1000000000
+#define NSEC_IN_SEC_F 1000000000.0
+
+static const double nsec_in_sec = NSEC_IN_SEC;
+
 
 
 /*======================================================================================*
@@ -66,6 +70,14 @@ double ttod (struct timespec *t)
     return (double) ( (double) t->tv_sec ) + ( (double) t->tv_nsec / (double) NSEC_IN_SEC );
 }
 
+double ttod2 (struct timespec *t)
+{
+    double sec  = (double) t->tv_sec;
+    double nsec = (double) t->tv_nsec;
+    nsec = nsec / nsec_in_sec;
+    return sec + nsec;
+}
+
 /*======================================================================================*
  * realspeed(): Return the real clock speed 						*
  *======================================================================================*/ 
@@ -80,10 +92,12 @@ u_int64_t realspeed(u_int64_t speed)
  *======================================================================================*/ 
 void dtot (const double *dt, struct timespec *t)
 {
-    t->tv_sec = floor(*dt);
-    t->tv_nsec = ( *dt - (floor(*dt)) ) * (NSEC_IN_SEC) ;    /* X = X - [X] */
+    t->tv_sec  = (time_t) floor(*dt);
+    t->tv_nsec = (long) ( ( *dt - (floor(*dt)) ) * (nsec_in_sec) ) ;    /* X = X - [X] */
     return;
 }
+
+
 
 /*======================================================================================*
  * clock_monotonic()		 							*
