@@ -172,18 +172,21 @@ void *kernel(void *arg)
 
     
     /* Init all queues */
-    init_msg_queue(&tx_ctr_queue);
-    init_msg_queue(&tx_ret_queue);
-    init_msg_queue(&tx_nor_queue);
-    init_msg_queue(&tx_input_queue);
-    init_msg_queue(&rx_queue);
-    init_msg_queue(&io_queue_in);
-    init_msg_queue(&io_queue_out);
+    init_msg_queue(&tx_ctr_queue);	/* Transmit */
+    init_msg_queue(&tx_ret_queue);	/* Transmit */
+    init_msg_queue(&tx_nor_queue);	/* Transmit */
+    init_msg_queue(&tx_input_queue);	/* Internal */
+    init_msg_queue(&rx_queue);		/* Reception */
+    init_msg_queue(&io_queue_in);	/* Internal IO Read  */
+    init_msg_queue(&io_queue_out);	/* Internal IO Write */
 
     /* Init sock Table */
     init_sock_table();
 
     thread_table[KERNEL_LAYER_THREAD] = pthread_self();
+    /*
+     * Start all Threads
+     */
 
     while(1)
     {
@@ -243,10 +246,23 @@ void *kernel(void *arg)
 		}
 
 		if (ieinfo.src == NETOUT_LAYER_THREAD)
+		    /*
+		     * Net Out return a Package
+		     */
 		    itc_readfrom(NETOUT_LAYER_THREAD, &tx_input_queue, 0);
+
+
 		if (ieinfo.src == NETINP_LAYER_THREAD)
+		    /*
+		     * Net Input Send a Package
+		     */
 		    itc_readfrom(NETINP_LAYER_THREAD, &rx_queue, 0);
+
+
 		if (ieinfo.src == DATAIO_LAYER_THREAD)
+		    /*
+		     * Data IO send a Package
+		     */
 		    itc_readfrom(DATAIO_LAYER_THREAD, &io_queue_in, 0);
 		/*
 		 * Itc Event
@@ -281,13 +297,16 @@ void *kernel(void *arg)
 	    }
 	/*
          * Finally: 
+	 *	- Process All Input Queues
 	 *	- Check if a socket have tokens available to send
          *	- Check if a socket needs to send syn message
 	 *	- Check if a timer expire
 	 *	- flush all queues
 	 */
-
 	}
+	/*
+	 * Flush all Output Queues
+	 */
     }
 panic:
     PANIC(errno,"kernel",where);
