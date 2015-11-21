@@ -47,7 +47,7 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 		rep.un.fail.error_code = (u_int16_t) EOPNOTSUPP;
 
 		if (write_msg(sk->so_loctrl,&rep,GVMSGAPISZ) == -1)
-		return -1;
+		    return -1;
 	    }
 
 	    if (sk->so_local_gvport == NO_GVPORT)
