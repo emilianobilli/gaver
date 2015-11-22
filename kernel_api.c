@@ -41,7 +41,7 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
     switch (msg.msg_type)
     {
 	case MSG_CONNECT:
-	    if (sk->so_state != GV_CLOSE)
+	    if (sk->so_state != GV_CLOSE && sk->so_ctrl_state != CTRL_NONE)
 	    {
 		/*
 		 * Esto es un error en el orden de las llamadas a las 
@@ -152,6 +152,7 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 		 * pero todavia la capa superior no habia aceptado.
 		 * Al aceptar el mensaje, se debe enviar un accept
 		 */
+		sk->so_loctrl_state = CTRL_ACCEPT_PEND;    
 	    }
 	    else
 	    {

@@ -100,8 +100,8 @@ struct sock *bind_gvport(struct sock *sk, u_int16_t gvport)
 struct sock *bind_free_gvport(struct sock *sk)
 {
     int i = 1;
-    while (sk_gvport[i] != NULL && i++ < sizeof(u_int16_t) );
-    if ( i == sizeof(u_int16_t) )
+    while (sk_gvport[i] != NULL && i++ < MAX_PORTS );
+    if ( i == MAX_PORTS )
 	return NULL; 
 
     sk_gvport[i] = sk;

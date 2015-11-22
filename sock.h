@@ -30,8 +30,7 @@
 enum {
     CTRL_NONE = 1,
     CTRL_CONNECT_REQ,
-    CTRL_ACCEPT_REQ,
-    CTRL_ACCEPT_REQ_1,
+    CTRL_ACCEPT_REQ,,
     CTRL_ACCEPT_PEND,
     CTRL_ESTABLISHED
 };
@@ -182,8 +181,6 @@ EXTERN struct sock *getfreesock(void);
  * sock_dequeue(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 EXTERN struct sock *sock_dequeue(struct sockqueue *q);
-
-
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * sock_enqueue(): 									    *

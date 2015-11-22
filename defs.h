@@ -18,8 +18,15 @@
 #ifndef _DEFS_H
 #define _DEFS_H
 
+#define GAVER_VERSION	1
+
 #define REAL_SPEED	95	/* Value of the real speed in % */
 #define START_CAPWIN	100	/* Value of start Congestion Avoidance Window */
+
+#define START_TIMEOUT   120	/* Measured in seconds */
+
+#define START_DATASEQ	1000
+#define START_CTRLSEQ	2000
 
 #define IP_HDRSIZE 20
 #define IP_OPTSIZE 40

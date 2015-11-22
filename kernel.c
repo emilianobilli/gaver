@@ -321,7 +321,6 @@ panic:
 
 
 
-
 /*======================================================================================*
  * new_sk()										*
  *======================================================================================*/
@@ -352,6 +351,9 @@ struct sock *new_sk( int sd )
 	    nsk->so_state        = GV_CLOSE;
 	    nsk->so_lodata	 = -1;
 	    nsk->so_capwin	 = START_CAPWIN;		/* Start Congestion Avoidance */
+
+	    nsk->so_dseq_out	 = START_DATASEQ;
+	    nsk->so_cseq_out	 = START_CTRLSEQ;
 
 	    nsk->so_resyn	 = 0;
 	    nsk->so_avtok	 = 0;
