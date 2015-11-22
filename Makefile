@@ -16,12 +16,12 @@
 #
 
 CC := gcc
-OBJ:= -c -Wall -ggdb 
+OBJ:= -c -Wall -ggdb
 OBJ_LIB:= -c -Wall -fPIC
 LINK:= -lrt -lm -lpthread
 SHARED:= -shared 
 
-all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o gvd.o configk.o sock.o common.o kernel_api.o kernel.o timers.o
+all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o gvd.o configk.o sock.o common.o kernel_api.o kernel.o timers.o libgv.so
 	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o configk.o sock.o gvd.o common.o kernel_api.o kernel.o timers.o -o gvd $(LINK)
 
 libgv.so: libgv.o gv_err.o common.o
@@ -93,8 +93,13 @@ install_lib: libgv.so
 	sudo cp libgv.h    /usr/include/gaver/
 	sudo cp libgv.so   /usr/lib/
 
-install: gvd
+install: all
 	-cp gvd /opt/gaver/bin
+	-sudo mkdir /usr/include/gaver/
+	sudo cp apitypes.h /usr/include/gaver/
+	sudo cp gv_err.h   /usr/include/gaver/
+	sudo cp libgv.h    /usr/include/gaver/
+	sudo cp libgv.so   /usr/lib/
 
 clean:
 	-rm -Rf *.o

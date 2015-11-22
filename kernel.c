@@ -20,6 +20,7 @@
 #include <math.h>
 #include <errno.h>
 #include <unistd.h>
+#include "timers.h"
 #include "sockopt.h"
 #include "util.h"
 #include "mbuff.h"
@@ -184,12 +185,16 @@ void *kernel(void *arg)
     /* Init sock Table */
     init_sock_table();
 
+    /* Init expiration Timers */
+    init_et();
+
+
     thread_table[KERNEL_LAYER_THREAD] = pthread_self();
     /*
      * Start all Threads
      */
 
-    while(1)
+    while(1) /* Kernel main loop */
     {
 	/*
          * Wait for events
@@ -355,7 +360,8 @@ struct sock *new_sk( int sd )
 
 	    nsk->so_mtu		 = mtu;				/* Global MTU */
 	    nsk->so_speed	 = speed;			/* Configured Speed */
-
+	    
+	    /* Global */
 	    free_bps 		-= speed;			/* Update available speed */
 
 	    nsk->so_lodata_state = DATA_IO_NONE;
