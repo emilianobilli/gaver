@@ -20,6 +20,8 @@
 
 #include <sys/types.h>
 
+#define GAVER_PROTOCOL_VERSION 1
+
 /*
  * GaVer Header
  */

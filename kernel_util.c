@@ -5,7 +5,7 @@
 
 
 
-void prepare_txmb (struct sock *sk, struct mbuff *mb, u_int8_t type)
+struct mbuff *prepare_txmb (struct sock *sk, struct mbuff *mb, u_int8_t type)
 {
     /*
      *	Fill the outside Addr
@@ -20,7 +20,7 @@ void prepare_txmb (struct sock *sk, struct mbuff *mb, u_int8_t type)
     mb->m_hdr.src_port		= sk->so_local_gvport; 				
     mb->m_hdr.dst_port		= sk->so_host_gvport;
     mb->m_hdr.payload_len	= mb->m_datalen;
-    mb->m_hdr.version		= GAVER_VERSION;
+    mb->m_hdr.version		= GAVER_PROTOCOL_VERSION;
     mb->m_hdr.type		= type;
 
     if (type)	/* Data Type is 0x00 */ 
@@ -30,5 +30,7 @@ void prepare_txmb (struct sock *sk, struct mbuff *mb, u_int8_t type)
     
     mb->m_hdrlen = sizeof(struct gvhdr);
 
-    return;
+    return mb;
 }
+
+
