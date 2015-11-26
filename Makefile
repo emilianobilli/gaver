@@ -95,6 +95,7 @@ install_lib: libgv.so
 
 install: all
 	-cp gvd /opt/gaver/bin
+	-cp ./script/config-parser.sh /opt/gaver/bin
 	-sudo mkdir /usr/include/gaver/
 	sudo cp apitypes.h /usr/include/gaver/
 	sudo cp gv_err.h   /usr/include/gaver/
@@ -105,4 +106,5 @@ clean:
 	-rm -Rf *.o
 	-rm main
 	-rm libgv.so
+	-rm gvd
 

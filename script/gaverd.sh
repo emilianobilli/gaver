@@ -12,7 +12,7 @@
 #
 # Load the module to parse the config file 
 #
-source config-parser.sh;
+source /opt/gaver/bin/config-parser.sh;
 
 CONFIG_FILE="/opt/gaver/etc/gvd.ini"
 

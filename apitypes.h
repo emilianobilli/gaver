@@ -31,8 +31,8 @@
 #define MSG_BIND		0x02
 #define MSG_LISTEN		0x03
 #define MSG_CLOSE		0x04
-#define MSG_SETOPT		0x05
-#define MSG_GETOPT		0x06
+#define MSG_SETSPEED		0x05
+#define MSG_GETSPEED		0x06
 
 
 #define PADDING(x,y) u_int8_t _pad[GVMSGAPISZ-sizeof(x)-sizeof(y)]
@@ -57,6 +57,9 @@ struct gv_msg_bind {
     u_int16_t vport;
 };
 
+struct gv_msg_setpeed {
+    u_int64_t speed;
+};
 
 struct gv_msg_listen {
     u_int8_t  backlog;
@@ -71,14 +74,16 @@ union gv_reply {
 	u_int32_t addr;			/* 4 bytes */
 	u_int16_t port;			/* 2 bytes */
 	u_int16_t vport;		/* 2 bytes */
+	u_int64_t value;		/* 8 bytes for generic return */
     } success;
 };
 
 union gv_request {
-    struct gv_msg_connect connect;	
-    struct gv_msg_accept  accept;
-    struct gv_msg_bind    bind;
-    struct gv_msg_listen  listen;
+    struct gv_msg_connect  connect;	
+    struct gv_msg_accept   accept;
+    struct gv_msg_bind     bind;
+    struct gv_msg_listen   listen;
+    struct gv_msg_setspeed speed;
 };
 
 struct gv_req_api {
