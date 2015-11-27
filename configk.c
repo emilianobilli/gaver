@@ -47,7 +47,7 @@ void usage(void)
 		    " -P <path>\t\tPid File\n",
 		    " -n <path>\t\tNetstat File\n",
 		    " -e <path>\t\tError File\n",
-		    " -d       \t\tDebug Mode\n",
+		    " -d       \t\tDaemon Mode\n",
 		    " -h       \t\tShow This Help\n",
 		    NULL };
     char *end = "\nReport Bugs to: <emiliano.billi@gmail.com>\n";
@@ -228,7 +228,7 @@ int loadcfgk (int argc, char *argv[], struct configk *cfg)
 	    strcpy(cfg->error, optarg);
 	    break;
 	case 'd':
-	    cfg->debug = 1;
+	    cfg->daemon = 1;
 	    break;
 	default:
 	    return -1;

@@ -29,7 +29,8 @@
 #include "mbuff_queue.h"
 #include "mbuff.h"
 #include "types.h"
-
+#include "defs.h"
+#include "dump.h"
 
 PRIVATE ssize_t recvmbuff (int sd, struct mbuff *mbptr);
 PRIVATE ssize_t recvdgram (int sd, void *data, size_t datalen, void *hdr, size_t hdrlen, struct sockaddr_in *src_addr);
@@ -120,6 +121,10 @@ void *input (void *arg)
 		where = "recvmbuff()";
 		goto panic;
 	    }
+
+#ifdef DEBUG
+	    dump_input_mb(stderr,msgptr->mb.mbp);
+#endif
 	    /*
 	     * Estadisticas
 	     */

@@ -62,7 +62,7 @@ struct itc_event_info {
 #define KERNEL_LAYER_THREAD	0	/* Core of Gaver */
 #define NETOUT_LAYER_THREAD	1	/* Net Output (UDP Layer) */
 #define NETINP_LAYER_THREAD	2	/* Net Input  (UDP Layer) */
-#define DATAIO_LAYER_THREAD	3
+#define DATAIO_LAYER_THREAD	3	/* Data IO (Unix Socket Layer) */
 
 
 /* Signal Events */

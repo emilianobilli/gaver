@@ -57,7 +57,7 @@ struct gv_msg_bind {
     u_int16_t vport;
 };
 
-struct gv_msg_setpeed {
+struct gv_msg_setspeed {
     u_int64_t speed;
 };
 

@@ -1,16 +1,9 @@
 #include "sock.h"
+#include "itc.h"
 #include "mbuff.h"
 #include "defs.h"
 #include "mbuff_queue.h"
 
-/*
-void printmb (FILE *file, const char *proc, struct mbuff *mb)
-{
-    fprintf(file,"%s: %s:%d:%d %c %s:%d:%d (seq: %lld, type: %#x, len: %d)\n",
-		  proc,
-		  inet_ntoa
-}
-*/
 
 struct mbuff *prepare_txmb (struct sock *sk, struct mbuff *mb, u_int8_t type)
 {

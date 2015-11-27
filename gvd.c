@@ -173,7 +173,7 @@ int main (int argc, char *argv[])
     }
 
     errno = 0;
-    if (gvcfg.error || !gvcfg.debug) {
+    if (gvcfg.error || gvcfg.daemon) {
         err = open(gvcfg.error, O_CREAT | O_WRONLY, S_IRWXU);
 	if (err == -1) {
 	    close(api_socket);
@@ -191,7 +191,7 @@ int main (int argc, char *argv[])
      */
     errno = 0;
     umask(S_IWGRP | S_IWOTH);
-    if (!gvcfg.debug)
+    if (gvcfg.daemon)
     if (daemon(0,0)==-1)
     {
 	close(api_socket);

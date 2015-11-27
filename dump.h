@@ -15,27 +15,22 @@
     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _DEFS_H
-#define _DEFS_H
+#ifndef _DUMP_H
+#define _DUMP_H
 
-#define REAL_SPEED		95	/* Value of the real speed in % */
-#define START_CAPWIN		100	/* Value of start Congestion Avoidance Window */
+#include <stdlib.h>
+#include <stdio.h>
+#include "types.h"
 
-#define START_TIMEOUT_SEC	120	/* Measured in seconds */
-#define START_TIMEOUT_NSEC	0	
+/*======================================================================================*
+ * dump_output_mb()									*
+ *======================================================================================*/
+EXTERN void dump_output_mb (FILE *file, struct mbuff *mb);
 
-#define START_DATASEQ		1000
-#define START_CTRLSEQ		2000
 
-#define IP_HDRSIZE		20
-#define IP_OPTSIZE		40
-#define UDP_HDRSIZE		8
-
-#define DFL_MTU 1500
-#define MAX_MTU_SIZE 9000
-#define PAYLOAD_SIZE(x) ((x)-IP_HDRSIZE-IP_OPTSIZE-UDP_HDRSIZE)
-
-#define DEBUG
+/*======================================================================================*
+ * dump_input_mb()									*
+ *======================================================================================*/
+EXTERN void dump_input_mb (FILE *file, struct mbuff *mb);
 
 #endif
-

@@ -100,7 +100,7 @@ fi
 case $1 in
     start)
 	echo "Starting GaVer"
-	start-stop-daemon --start --exec $bin --pidfile $pid --umask 022 -- $ARG -d
+	start-stop-daemon --start --exec $bin --pidfile $pid --umask 022 -- $ARG
 	;;
     stop)
 	echo "Stoping GaVer"

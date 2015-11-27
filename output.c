@@ -40,6 +40,8 @@
 #include "heap.h"
 #include "itc.h"
 #include "util.h"
+#include "dump.h"
+#include "defs.h"
 #include "glo.h"
 
 PRIVATE ssize_t sendmbuff (int sd, void *bufdata, size_t lendata, void *bufhdr, size_t lenhdr, struct sockaddr_in *dst_addr);
@@ -232,6 +234,10 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 	    msgptr = msg_dequeue(queue);
 	    mbptr =  msgptr->mb.mbp;
 
+#ifdef DEBUG
+	    dump_output_mb(stderr,mbptr);
+#endif
+
 	    if (msgptr->msg_type != MSG_MBUFF_CARRIER ) {
 		/*
 		 * Aca debe llegar un mensage de portadora
@@ -295,6 +301,10 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 
 		mbptr  = msgptr->mb.mbp;
 	    
+#ifdef DEBUG
+		dump_output_mb(stderr,mbptr);
+#endif
+
 		if (msgptr->msg_type != MSG_MBUFF_CARRIER ) {
 		/*
 		 * Aca debe llegar un mensage de portadora

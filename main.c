@@ -24,12 +24,13 @@ int main(void)
     struct sockaddr_in in, in2, in3;
     int ret, i;
     int *tret;
+    u_int64_t seq = 0;
     struct msg *p;
     init_heap();
     itc_init();
 
     ipt.tv_sec  = 0;
-    ipt.tv_nsec = pktime(MBPS_TOBPS(200), 1500); 
+    ipt.tv_nsec = pktime(MBPS_TOBPS(10), 1500); 
 
     itc_block_signal(); 
     itc_event = itc_signalfd_init();
@@ -46,42 +47,39 @@ int main(void)
     }
 
 
-    ifudp = ipv4_udp_socket("0.0.0.0", 5000); 
+    ifudp = ipv4_udp_socket("192.168.2.4", 5000); 
     if (ifudp == -1) {
 	perror("ipv4");
 	return -1;
     }
     
+    inet_aton("192.168.2.4", &local_addr);
     q.size = 0;
     q.head = NULL;
     q.tail = NULL;
 
-    ret = alloc_mbuff_chain(&q, 83333);
+    ret = alloc_mbuff_chain(&q, 83);
 
     thread_table[KERNEL_LAYER_THREAD] = pthread_self();
     pthread_create(&thread_table[NETOUT_LAYER_THREAD], NULL, output, NULL);
 
 
     in.sin_family = AF_INET;
-    in.sin_port	  = 300;
-    inet_aton("8.8.8.8", &in.sin_addr.s_addr);
-
-    in2.sin_family = AF_INET;
-    in2.sin_port	  = 300;
-    inet_aton("4.4.4.4", &in2.sin_addr.s_addr);
-
-    in3.sin_family = AF_INET;
-    in3.sin_port	  = 300;
-    inet_aton("4.4.4.4", &in3.sin_addr.s_addr);
+    in.sin_port	  = htons(300);
+    inet_aton("8.8.8.8", &in.sin_addr);
 
     p= q.head;
-    for ( i = 0; i <= 83333-1; i++ )
+    for ( i = 0; i <= 83-1; i++ )
     {	
 	p->msg_type = MSG_MBUFF_CARRIER; 
 	p->mb.mbp->m_need_ts = 1;
 	p->mb.mbp->m_tsoff = 3;
 	p->mb.mbp->m_datalen = 1460;
 	p->mb.mbp->m_hdrlen  = 8;
+	p->mb.mbp->m_hdr.type = 5;
+	p->mb.mbp->m_hdr.seq  = seq++;
+	p->mb.mbp->m_hdr.src_port = htons(20);
+	p->mb.mbp->m_hdr.dst_port = htons(50);
 	memcpy(&(p->mb.mbp->m_outside_addr), &in, sizeof(struct sockaddr_in));
 
 	p = p->p_next;
@@ -95,7 +93,7 @@ int main(void)
 
     itc_writeto(NETOUT_LAYER_THREAD, &q, PRIO_NOR_QUEUE);
 
-        
+/*        
     q.size = 0;
     q.head = NULL;
     q.tail = NULL;
@@ -119,7 +117,7 @@ int main(void)
     }
 
     itc_writeto(NETOUT_LAYER_THREAD, &q, PRIO_RET_QUEUE);
-
+*/
     pthread_join(thread_table[NETOUT_LAYER_THREAD], (void **)&tret);
 
     printf("RET: %d\n", *tret);
