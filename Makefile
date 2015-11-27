@@ -16,7 +16,7 @@
 #
 
 CC := gcc
-OBJ:= -c -Wall -ggdb
+OBJ:= -c -Wall -v
 OBJ_LIB:= -c -Wall -fPIC
 LINK:= -lrt -lm -lpthread
 SHARED:= -shared 
@@ -89,12 +89,6 @@ gvd.o: gvd.c
 main.o:
 	$(CC) $(OBJ) main.c
 
-install_lib: libgv.so
-	-sudo mkdir /usr/include/gaver/
-	sudo cp apitypes.h /usr/include/gaver/
-	sudo cp gv_err.h   /usr/include/gaver/
-	sudo cp libgv.h    /usr/include/gaver/
-	sudo cp libgv.so   /usr/lib/
 
 install: all
 	-cp gvd /opt/gaver/bin
