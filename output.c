@@ -122,7 +122,7 @@ void *output (void *arg)
 
     msg_nor_pending = 0;
     msg_ret_pending = 0;
-    clean_exp	    = 0;
+    clear_exp	    = 0;
     
     while(1) 
     {
@@ -227,11 +227,7 @@ void *output (void *arg)
 
 	if (kernelq.size > 0)
 	    itc_writeto(KERNEL_LAYER_THREAD,&kernelq, 0);
-
-	if (msg_sent >= 8333*2)
-	    pthread_exit(&ret); 
     }
-
 panic:
     PANIC(errno, "NETOUT_LAYER_THREAD", where);
     return NULL;
