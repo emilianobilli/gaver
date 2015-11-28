@@ -58,7 +58,7 @@ int fill_fdset (struct msg_queue *queue, fd_set *set)
 	max = ( max > mptr->io.io_socket )? max : mptr->io.io_socket;
 	msg_enqueue(&tmp, mptr);
     }
-    msgqcat(queue, &tmp);
+    msgmove(queue, &tmp);
 
     return max;
 }
@@ -151,7 +151,7 @@ void *dataio (void *arg)
 	    else
 		msg_enqueue(&tmp, mptr);
 	}
-	msgqcat(&wpenq, &tmp);
+	msgmove(&wpenq, &tmp);
 
 	init_msg_queue(&tmp);
 
@@ -186,7 +186,7 @@ void *dataio (void *arg)
 	    else
 		msg_enqueue(&tmp, mptr);
 	}
-	msgqcat(&rpenq, &tmp);
+	msgmove(&rpenq, &tmp);
 
 	init_msg_queue(&tmp);
 

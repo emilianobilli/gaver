@@ -133,7 +133,7 @@ struct msg *msg_dequeue(struct msg_queue *queue)
     }
     return msg;
 }
-void msgqcat (struct msg_queue *dst, struct msg_queue *src)
+void msgmove (struct msg_queue *dst, struct msg_queue *src)
 {
     if (src->head == NULL && src->tail == NULL)
 	return;
@@ -144,6 +144,12 @@ void msgqcat (struct msg_queue *dst, struct msg_queue *src)
 	dst->tail->p_next = src->head;
     dst->tail = src->tail;
     dst->size += src->size;
+
+
+    src->head = NULL;
+    src->tail = NULL;
+    src->size = 0;
+
     return;
 }
 

@@ -30,7 +30,7 @@ int main(void)
     itc_init();
 
     ipt.tv_sec  = 0;
-    ipt.tv_nsec = pktime(MBPS_TOBPS(10), 1500); 
+    ipt.tv_nsec = pktime(MBPS_TOBPS(100), 1500); 
 
     itc_block_signal(); 
     itc_event = itc_signalfd_init();
@@ -58,18 +58,18 @@ int main(void)
     q.head = NULL;
     q.tail = NULL;
 
-    ret = alloc_mbuff_chain(&q, 83);
+    ret = alloc_mbuff_chain(&q, 8333);
 
     thread_table[KERNEL_LAYER_THREAD] = pthread_self();
     pthread_create(&thread_table[NETOUT_LAYER_THREAD], NULL, output, NULL);
 
 
     in.sin_family = AF_INET;
-    in.sin_port	  = htons(300);
-    inet_aton("8.8.8.8", &in.sin_addr);
+    in.sin_port	  = htons(500);
+    inet_aton("192.168.2.5", &in.sin_addr);
 
     p= q.head;
-    for ( i = 0; i <= 83-1; i++ )
+    for ( i = 0; i <= 8333-1; i++ )
     {	
 	p->msg_type = MSG_MBUFF_CARRIER; 
 	p->mb.mbp->m_need_ts = 1;
@@ -93,16 +93,35 @@ int main(void)
 
     itc_writeto(NETOUT_LAYER_THREAD, &q, PRIO_NOR_QUEUE);
 
-/*        
+        
     q.size = 0;
     q.head = NULL;
     q.tail = NULL;
 
     p = q.head;
 
+    sleep(5);
+
+    ret = alloc_mbuff_chain(&q, 8333);
+    printf("Ret1 : %d\n", ret);
+    p = q.head;
+    for ( i = 0; i <= 8333-1; i++ )
+    {	
+	p->msg_type = MSG_MBUFF_CARRIER; 
+	p->mb.mbp->m_need_ts = 1;
+	p->mb.mbp->m_tsoff = 3;
+	p->mb.mbp->m_datalen = 1460;
+	p->mb.mbp->m_hdrlen  = 8;
+	memcpy(&(p->mb.mbp->m_outside_addr), &in, sizeof(struct sockaddr_in));
+
+	p = p->p_next;
+    }
+
+    itc_writeto(NETOUT_LAYER_THREAD, &q, PRIO_RET_QUEUE);
 
     ret = alloc_mbuff_chain(&q, 83333);
-    printf("Ret: %d\n", ret);
+    printf("Ret2 : %d\n", ret);
+    printf("Qz: %d\n", q.size);
     p = q.head;
     for ( i = 0; i <= 83333-1; i++ )
     {	
@@ -117,7 +136,7 @@ int main(void)
     }
 
     itc_writeto(NETOUT_LAYER_THREAD, &q, PRIO_RET_QUEUE);
-*/
+
     pthread_join(thread_table[NETOUT_LAYER_THREAD], (void **)&tret);
 
     printf("RET: %d\n", *tret);

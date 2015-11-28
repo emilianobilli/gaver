@@ -54,7 +54,10 @@ int wait_event(int timer_event, int itc_event, u_int8_t *event)
     int max, ret;    
 
     FD_ZERO(&read_event);
-    FD_SET(output_timer,&read_event);
+
+    if (timer_event != -1)
+	FD_SET(timer_event,&read_event);
+
     FD_SET(itc_event, &read_event);
     
     max = (timer_event > itc_event) ? timer_event : itc_event;
@@ -64,8 +67,12 @@ int wait_event(int timer_event, int itc_event, u_int8_t *event)
 	return -1;
 
     *event = 0;
+    
+    /* Exclude when no have packages */
+    if (timer_event != -1)
     if (FD_ISSET(timer_event, &read_event))
 	*event |= TIMER_EXPIRATION;
+
     if (FD_ISSET(itc_event, &read_event))
 	*event |= ITC_EVENT;
     
@@ -88,6 +95,7 @@ void *output (void *arg)
     u_int64_t exp;		/* Expiration Times */
     int msg_nor_pending;	/* Flag if Event arrives */
     int msg_ret_pending;	/* Flag if Event arrives */  
+    int clear_exp;		/* Flag for clear expirations */
     char      *where;
     /*
      * All itc signal used for comunicacion MUST be blocked
@@ -114,11 +122,27 @@ void *output (void *arg)
 
     msg_nor_pending = 0;
     msg_ret_pending = 0;
-
+    clean_exp	    = 0;
+    
     while(1) 
     {
-	ret = wait_event(output_timer, itc_event, &event);
-
+	if (ret_queue->size == 0 && nor_queue->size == 0 &&
+	    msg_ret_pending == 0 && msg_nor_pending == 0) {
+	    /*
+	     * Si todas las colas que usan temporizador estan vacias,
+	     * no deberia ser necesario interrumpir al thread para no 
+	     * hacer nada. En este caso no es necesario agregar en la 
+	     * lista de eventos a esperar al temporizador.
+	     * Ademas se settea en 1 el flag clear_exp (Clear Expirations)
+	     * haciendo que la proxima vez que se lea la cantidad
+	     * de expiraciones que ocurrieron, este se ponga en 1
+	     */
+	    ret = wait_event(-1, itc_event, &event);
+	    clear_exp = 1;
+	}
+	else 
+    	    ret = wait_event(output_timer, itc_event, &event);
+    
 	if (ret == -1) 
 	{
 	    where = "wait_event()";
@@ -136,7 +160,7 @@ void *output (void *arg)
 	    if (ieinfo.prio == PRIO_CTR_QUEUE)
 	    {
 		itc_readfrom(KERNEL_LAYER_THREAD,ctr_queue,PRIO_CTR_QUEUE);
-		msgqcat(&txq, ctr_queue);
+		msgmove(&txq, ctr_queue);
 	    }
 
 	    if (ieinfo.prio == PRIO_NOR_QUEUE)
@@ -156,16 +180,22 @@ void *output (void *arg)
 		else
 		    itc_readfrom(KERNEL_LAYER_THREAD,ret_queue,PRIO_RET_QUEUE );
 	    }
-
 	}
 	if (event & TIMER_EXPIRATION) 
 	{
 	    ret = gettimerexp(output_timer, &exp);
+	    
 	    if (ret == -1) 
 	    {
 		where = "gettimerexp()";
 		goto panic;
 	    }
+	    
+	    if (clear_exp) {
+		clear_exp = 0;
+		exp = 1;	/* Force expirations to one */
+	    }
+
 	    n = (size_t) exp;
 	    /*
              * El timer expiro n veces
@@ -198,8 +228,8 @@ void *output (void *arg)
 	if (kernelq.size > 0)
 	    itc_writeto(KERNEL_LAYER_THREAD,&kernelq, 0);
 
-	if (msg_sent >= 83333*2)
-	    pthread_exit(&ret);
+	if (msg_sent >= 8333*2)
+	    pthread_exit(&ret); 
     }
 
 panic:
@@ -227,10 +257,9 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 
     init_msg_queue(retq);
 
-    while (queue->size > 0)
-    {
-	if (queue->size == 1) 
-	{
+    while (queue->size > 0) {
+	if (queue->size == 1) { 
+
 	    msgptr = msg_dequeue(queue);
 	    mbptr =  msgptr->mb.mbp;
 
@@ -375,7 +404,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 	    {
 		if (errno == EINTR)
 		{
-		    msgqcat(queue, &tmpq);
+		    msgmove(queue, &tmpq);
 		    continue;
 		}
 		else {

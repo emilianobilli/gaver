@@ -324,7 +324,7 @@ int itc_writemsg (struct wrmsg *opt)
     if (opt->dstq->head == NULL && opt->dstq->tail == NULL)
 	send_signal = 1;
     ret = (int)(opt->srcq->size);
-    msgqcat(opt->dstq, opt->srcq);
+    msgmove(opt->dstq, opt->srcq);
     pthread_mutex_unlock(opt->msg_mutex);
     
     if (send_signal)
@@ -346,10 +346,7 @@ int itc_readmsg (struct wrmsg *opt)
 
     pthread_mutex_lock(opt->msg_mutex);
     ret = (int) (opt->srcq->size);
-    msgqcat(opt->dstq, opt->srcq);
-    opt->srcq->size = 0;
-    opt->srcq->head = NULL;
-    opt->srcq->tail = NULL;
+    msgmove(opt->dstq, opt->srcq);
     pthread_mutex_unlock(opt->msg_mutex);
 
     return ret;

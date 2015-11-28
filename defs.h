@@ -32,10 +32,10 @@
 #define UDP_HDRSIZE		8
 
 #define DFL_MTU 1500
-#define MAX_MTU_SIZE 9000
+#define MAX_MTU_SIZE 1500
 #define PAYLOAD_SIZE(x) ((x)-IP_HDRSIZE-IP_OPTSIZE-UDP_HDRSIZE)
 
-#define DEBUG
+/*#define DEBUG*/
 
 #endif
 
