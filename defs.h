@@ -18,6 +18,8 @@
 #ifndef _DEFS_H
 #define _DEFS_H
 
+#include "gaver.h"
+
 #define REAL_SPEED		95	/* Value of the real speed in % */
 #define START_CAPWIN		100	/* Value of start Congestion Avoidance Window */
 
@@ -30,10 +32,11 @@
 #define IP_HDRSIZE		20
 #define IP_OPTSIZE		40
 #define UDP_HDRSIZE		8
+#define GV_HDRSIZE		sizeof(struct gvhdr)
 
 #define DFL_MTU 1500
 #define MAX_MTU_SIZE 1500
-#define PAYLOAD_SIZE(x) ((x)-IP_HDRSIZE-IP_OPTSIZE-UDP_HDRSIZE)
+#define PAYLOAD_SIZE(x) ((x)-IP_HDRSIZE-IP_OPTSIZE-UDP_HDRSIZE-GV_HDRSIZE)
 
 /*#define DEBUG*/
 

@@ -275,7 +275,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 	    }
 	    if (mbptr->m_need_ts == DO_TS)
 		/*
-		 * Put the timestamp 
+		 * Put the timestamp OJO CON EL NETWORK BYTE ORDERRR!!!!!!!!!!
 		 */
 		timestamp((u_int64_t *)&(mbptr->m_payload[mbptr->m_tsoff]), NULL);
 	

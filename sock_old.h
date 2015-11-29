@@ -114,7 +114,7 @@ struct msg *makewreq (int so_data, struct mb_queue *mbq)
     ptr = alloc_msg_locking();
 
     if ( ptr != NULL ) {
-	ptr->io_opt = IO_OPT_WRITE;
+	ptr->io_opt    = IO_OPT_WRITE;
 	ptr->io_socket = so_data;
 	ptr->io_ret    = 0;
 	ptr->io_errno  = 0;
@@ -145,7 +145,7 @@ struct msg *makerreq ( int so_data, size_t len, size_t chunk_size )
     ptr = alloc_msg_locking();
 
     if (ptr != NULL) {
-	ptr->io_opt = IO_OPT_READ;
+	ptr->io_opt    = IO_OPT_READ;
 	ptr->io_socket = so_data;
 	ptr->io_ret    = 0;
 	ptr->io_errno  = 0;

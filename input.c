@@ -42,13 +42,20 @@ ssize_t recvmbuff (int sd, struct mbuff *mbptr)
 
     ret = recvdgram(sd,
 		    mbptr->m_payload,
-		    mtu,		/* Global Var */
+		    PAYLOAD_SIZE(mtu),		/* Global Var */
 		    &(mbptr->m_hdr),
 		    sizeof(struct gvhdr),
 		    &(mbptr->m_outside_addr));
     
     if (ret != -1) 
     {
+
+	if (ret != (mbptr->m_hdr.payload_len + GV_HDRSIZE))
+	    return 0;
+
+	mbptr->m_datalen = mbptr->m_hdr.payload_len;
+	mbptr->m_hdrlen  = GV_HDRSIZE;
+
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	mbptr->m_input_ts[0] = (u_int64_t) ts.tv_sec;
 	mbptr->m_input_ts[1] = (u_int64_t) ts.tv_nsec;
@@ -102,7 +109,7 @@ void *input (void *arg)
 
     init_msg_queue(&rxq);
 
-    msg_recv = 0;		/* Global */
+    msg_recv   = 0;		/* Global */
     bytes_recv = 0;		/* Global */
 
     arg = NULL;
@@ -120,6 +127,12 @@ void *input (void *arg)
 	    if (ret == -1) {
 		where = "recvmbuff()";
 		goto panic;
+	    }
+
+	    if (!ret) {
+		free_mbuff_locking(msgptr->mb.mbp);
+		free_msg_locking(msgptr);
+		continue;
 	    }
 
 #ifdef DEBUG

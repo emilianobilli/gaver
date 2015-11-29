@@ -60,7 +60,7 @@ struct mb_queue {
 #define IO_RET_FAILURE  1
 
 struct msg {
-    int    msg_type;			/* Request or Reply */
+    int    msg_type;			/* Request, Reply or Carrier */
     struct {
 	int io_opt;
 	int io_socket;
