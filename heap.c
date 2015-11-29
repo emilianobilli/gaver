@@ -22,8 +22,8 @@
 #include "heap.h"
 #include <string.h>
 
-static void init_heap_mbuff(void);
-static void init_heap_msg(void);
+static void init_heap_mbuff(size_t len);
+static void init_heap_msg(size_t len);
 
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
@@ -157,6 +157,56 @@ struct mbuff *alloc_mbuff_locking(void)
 }
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * alloc_mbuff_queue()									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+size_t alloc_mbuff_queue (struct mb_queue *queue, size_t len)
+{
+    struct mbuff *mb;
+    size_t i;
+
+    init_mbuff_queue(queue);
+
+    if (!len)
+	return 0;
+
+    for (i = 0; i < len; i++) {
+	mb = alloc_mbuff();
+	if (mb) 
+	    mbuff_enqueue(queue, mb);
+	else
+	    break;
+    }
+    return i;
+}
+
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * alloc_msg_queue()									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+size_t alloc_msg_queue (struct msg_queue *queue, size_t len)
+{
+    struct msg *mp;
+    size_t i;
+
+    init_msg_queue(queue);
+
+    if (!len)
+	return 0;
+
+    for (i = 0; i < len; i++) {
+	mp = alloc_msg();
+	if (mp) 
+	    msg_enqueue(queue, mp);
+	else
+	    break;
+    }
+    return i;
+}
+
+
+
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * alloc_msg_chain()									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 size_t alloc_msg_chain( struct msg_queue *queue, size_t len)
@@ -184,22 +234,18 @@ size_t alloc_msg_chain( struct msg_queue *queue, size_t len)
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * alloc_mbuff_payload()								    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-size_t alloc_mbuff_payload( struct mb_queue *queue, size_t len, int mtu )
+size_t alloc_mbuff_payload ( struct mb_queue *queue, size_t len, size_t payload_size )
 {
-    struct mbuff *mptr;
-    size_t mbuff_elements = len / (size_t) mtu;
-    size_t i;
+    size_t mbuff_elements = len / payload_size;
+    size_t ret;
 
     pthread_mutex_lock(&heap_mbuff_mutex);
-    for ( i = 0; i <= mbuff_elements -1; i++ ) {
-	mptr = alloc_mbuff();
-	if (mptr == NULL)
-	    break;
-	mbuff_enqueue(queue, mptr);
-    }
+
+    ret = alloc_mbuff_queue(queue, mbuff_elements);
+
     pthread_mutex_unlock(&heap_mbuff_mutex);
 
-    return (int) i;
+    return ret;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * alloc_mbuff_chain()									    *
@@ -246,11 +292,9 @@ size_t alloc_mbuff_chain( struct msg_queue *queue, size_t len)
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * init_heap_mbuff()									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-void init_heap_mbuff(void)
+void init_heap_mbuff(size_t len)
 {
-    heap_mbuff.size = 0;
-    heap_mbuff.head = NULL;
-    heap_mbuff.tail = NULL;
+    alloc_mbuff_queue(&heap_mbuff, len);
     pthread_mutex_init(&heap_mbuff_mutex,NULL);
 
     return;
@@ -259,11 +303,13 @@ void init_heap_mbuff(void)
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * init_heap_msg()									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-void init_heap_msg(void)
+void init_heap_msg(size_t len)
 {
-    heap_msg.size = 0;
-    heap_msg.head = NULL;
-    heap_msg.tail = NULL;
+    struct msg_queue q;
+    
+    init_msg_queue(&heap_msg);
+    alloc_msg_queue(&q, len);
+    msgmove(&heap_msg,&q);
     pthread_mutex_init(&heap_msg_mutex,NULL);
 
     return;
@@ -272,15 +318,29 @@ void init_heap_msg(void)
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * init_heap()										    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-void init_heap(void)
+void init_heap(size_t len)
 {
     heap_mem = 0;
-    init_heap_mbuff();
-    init_heap_msg();
+    init_heap_mbuff(len);
+    init_heap_msg(len);
 
     return;
 }
 
 
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * heap_mbuff_size()									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+size_t heap_mbuff_size(void)
+{
+    return heap_mbuff.size;
+}
 
 
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * heap_msg_size()									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+size_t heap_msg_size(void)
+{
+    return heap_msg.size;
+}

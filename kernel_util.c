@@ -5,6 +5,19 @@
 #include "mbuff_queue.h"
 
 
+/*
+    Algortimo para enviar Datos
+    
+    init_msg_queue(cq);
+
+    mb = mbuff_dequeue(sk->wmemq);   
+    mb = prepare_txmb(sk,mb,DATA);
+    msgptr = mbtomsg_carrier(mb,0);
+
+*/
+
+
+
 struct mbuff *prepare_txmb (struct sock *sk, struct mbuff *mb, u_int8_t type)
 {
     /*
@@ -34,3 +47,40 @@ struct mbuff *prepare_txmb (struct sock *sk, struct mbuff *mb, u_int8_t type)
 }
 
 
+
+
+struct msg *mbtomsg_carrier (struct mbuff *mb, int discard)
+{
+    struct msg *mptr;
+
+    mptr = alloc_msg_locking();
+    if (mptr) {
+	mptr->type    = MSG_MBUFF_CARRIER;
+	mptr->discard = discard;
+	mptr->mb.mbp  = mb;
+	mptr->discard = discard;
+    }
+    return mptr;
+}
+
+size_t mbqtomsgq_carrier (struct msg_queue *msg, struct mb_queue *mbuff, int discard)
+{
+    struct msg   *msgptr;
+    struct mbuff *mbptr;
+    size_t ret = 0;
+    init_msg_queue(msg);
+
+    while ( (mbptr = mbuff_dequeue(mbuff)) != NULL ) {
+	msgptr = alloc_msg_locking();
+	if (msgptr) {
+	    msgptr->type    = MSG_MBUFF_CARRIER;
+	    msgptr->discard = discard;
+	    msgptr->mb.mbp  = mbptr;
+	    msg_enqueue(msg, msgptr);
+	    ret++;
+	}
+	else
+	    break;
+    }
+    return ret;
+}

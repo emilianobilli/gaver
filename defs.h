@@ -23,6 +23,8 @@
 #define REAL_SPEED		95	/* Value of the real speed in % */
 #define START_CAPWIN		100	/* Value of start Congestion Avoidance Window */
 
+#define START_HEAP		100000	/* Start heap nodes */
+
 #define START_TIMEOUT_SEC	120	/* Measured in seconds */
 #define START_TIMEOUT_NSEC	0	
 
@@ -38,7 +40,7 @@
 #define MAX_MTU_SIZE 1500
 #define PAYLOAD_SIZE(x) ((x)-IP_HDRSIZE-IP_OPTSIZE-UDP_HDRSIZE-GV_HDRSIZE)
 
-/*#define DEBUG*/
+#define DEBUG
 
 #endif
 

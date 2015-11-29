@@ -110,7 +110,7 @@ int main (int argc, char *argv[])
     local_port = gvcfg.port;		/* Global NBO */
 
     /* Init the Heap */
-    init_heap();
+    init_heap(START_HEAP);
 
     /* Init ITC */
     errno = 0;

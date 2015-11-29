@@ -38,8 +38,30 @@ EXTERN size_t alloc_msg_chain( struct msg_queue *queue, size_t len);
 
 EXTERN struct msg *alloc_msg(void);
 EXTERN struct msg *alloc_msg_locking(void);
-EXTERN size_t alloc_mbuff_payload( struct mb_queue *queue, size_t len, int mtu );
-EXTERN void init_heap(void);
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * alloc_mbuff_queue()									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+EXTERN size_t alloc_mbuff_queue (struct mb_queue *queue, size_t len);
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * alloc_msg_queue()									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+EXTERN size_t alloc_msg_queue (struct msg_queue *queue, size_t len);
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * heap_mbuff_size()									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+EXTERN size_t heap_mbuff_size(void);
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * heap_msg_size()									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+EXTERN size_t heap_msg_size(void);
+
+
+EXTERN size_t alloc_mbuff_payload( struct mb_queue *queue, size_t len, size_t payload_size);
+EXTERN void init_heap(size_t len);
 
 #endif
 

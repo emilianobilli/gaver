@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include "timers.h"
+#include "heap.h"
 #include "sockopt.h"
 #include "util.h"
 #include "mbuff.h"
@@ -31,6 +32,9 @@
 #include "itc_var.h"
 #include "defs.h"
 #include "itc.h"
+#ifdef DEBUG
+#include "dump.h"
+#endif
 
 
 /*
@@ -177,7 +181,7 @@ void *kernel(void *arg)
     init_msg_queue(&tx_ctr_queue);	/* Transmit */
     init_msg_queue(&tx_ret_queue);	/* Transmit */
     init_msg_queue(&tx_nor_queue);	/* Transmit */
-    init_msg_queue(&tx_input_queue);	/* Internal */
+    init_msg_queue(&tx_input_queue);	/* Retorno de transmit Internal */
     init_msg_queue(&rx_queue);		/* Reception */
     init_msg_queue(&io_queue_in);	/* Internal IO Read  */
     init_msg_queue(&io_queue_out);	/* Internal IO Write */
@@ -188,6 +192,9 @@ void *kernel(void *arg)
     /* Init expiration Timers */
     init_et();
 
+#ifdef DEBUG
+    dump_heap(stderr);
+#endif
 
     thread_table[KERNEL_LAYER_THREAD] = pthread_self();
     /*
@@ -318,7 +325,6 @@ panic:
     PANIC(errno,"kernel",where);
     return NULL;
 }
-
 
 
 /*======================================================================================*

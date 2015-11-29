@@ -19,9 +19,19 @@
 #include <stdio.h>
 #include "mbuff.h"
 #include "glo.h"
+#include "heap.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+
+
+/*======================================================================================*
+ * dump_heap()										*
+ *======================================================================================*/
+void dump_heap(FILE *file)
+{
+    fprintf(file, "mbuff: %ld, msg: %ld\n", heap_mbuff_size(),heap_msg_size());
+}
 
 /*======================================================================================*
  * dump_output_mb()									*

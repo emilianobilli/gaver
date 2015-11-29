@@ -185,58 +185,6 @@ struct msg *mbufftomsg (struct mbuff *mb, int clone, int discard)
     }
     return mptr;
 }
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * mbqtomsgq():										    *
- *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-size_t mbqtomsgq (struct msg_queue *msgq, struct mb_queue *mbq, size_t len, int clone, int discard)
-{
-    struct msg_queue tmp;
-    struct msg   *mptr;
-    struct mbuff *mbptr, *mbnew;
-    size_t ret; 
-    size_t sz;
-    size_t i;
-
-
-    init_msg_queue(&tmp);
-
-    sz = ( len > mbq->size )? mbq->size : len;
-    
-    ret = alloc_msg_chain(&tmp, sz);
-    
-    if (ret == 0)
-	return 0;
-
-    i = 0;
-    mbptr = mbq->head;
-    mptr  = tmp.head;
-
-    while ( i <= ret-1 ) {
-	if (mbptr == NULL)
-	    break;
-
-	mptr->msg_type = MSG_BUFF_CARRIER;
-	if (clone) {
-	    mbnew = clone_mbuff(mbptr);
-	    if (mbnew == NULL) {
-		/*
-		 * Corregir
-		 */
-
-		break;
-	    }
-	    mptr->mb.mbp = mbnew;
-	}
-	else
-	    mptr->mb.mbp = mbptr;
-
-	mptr->discard = discard;
-	i++;
-	mptr  = mptr->p_next;
-	mbptr = mbptr->m_next;
-    }
-    return i;
-}
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * init_seqlost_queue():								    *

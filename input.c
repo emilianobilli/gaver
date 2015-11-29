@@ -98,7 +98,7 @@ ssize_t recvdgram (int sd, void *data, size_t datalen, void *hdr, size_t hdrlen,
 void *input (void *arg)
 {
     struct msg_queue rxq;
-    struct msg *msgptr; 
+    struct msg   *msgptr; 
     char   *where;
     ssize_t ret;
 
@@ -107,51 +107,58 @@ void *input (void *arg)
      */
     itc_block_signal();
 
-    init_msg_queue(&rxq);
+    
 
     msg_recv   = 0;		/* Global */
     bytes_recv = 0;		/* Global */
 
     arg = NULL;
 
+    init_msg_queue(&rxq);
     while(1)
     {
+
 	/*
 	 * No comprueba retorno
 	 * Pide un solo paquete -- Mejorar --
 	 */
-	alloc_mbuff_chain(&rxq, 1);
-	msgptr = msg_dequeue(&rxq);
-	if ( msgptr != NULL ) {
-	    ret = recvmbuff(ifudp, msgptr->mb.mbp);
-	    if (ret == -1) {
-		where = "recvmbuff()";
-		goto panic;
-	    }
+	msgptr = alloc_msg_locking();
 
-	    if (!ret) {
-		free_mbuff_locking(msgptr->mb.mbp);
-		free_msg_locking(msgptr);
-		continue;
-	    }
+	if ( msgptr != NULL ) {
+
+	    msgptr->mb.mbp = alloc_mbuff_locking();
+	    if (msgptr->mb.mbp != NULL) {
+
+		ret = recvmbuff(ifudp, msgptr->mb.mbp);
+	        if (ret == -1) {
+		    where = "recvmbuff()";
+		    goto panic;
+		}
+
+		if (!ret) {
+		    free_mbuff_locking(msgptr->mb.mbp);
+		    free_msg_locking(msgptr);
+		    continue;
+		}
 
 #ifdef DEBUG
-	    dump_input_mb(stderr,msgptr->mb.mbp);
+		dump_input_mb(stderr,msgptr->mb.mbp);
 #endif
-	    /*
-	     * Estadisticas
-	     */
-	    msg_recv ++;
-	    bytes_recv +=ret;
+		/*
+	         * Estadisticas
+	         */
+		msg_recv ++;
+	        bytes_recv +=ret;
 
-	    /*
-	     * Lo envia al kernel
-	     */
-	    msgptr->msg_type = MSG_MBUFF_CARRIER;
-	    msg_enqueue(&rxq, msgptr);
-	    itc_writeto(KERNEL_LAYER_THREAD,
-			&rxq,
-			0);
+		/*
+	         * Lo envia al kernel
+	         */
+	        msgptr->msg_type = MSG_MBUFF_CARRIER;
+		msg_enqueue(&rxq, msgptr);
+	        itc_writeto(KERNEL_LAYER_THREAD,
+			    &rxq,
+			    0);
+	    }
 	}
     }
     pthread_exit(NULL);
