@@ -38,7 +38,7 @@
 /*======================================================================================*
  * do_collect_mbuff_from_sk()								*
  *======================================================================================*/
-PRIVATE void do_collect_mbuff_from_sk (struct sock *sk, struct msg_queue *tx);
+PRIVATE void do_collect_mbuff_from_sk (struct sock *sk, struct msg_queue *tx, struct msg_queue *txctrl);
 
 /*======================================================================================*
  * do_update_tokens_sock()								*
@@ -189,31 +189,31 @@ void do_update_tokens_sock (struct sock *sk, u_int64_t times)
 	struct msg_queue so_sentq;
     */
 
-    if (sk->so_state == GV_ESTABLISHED) 
-    {
-	if (sk->so_avtok > (double) 1.0)
-	    /* Se le resta la parte entera */
-	    sk->so_avtok = pfloat(sk->so_avtok);
+    
+    
+    if (sk->so_avtok > (double) 1.0)
+	/* Se le resta la parte entera */
+        sk->so_avtok = pfloat(sk->so_avtok);
 
-	/* At this point the value of so_available_tokens is in the set [0;1) */
-	hw = sk->so_host_win;		/* Host Window */
-	sq = sk->so_sentq.size;		/* Sent Queue  */
-	if ( hw > sq )
-	    sk->so_avtok += update_token(sk->so_avtok,
-					 sk->so_retok,
-					 sk->so_capwin,
-					 hw-sq) * (double) times;
-	else
-	    /* The other alternative is that the value is 0 */
-	    sk->so_avtok = 0;
+    /* At this point the value of so_available_tokens is in the set [0;1) */
+    hw = sk->so_host_win;		/* Host Window */
+    sq = sk->so_sentq.size;		/* Sent Queue  */
+    if ( hw > sq )
+        sk->so_avtok += update_token(sk->so_avtok,
+				     sk->so_retok,
+				     sk->so_capwin,
+				      hw-sq) * (double) times;
+    else
+	/* The other alternative is that the value is 0 */
+        sk->so_avtok = 0;
 	
-	sk->so_resyn += (sk->so_retok / PACKETS_PER_ROUND) * (double) times;
-	/*
-         * When so_refresh_syn >= 1 -> The kernel dispatch the syn msg and substract 
-	 *			       the integer value
-	 *
-         */
-    }
+    sk->so_resyn += (sk->so_retok / PACKETS_PER_ROUND) * (double) times;
+    /*
+     * When so_refresh_syn >= 1 -> The kernel dispatch the syn msg and substract 
+     *			       the integer value
+     *
+     */
+    
     return;
 }
 
@@ -228,7 +228,8 @@ void do_update_tokens (struct sockqueue *sk, u_int64_t times)
     init_sock_queue(&tmp);
         
     while ( (skp = sock_dequeue(sk)) ) {
-	do_update_tokens_sock(skp,times);
+	if (skp->so_state == GV_ESTABLISHED) 
+	    do_update_tokens_sock(skp,times);
 	sock_enqueue(&tmp,skp);
     }
     sk->size = tmp.size;
@@ -240,7 +241,7 @@ void do_update_tokens (struct sockqueue *sk, u_int64_t times)
 /*======================================================================================*
  * do_collect_mbuff_to_transmit()							*
  *======================================================================================*/
-void do_collect_mbuff_to_transmit (struct sockqueue *sk, struct msg_queue *tx)
+void do_collect_mbuff_to_transmit (struct sockqueue *sk, struct msg_queue *tx , struct msg_queue *txctrl)
 {
     struct sockqueue tmp;
     struct sock *skp;
@@ -248,7 +249,8 @@ void do_collect_mbuff_to_transmit (struct sockqueue *sk, struct msg_queue *tx)
     init_sock_queue(&tmp);
 
     while ( (skp = sock_dequeue(sk)) ) {
-	do_collect_mbuff_from_sk(skp, tx);
+	if (skp->so_state == GV_ESTABLISHED) 
+	    do_collect_mbuff_from_sk(skp, tx, txctrl);
 	sock_enqueue(&tmp, skp);
     }
     sk->size = tmp.size;
@@ -261,13 +263,30 @@ void do_collect_mbuff_to_transmit (struct sockqueue *sk, struct msg_queue *tx)
 /*======================================================================================*
  * do_collect_mbuff_from_sk()								*
  *======================================================================================*/
-void do_collect_mbuff_from_sk (struct sock *sk, struct msg_queue *tx)
+void do_collect_mbuff_from_sk (struct sock *sk, struct msg_queue *tx, struct msg_queue *txctrl)
 {
     struct msg *mptr;
     struct mbuff *mbp;
     double one = 1.0;
     int    avtok = (int) floor(sk->so_avtok);	/* Solamente la parte entera */
-    
+    int    syn   = (int) floor(sk->so_resyn);    
+
+    mptr = NULL;
+    mbp  = NULL;
+
+    if (syn) {
+	/* mbp  = prepare_syn(sk); */
+	if (mbp) {
+	    mptr = mbtomsg_carrier(mbp,1);
+	    if (mptr) {
+		msg_enqueue(txctrl, mptr);
+		sk->so_resyn = sk->so_resyn - one;	/* Update Syn Time */
+		mptr = NULL;
+		mbp  = NULL;
+	    }
+	}
+    }
+
     while (avtok > 0) {
 	mbp = mbuff_dequeue(&(sk->so_wmemq));
 	if (!mbp)

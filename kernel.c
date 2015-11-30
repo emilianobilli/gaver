@@ -278,7 +278,7 @@ void *kernel(void *arg)
 		}
 	    }
 
-	    do_collect_mbuff_to_transmit(&so_used, &tx_nor_queue);
+	    do_collect_mbuff_to_transmit(&so_used, &tx_nor_queue, &tx_ctr_queue);
 
 
 	/*

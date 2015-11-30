@@ -45,6 +45,6 @@ EXTERN struct mbuff *prepare_txmb (struct sock *sk, struct mbuff *mb, u_int8_t t
 /*======================================================================================*
  * do_collect_mbuff_to_transmit()							*
  *======================================================================================*/
-EXTERN void do_collect_mbuff_to_transmit (struct sockqueue *sk, struct msg_queue *tx);
+EXTERN void do_collect_mbuff_to_transmit (struct sockqueue *sk, struct msg_queue *tx, struct msg_queue *txctrl);
 
 #endif

@@ -41,7 +41,8 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
     switch (msg.msg_type)
     {
 	case MSG_CONNECT:
-	    if (sk->so_state != GV_CLOSE && sk->so_loctrl_state != CTRL_NONE)
+	    fprintf(stderr,"Connect %d - %d\n", sk->so_state,sk->so_loctrl_state );
+	    if (sk->so_state != GV_CLOSE || sk->so_loctrl_state != CTRL_NONE)
 	    {
 		/*
 		 * Esto es un error en el orden de las llamadas a las 
