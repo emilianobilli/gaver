@@ -294,7 +294,11 @@ size_t alloc_mbuff_chain( struct msg_queue *queue, size_t len)
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 void init_heap_mbuff(size_t len)
 {
-    alloc_mbuff_queue(&heap_mbuff, len);
+    struct mb_queue q;
+
+    init_mbuff_queue(&q);
+    alloc_mbuff_queue(&q, len);
+    mbuffmove(&heap_mbuff, &q);
     pthread_mutex_init(&heap_mbuff_mutex,NULL);
 
     return;
