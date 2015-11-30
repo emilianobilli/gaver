@@ -21,8 +21,8 @@ OBJ_LIB:= -c -Wall -fPIC
 LINK:= -lrt -lm -lpthread
 SHARED:= -shared 
 
-all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o gvd.o configk.o sock.o common.o kernel_api.o kernel.o timers.o dump.o libgv.so
-	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o configk.o sock.o gvd.o common.o kernel_api.o kernel.o timers.o dump.o -o gvd $(LINK)
+all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o gvd.o configk.o sock.o common.o kernel_api.o kernel.o timers.o dump.o kernel_util.o libgv.so
+	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o configk.o sock.o gvd.o common.o kernel_api.o kernel.o timers.o dump.o kernel_util.o -o gvd $(LINK)
 
 libgv.so: libgv.o gv_err.o common.o
 	$(CC) $(SHARED) libgv.o common.o gv_err.o -o libgv.so
@@ -79,6 +79,9 @@ common.o: common.c
 
 sock.o: sock.c
 	$(CC) $(OBJ) sock.c
+
+kernel_util.o: kernel_util.c kernel_util.h
+	$(CC) $(OBJ) kernel_util.c
 
 dump.o: dump.c
 	$(CC) $(OBJ) dump.c
