@@ -82,11 +82,10 @@ struct sock {
 
     struct mbuff *cnt_req;		/* Connection Req	*/
 
-    /*
+    struct mb_queue so_wmemq;
+    struct mb_queue so_rmemq;
 
-    struct mb_queue wmemq;
-    struct mb_queue rmemq;
-    */
+
     struct mb_queue so_sentq;		/* In Flyght 		*/
 
     /*

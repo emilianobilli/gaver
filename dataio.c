@@ -139,12 +139,12 @@ void *dataio (void *arg)
 		    mptr->io.io_errno = errno;
 		
 		    mptr->msg_type = MSG_IO_REPLY;
-		    mbuffqcat(&(mptr->mb.mbq), &no_sent);
+		    mbuffmove(&(mptr->mb.mbq), &no_sent);
 		    msg_enqueue(&to_krn, mptr);
 		}
 		else {
 		    mptr->io.io_rep_len += io_ret;
-		    mbuffqcat(&(mptr->mb.mbq), &no_sent);
+		    mbuffmove(&(mptr->mb.mbq), &no_sent);
 		    msg_enqueue(&tmp, mptr);
 		}
 	    }
@@ -365,7 +365,7 @@ ssize_t senddata (int sdux, struct mb_queue *txq, struct mb_queue *no_sent, int 
 
     if (iodata == NULL)
     {
-	mbuffqcat(no_sent, txq);
+	mbuffmove(no_sent, txq);
 	return (ssize_t)0;
     }
 
@@ -403,7 +403,7 @@ ssize_t senddata (int sdux, struct mb_queue *txq, struct mb_queue *no_sent, int 
     free(iodata);
     if (ret == -1) 
     {
-	mbuffqcat(no_sent, &tmp);
+	mbuffmove(no_sent, &tmp);
 	if (errno == EAGAIN || errno == EWOULDBLOCK) 
 	    return 0;
 	else
@@ -429,6 +429,6 @@ ssize_t senddata (int sdux, struct mb_queue *txq, struct mb_queue *no_sent, int 
 	    mbuff_enqueue(no_sent, mbptr);
 	}
     }
-    mbuffqcat(no_sent, &tmp);
+    mbuffmove(no_sent, &tmp);
     return bytes_sent;
 }

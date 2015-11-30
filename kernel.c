@@ -248,6 +248,7 @@ void *kernel(void *arg)
 		do_update_tokens(&so_used, ntimes);
 	    }
 	    /* Look if another thread send a message */
+
 	    else if ( pkev->data.fd == itc_event && 
 		      KEVENT_ITC(pkev->events) )
 	    {
@@ -290,7 +291,7 @@ void *kernel(void *arg)
 		{
 		    if (KEVENT_SOCKET(pkev->events))
 		    {
-			/* Mensaje de api */
+			/* Mensaje de api "kernel_api.c" */
 			if(do_socket_request(sk,NULL) == -1)
 			    do_close = 1;
 			else {
@@ -308,6 +309,10 @@ void *kernel(void *arg)
 		    }
 		}
 	    }
+
+	    do_collect_mbuff_to_transmit(&so_used, &tx_nor_queue);
+
+
 	/*
          * Finally: 
 	 *	- Process All Input Queues
@@ -372,6 +377,14 @@ struct sock *new_sk( int sd )
 	    /* Global */
 	    free_bps 		-= speed;			/* Update available speed */
 
+	    init_mbuff_queue(&(nsk->so_wmemq));
+	    init_mbuff_queue(&(nsk->so_rmemq));
+
+	    nsk->so_dseq_exp	 = 0;				/* Data seq expected    */
+	    nsk->so_cseq_exp	 = 0;				/* Control seq expected */
+
+
+
 	    nsk->so_lodata_state = DATA_IO_NONE;
 	    nsk->so_local_gvport = NO_GVPORT;
 	    send_status(nsd, 0, "Sucess");
@@ -432,7 +445,7 @@ void do_update_tokens_sock (struct sock *sk, u_int64_t times)
 }
 
 /*======================================================================================*
- * kevent_init()									*
+ * do_update_tokens									*
  *======================================================================================*/
 void do_update_tokens (struct sockqueue *sk, u_int64_t times)
 {
@@ -448,6 +461,47 @@ void do_update_tokens (struct sockqueue *sk, u_int64_t times)
     sk->size = tmp.size;
     sk->head = tmp.head;
     sk->tail = tmp.tail;
+    return;
+}
+
+void do_collect_mbuff_to_transmit (struct sockqueue *sk, struct msg_queue *tx)
+{
+    struct sockqueue tmp;
+    struct sock *skp;
+    
+    init_sock_queue(&tmp);
+
+    while ( (skp = sock_dequeue(sk)) ) {
+	do_collect_mbuff_from_sk(skp, tx);
+	sock_enqueue(&tmp, skp);
+    }
+    sk->size = tmp.size;
+    sk->head = tmp.head;
+    sk->tail = tmp.tail;
+    return;
+}
+
+void do_collect_mbuff_from_sk (struct sock *sk, struct msg_queue *tx)
+{
+    struct msg *mptr;
+    struct mbuff *mbp;
+    double one = 1.0;
+    int    avtok = (int) floor(sk->so_avtok);	/* Solamente la parte entera */
+    
+    while (avtok > 0) {
+	mbp = mbuff_dequeue(&(sk->so_wmemq));
+	if (!mbp)
+	    break;
+	bmp  = prepare_txmb(sk,mbp,DATA);	/* Fill all fields              */
+	mptr = mbtomsg_carrier(mbp,0);		/* Add mbuff to msg carrier     */
+	if (!mptr) {
+	    /* Push */
+	    break;	
+	}
+	msg_enqueue(tx, mptr);			/* Finaly enqueue to transmit   */
+	sk->so_avtok = sk->so_avtok - one;	/* Update Sock available tokens */
+	avtok--;				
+    }
     return;
 }
 

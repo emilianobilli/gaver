@@ -30,7 +30,7 @@ EXTERN void init_msg_queue(struct msg_queue *q);
 EXTERN void mbuff_enqueue (struct mb_queue *queue, struct mbuff *mb);
 EXTERN struct mbuff *mbuff_dequeue(struct mb_queue *queue);
 EXTERN void mbuff_insert (struct mb_queue *queue, struct mbuff *mb);
-EXTERN void mbuffqcat (struct mb_queue *dst, struct mb_queue *src);
+EXTERN void mbuffmove (struct mb_queue *dst, struct mb_queue *src);
 EXTERN void msg_enqueue (struct msg_queue *queue, struct msg *msg);
 EXTERN struct msg *msg_dequeue(struct msg_queue *queue);
 EXTERN void msgmove (struct msg_queue *dst, struct msg_queue *src);

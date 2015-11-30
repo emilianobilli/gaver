@@ -70,7 +70,7 @@ void mbuff_insert (struct mb_queue *queue, struct mbuff *mb)
 		    break;
 		}
 	    }
-	    mbuffqcat(&tmp, queue);
+	    mbuffmove(&tmp, queue);
 	    queue->head = tmp.head;
 	    queue->tail = tmp.tail;
 	    queue->size = tmp.size;
@@ -94,7 +94,7 @@ struct mbuff *mbuff_dequeue(struct mb_queue *queue)
     return mb;
 }
 
-void mbuffqcat (struct mb_queue *dst, struct mb_queue *src)
+void mbuffmove (struct mb_queue *dst, struct mb_queue *src)
 {
     if (src->tail == NULL && src->tail == NULL)
 	return;
@@ -106,6 +106,9 @@ void mbuffqcat (struct mb_queue *dst, struct mb_queue *src)
 
     dst->tail  = src->tail;
     dst->size += src->size;
+
+    init_mbuff_queue(src);
+
     return;
 }
 
@@ -146,9 +149,7 @@ void msgmove (struct msg_queue *dst, struct msg_queue *src)
     dst->size += src->size;
 
 
-    src->head = NULL;
-    src->tail = NULL;
-    src->size = 0;
+    init_msg_queue(src);
 
     return;
 }
