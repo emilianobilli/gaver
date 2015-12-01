@@ -40,47 +40,47 @@ test -x $bin || exit 0
 function make_arg()
 {
     args="";
-    if [ "($cfg_addr)" != "" ]
+    if [ "$cfg_addr" != "" ]
     then
 	args=$args"-a $cfg_addr "
     fi
-    if [ "($cfg_port)" != "" ]
+    if [ "$cfg_port" != "" ]
     then
 	args=$args"-p $cfg_port "
     fi
-    if [ "($cfg_mtu)" != "" ]
+    if [ "$cfg_mtu" != "" ]
     then
 	args=$args"-m $cfg_mtu "
     fi
-    if [ "($cfg_os)" != "" ]
+    if [ "$cfg_os" != "" ]
     then
 	args=$args"-s $cfg_os "
     fi
-    if [ "($cfg_ss)" != "" ]
+    if [ "$cfg_ss" != "" ]
     then
 	args=$args"-S $cfg_ss "
     fi
-    if [ "($cfg_rmem)" != "" ]
+    if [ "$cfg_rmem" != "" ]
     then
 	args=$args"-r $cfg_rmem "
     fi
-    if [ "($cfg_wmem)" != "" ]
+    if [ "$cfg_wmem" != "" ]
     then
 	args=$args"-w $cfg_wmem "
     fi
-    if [ "($cfg_listen)" != "" ]
+    if [ "$cfg_listen" != "" ]
     then
 	args=$args"-l $cfg_listen "
     fi
-    if [ "($pid)" != "" ]
+    if [ "$pid" != "" ]
     then
 	args=$args"-P $pid "
     fi
-    if [ "($cfg_netstat)" != "" ]
+    if [ "$cfg_netstat" != "" ]
     then
 	args=$args"-n $cfg_netstat "
     fi
-    if [ "($cfg_error)" != "" ]
+    if [ "$cfg_error" != "" ]
     then
 	args=$args"-e $cfg_error "
     fi

@@ -173,7 +173,7 @@ int main (int argc, char *argv[])
     }
 
     errno = 0;
-    if (gvcfg.error || gvcfg.daemon) {
+    if (strlen(gvcfg.error) || gvcfg.daemon) {
         err = open(gvcfg.error, O_CREAT | O_WRONLY, S_IRWXU);
 	if (err == -1) {
 	    close(api_socket);
