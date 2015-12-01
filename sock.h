@@ -80,12 +80,10 @@ struct sock {
     size_t rmem_size;			/* Read  buffer size    */
     
 
-    struct mbuff *cnt_req;		/* Connection Req	*/
+    struct mbuff *so_cnt_req;		/* Connection Req	*/
 
     struct mb_queue so_wmemq;
     struct mb_queue so_rmemq;
-
-
     struct mb_queue so_sentq;		/* In Flyght 		*/
 
     /*

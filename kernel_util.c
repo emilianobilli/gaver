@@ -146,16 +146,18 @@ struct sock *new_sk( int sd )
 
 	    nsk->so_mtu		 = mtu;				/* Global MTU */
 	    nsk->so_speed	 = speed;			/* Configured Speed */
+
+	    nsk->so_cnt_req	 = NULL;			/* Connection Request */
 	    
 	    /* Global */
 	    free_bps 		-= speed;			/* Update available speed */
 
+	    init_mbuff_queue(&(nsk->so_sentq));
 	    init_mbuff_queue(&(nsk->so_wmemq));
 	    init_mbuff_queue(&(nsk->so_rmemq));
 
 	    nsk->so_dseq_exp	 = 0;				/* Data seq expected    */
 	    nsk->so_cseq_exp	 = 0;				/* Control seq expected */
-
 
 
 	    nsk->so_lodata_state = DATA_IO_NONE;
