@@ -143,7 +143,7 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 	         * consiguiente el proceso de la capa superior 
 		 * se bloquea
 		 */
-		sk->so_loctrl_state = CTRL_ACCEPT_REQ;
+		sk->so_loctrl_state = CTRL_WAITING_CONNECT;
 
 	    else if (sk->so_state == GV_CONNECT_RCVD)
 	    {
@@ -152,7 +152,7 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 		 * pero todavia la capa superior no habia aceptado.
 		 * Al aceptar el mensaje, se debe enviar un accept
 		 */
-		sk->so_loctrl_state = CTRL_ACCEPT_PEND;    
+		sk->so_loctrl_state = CTRL_WAITING_ACCEPT_REPLY;    
 	    }
 	    else
 	    {

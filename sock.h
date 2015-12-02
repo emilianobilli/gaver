@@ -29,9 +29,9 @@
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 enum {
     CTRL_NONE = 1,
-    CTRL_CONNECT_REQ,
-    CTRL_ACCEPT_REQ,
-    CTRL_ACCEPT_PEND,
+    CTRL_CONNECT_REQUEST,
+    CTRL_WAITING_CONNECT,
+    CTRL_WAITING_ACCEPT_REPLY,
     CTRL_ESTABLISHED
 };
 

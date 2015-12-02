@@ -97,6 +97,9 @@ struct msg *mbtomsg_carrier (struct mbuff *mb, int discard)
 {
     struct msg *mptr;
 
+    if (!mb)
+	return NULL;
+
     mptr = alloc_msg_locking();
     if (mptr) {
 	mptr->msg_type = MSG_MBUFF_CARRIER;
