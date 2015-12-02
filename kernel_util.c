@@ -85,6 +85,8 @@ struct mbuff *prepare_txmb (struct sock *sk, struct mbuff *mb, u_int8_t type)
     
     mb->m_hdrlen = sizeof(struct gvhdr);
 
+    mb->m_ready_to_dispatch = MBUFF_READY;
+
     return mb;
 }
 
@@ -100,7 +102,6 @@ struct msg *mbtomsg_carrier (struct mbuff *mb, int discard)
 	mptr->msg_type = MSG_MBUFF_CARRIER;
 	mptr->discard  = discard;
 	mptr->mb.mbp   = mb;
-	mptr->discard  = discard;
     }
     return mptr;
 }
@@ -279,28 +280,36 @@ void do_collect_mbuff_from_sk (struct sock *sk, struct msg_queue *tx, struct msg
     if (syn) {
 	/* mbp  = prepare_syn(sk); */
 	if (mbp) {
-	    mptr = mbtomsg_carrier(mbp,1);
+	    mptr = mbtomsg_carrier(mbp,DISCARD_FALSE);
 	    if (mptr) {
 		msg_enqueue(txctrl, mptr);
 		sk->so_resyn = sk->so_resyn - one;	/* Update Syn Time */
 		mptr = NULL;
 		mbp  = NULL;
 	    }
+	    else {
+		/* Fix ctrl_seq number */
+		sk->so_cseq_out--;
+		free_mbuff_locking(mbp);
+	    }
 	}
     }
-
     while (avtok > 0) {
 	mbp = mbuff_dequeue(&(sk->so_wmemq));
 	if (!mbp)
-	    break;
-	mbp  = prepare_txmb(sk,mbp,DATA);	/* Fill all fields              */
-	mptr = mbtomsg_carrier(mbp,0);		/* Add mbuff to msg carrier     */
+	    break;					/* Nothing to send		*/
+
+	if (mbp->m_ready_to_dispatch != MBUFF_READY)
+	    mbp  = prepare_txmb(sk,mbp,DATA);		/* Fill all fields only         */
+
+	mptr = mbtomsg_carrier(mbp,DISCARD_FALSE);	/* Add mbuff to msg carrier     */
 	if (!mptr) {
-	    /* Push */
+	    mbuff_push(&(sk->so_wmemq), mbp);		/* Push In write Queue again    */
 	    break;	
 	}
-	msg_enqueue(tx, mptr);			/* Finaly enqueue to transmit   */
-	sk->so_avtok = sk->so_avtok - one;	/* Update Sock available tokens */
+	msg_enqueue(tx, mptr);				/* Finaly enqueue to transmit   */
+	sk->so_avtok = sk->so_avtok - one;		/* Update Sock available tokens */
+
 	avtok--;				
     }
     return;

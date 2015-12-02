@@ -28,6 +28,7 @@
 EXTERN void init_mbuff_queue(struct mb_queue *q);
 EXTERN void init_msg_queue(struct msg_queue *q);
 EXTERN void mbuff_enqueue (struct mb_queue *queue, struct mbuff *mb);
+EXTERN void mbuff_push (struct mb_queue *queue, struct mbuff *mb);
 EXTERN struct mbuff *mbuff_dequeue(struct mb_queue *queue);
 EXTERN void mbuff_insert (struct mb_queue *queue, struct mbuff *mb);
 EXTERN void mbuffmove (struct mb_queue *dst, struct mb_queue *src);

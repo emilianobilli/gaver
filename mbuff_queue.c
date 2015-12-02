@@ -33,6 +33,22 @@ void init_msg_queue(struct msg_queue *q)
     q->size = 0;
 }
 
+
+void mbuff_push (struct mb_queue *queue, struct mbuff *mb)
+{
+    mb->m_next = NULL;
+
+    if (queue->head == NULL && queue->tail == NULL) {
+	queue->head = mb;
+	queue->tail = mb;
+    }
+    else {
+	mb->m_next  = queue->head;
+	queue->head = mb;
+    }
+    queue->size++;
+}
+
 void mbuff_enqueue (struct mb_queue *queue, struct mbuff *mb)
 {
     mb->m_next = NULL;
