@@ -55,6 +55,45 @@ PRIVATE ssize_t sendall (int sd, void *buff, size_t len);
  *======================================================================================*/
 PRIVATE int send_status(int sd, int status, char *reason);
 
+/*======================================================================================*
+ * prepare_txmb()									*
+ *======================================================================================*/
+PRIVATE struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type, int discard);
+
+
+/*======================================================================================*
+ * prepare_syn()									*
+ *======================================================================================*/
+struct msg *prepare_syn (struct sock *sk)
+{
+    struct mbuff *mb;
+    mb = alloc_mbuff_locking();
+
+    return prepare_txmsg(sk,mb,0,0);
+}
+
+
+/*======================================================================================*
+ * prepare_connect()									*
+ *======================================================================================*/
+struct msg *prepare_connect (struct sock *sk)
+{
+    struct mbuff *mb;
+    mb = alloc_mbuff_locking();
+
+    return prepare_txmsg(sk,mb,0,0);
+}
+
+/*======================================================================================*
+ * prepare_accept()									*
+ *======================================================================================*/
+struct msg *prepare_accept (struct sock *sk)
+{
+    struct mbuff *mb;
+    mb = alloc_mbuff_locking();
+
+    return prepare_txmsg(sk,mb,0,0);
+}
 
 
 /*======================================================================================*
@@ -65,7 +104,6 @@ struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type, int
     struct msg *mptr;
 
     mptr = alloc_msg_locking();
-
     if (mptr) {
     
 	mptr->msg_type = MSG_MBUFF_CARRIER;
@@ -84,9 +122,9 @@ struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type, int
          */
 	mb->m_hdr.src_port		= sk->so_local_gvport; 				
         mb->m_hdr.dst_port		= sk->so_host_gvport;
-        mb->m_hdr.payload_len	= mb->m_datalen;
+        mb->m_hdr.payload_len		= mb->m_datalen;
         mb->m_hdr.version		= GAVER_PROTOCOL_VERSION;
-        mb->m_hdr.type		= type;
+        mb->m_hdr.type			= type;
 
 	if (type)	/* Data Type is 0x00 */ 
 	    mb->m_hdr.seq	= sk->so_cseq_out++;
@@ -94,8 +132,6 @@ struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type, int
 	    mb->m_hdr.seq	= sk->so_dseq_out++;
     
 	mb->m_hdrlen = sizeof(struct gvhdr);
-
-	
     }
     return mptr;
 }
@@ -273,7 +309,7 @@ void do_collect_mbuff_from_sk (struct sock *sk, struct msg_queue *tx, struct msg
     mbp  = NULL;
 
     if (syn) {
-	/* mptr  = prepare_syn(sk); */
+	mptr  = prepare_syn(sk);
 	if (mptr) {
 	    msg_enqueue(txctrl, mptr);
 	    sk->so_resyn = sk->so_resyn - one;	/* Update Syn Time */
