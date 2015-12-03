@@ -33,14 +33,9 @@ EXTERN struct sock *new_sk( int sd );
 EXTERN void do_update_tokens (struct sockqueue *sk, u_int64_t times);
 
 /*======================================================================================*
- * mbtomsg_carrier()									*
- *======================================================================================*/
-EXTERN struct msg *mbtomsg_carrier (struct mbuff *mb, int discard);
-
-/*======================================================================================*
  * prepare_txmb()									*
  *======================================================================================*/
-EXTERN struct mbuff *prepare_txmb (struct sock *sk, struct mbuff *mb, u_int8_t type);
+EXTERN struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type);
 
 /*======================================================================================*
  * do_collect_mbuff_to_transmit()							*

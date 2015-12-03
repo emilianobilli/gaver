@@ -30,7 +30,7 @@
  *======================================================================================*/
 void dump_heap(FILE *file)
 {
-    fprintf(file, "mbuff: %ld, msg: %ld\n", heap_mbuff_size(),heap_msg_size());
+    fprintf(file, "HEAP( mbuff: %ld, msg: %ld )\n", heap_mbuff_size(),heap_msg_size());
 }
 
 /*======================================================================================*

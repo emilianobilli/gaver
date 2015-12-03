@@ -34,7 +34,6 @@ struct mbuff {
     struct sockaddr_in 	m_outside_addr;
     struct gvhdr	m_hdr;
     int 		m_need_ts;		/* Need Timestamp in outgoing  */
-    int			m_ready_to_dispatch;	/* If the mbuff is filled      */
     off_t		m_tsoff;		/* Timestamp offset */
     u_int64_t		m_input_ts[2];		/* Input TS         */
     size_t		m_hdrlen;

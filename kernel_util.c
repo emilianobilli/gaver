@@ -60,51 +60,42 @@ PRIVATE int send_status(int sd, int status, char *reason);
 /*======================================================================================*
  * prepare_txmb()									*
  *======================================================================================*/
-struct mbuff *prepare_txmb (struct sock *sk, struct mbuff *mb, u_int8_t type)
-{
-    /*
-     *	Fill the outside Addr
-     */
-    mb->m_outside_addr.sin_family 	= AF_INET;
-    mb->m_outside_addr.sin_port		= sk->so_host_port;
-    mb->m_outside_addr.sin_addr.s_addr	= sk->so_host_addr.s_addr; 
-
-    /*
-     * Fill Gaver Header
-     */
-    mb->m_hdr.src_port		= sk->so_local_gvport; 				
-    mb->m_hdr.dst_port		= sk->so_host_gvport;
-    mb->m_hdr.payload_len	= mb->m_datalen;
-    mb->m_hdr.version		= GAVER_PROTOCOL_VERSION;
-    mb->m_hdr.type		= type;
-
-    if (type)	/* Data Type is 0x00 */ 
-	mb->m_hdr.seq	= sk->so_cseq_out++;
-    else
-	mb->m_hdr.seq	= sk->so_dseq_out++;
-    
-    mb->m_hdrlen = sizeof(struct gvhdr);
-
-    mb->m_ready_to_dispatch = MBUFF_READY;
-
-    return mb;
-}
-
-/*======================================================================================*
- * mbtomsg_carrier()									*
- *======================================================================================*/
-struct msg *mbtomsg_carrier (struct mbuff *mb, int discard)
+struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type, int discard)
 {
     struct msg *mptr;
 
-    if (!mb)
-	return NULL;
-
     mptr = alloc_msg_locking();
+
     if (mptr) {
+    
 	mptr->msg_type = MSG_MBUFF_CARRIER;
 	mptr->discard  = discard;
 	mptr->mb.mbp   = mb;
+
+	/*
+         *	Fill the outside Addr
+	 */
+	mb->m_outside_addr.sin_family 	=	 AF_INET;
+        mb->m_outside_addr.sin_port		= sk->so_host_port;
+        mb->m_outside_addr.sin_addr.s_addr	= sk->so_host_addr.s_addr; 
+
+	/*
+	 * Fill Gaver Header
+         */
+	mb->m_hdr.src_port		= sk->so_local_gvport; 				
+        mb->m_hdr.dst_port		= sk->so_host_gvport;
+        mb->m_hdr.payload_len	= mb->m_datalen;
+        mb->m_hdr.version		= GAVER_PROTOCOL_VERSION;
+        mb->m_hdr.type		= type;
+
+	if (type)	/* Data Type is 0x00 */ 
+	    mb->m_hdr.seq	= sk->so_cseq_out++;
+	else
+	    mb->m_hdr.seq	= sk->so_dseq_out++;
+    
+	mb->m_hdrlen = sizeof(struct gvhdr);
+
+	
     }
     return mptr;
 }
@@ -276,44 +267,36 @@ void do_collect_mbuff_from_sk (struct sock *sk, struct msg_queue *tx, struct msg
     double one = 1.0;
     int    avtok = (int) floor(sk->so_avtok);	/* Solamente la parte entera */
     int    syn   = (int) floor(sk->so_resyn);    
+    int    end   = 0;
 
     mptr = NULL;
     mbp  = NULL;
 
     if (syn) {
-	/* mbp  = prepare_syn(sk); */
-	if (mbp) {
-	    mptr = mbtomsg_carrier(mbp,DISCARD_FALSE);
-	    if (mptr) {
-		msg_enqueue(txctrl, mptr);
-		sk->so_resyn = sk->so_resyn - one;	/* Update Syn Time */
-		mptr = NULL;
-		mbp  = NULL;
-	    }
-	    else {
-		/* Fix ctrl_seq number */
-		sk->so_cseq_out--;
-		free_mbuff_locking(mbp);
-	    }
+	/* mptr  = prepare_syn(sk); */
+	if (mptr) {
+	    msg_enqueue(txctrl, mptr);
+	    sk->so_resyn = sk->so_resyn - one;	/* Update Syn Time */
+	    mptr = NULL;
+	    mbp  = NULL;
 	}
     }
-    while (avtok > 0) {
+    while (avtok > 0 && !end) {
 	mbp = mbuff_dequeue(&(sk->so_wmemq));
-	if (!mbp)
-	    break;					/* Nothing to send		*/
-
-	if (mbp->m_ready_to_dispatch != MBUFF_READY)
-	    mbp  = prepare_txmb(sk,mbp,DATA);		/* Fill all fields only         */
-
-	mptr = mbtomsg_carrier(mbp,DISCARD_FALSE);	/* Add mbuff to msg carrier     */
-	if (!mptr) {
-	    mbuff_push(&(sk->so_wmemq), mbp);		/* Push In write Queue again    */
-	    break;	
+	if (mbp) {
+	    mptr = prepare_txmsg(sk,mbp,DATA, DISCARD_FALSE);		/* Fill all fields only         */
+	    if (mptr) {
+		msg_enqueue(tx, mptr);				/* Finaly enqueue to transmit   */
+		sk->so_avtok = sk->so_avtok - one;		/* Update Sock available tokens */
+		avtok--;
+	    }
+	    else {
+		mbuff_push(&(sk->so_wmemq), mbp);		/* Push In write Queue again    */
+	        end = 1;
+	    }
 	}
-	msg_enqueue(tx, mptr);				/* Finaly enqueue to transmit   */
-	sk->so_avtok = sk->so_avtok - one;		/* Update Sock available tokens */
-
-	avtok--;				
+	else
+	    end = 1;
     }
     return;
 }
