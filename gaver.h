@@ -18,6 +18,7 @@
 #ifndef _GAVER_H
 #define _GAVER_H
 
+#include <stddef.h>
 #include <sys/types.h>
 
 #define GAVER_PROTOCOL_VERSION 1
@@ -42,17 +43,23 @@ struct gvhdr {
 #define CONNECT		0x08
 #define FINISH		0x10
 #define ACCEPT		0x20
-#define WAIT_REPLY	0x40
-#define REPLY		0x80
+#define CTRL_ACK	0x40
+
+
 
 #define SYN_ACK       (SYN | ACK)
 #define SYN_ACK_NACK  (SYN | ACK | NACK)
 
 
-#define SPEED_BIT	0x00
-#define SPEED_KBIT	0x01
-#define SPEED_MBIT	0x02
-#define SPEED_GBIT	0x03
+struct gvctrl_ack {
+    u_int64_t ctrl_seq_ack;
+    u_int64_t peer_ts_sec;
+    u_int64_t peer_ts_nsec;
+    u_int64_t rx_ts_sec;
+    u_int64_t rx_ts_nsec;
+    u_int64_t tx_ts_sec;
+    u_int64_t tx_ts_nsec;
+};
 
 /*
  * GaVer Syn Payload
@@ -60,14 +67,13 @@ struct gvhdr {
 struct gvsyn {
     u_int64_t ts_sec;
     u_int64_t ts_nsec;
+    u_int64_t current_speed;
     u_int32_t recv_window;
-    u_int16_t current_speed;
-    u_int16_t reserved;
+    u_int32_t reserved;
     u_int64_t seq_ack;
+    u_int64_t tx_ts_sec;
+    u_int64_t tx_ts_nsec;
 };
-
-#define GET_SPEEDUNIT(x) ( ( (x) & 0xC000 ) >> 14 )
-#define GET_SPEEDVAL(x)  ( (x) & 0x3FFF )
 
 
 #define SPEED_FAIR	0x00
@@ -77,35 +83,35 @@ struct gvsyn {
 /*
  * GaVer Connect Payload
  */
+
+
 struct gvconnect {
-    u_int16_t upload_speed;
-    u_int16_t download_speed;
+    u_int64_t start_data_seq;
+    u_int64_t speed;
     u_int32_t recv_window;
-    u_int64_t data_seq;
     u_int16_t mtu;
     u_int8_t  speed_type;
-    u_int8_t  cnt_number;
-    u_int32_t reserved;
-    u_int64_t ts_sec;
-    u_int64_t ts_nsec;
+    u_int8_t  attempt;
+    u_int64_t tx_ts_sec;
+    u_int64_t tx_ts_nsec;
 };
-
+#define CONNECT_TS offsetof(struct gvconnect,tx_ts_sec)
 /*
  * GaVer Accept Payload
  */
 struct gvaccept {
-    u_int16_t upload_speed;
-    u_int16_t download_speed;
+    u_int64_t start_data_seq;
+    u_int64_t speed;
     u_int32_t recv_window;
-    u_int64_t data_seq;
     u_int16_t mtu;
     u_int8_t  speed_type;
-    u_int8_t  cnt_number;
-    u_int32_t reserved;
-    u_int64_t host_ts_sec;
-    u_int64_t host_ts_nsec;
-    u_int64_t ts_sec;
-    u_int64_t ts_nsec;
+    u_int8_t  attempt;
+    u_int64_t peer_ts_sec;
+    u_int64_t peer_ts_nsec;
+    u_int64_t rx_ts_sec;
+    u_int64_t rx_ts_nsec;
+    u_int64_t tx_ts_sec;
+    u_int64_t tx_ts_nsec;
 };
 
 /*

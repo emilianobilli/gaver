@@ -78,10 +78,31 @@ struct msg *prepare_syn (struct sock *sk)
  *======================================================================================*/
 struct msg *prepare_connect (struct sock *sk)
 {
-    struct mbuff *mb;
+    struct msg	     *msg;
+    struct gvconnect *cnt;
+    struct mbuff     *mb;
     mb = alloc_mbuff_locking();
 
-    return prepare_txmsg(sk,mb,0,0);
+    if (mb) {
+	mb->m_datalen = sizeof(struct gvconnect);
+	mb->m_need_ts = DO_TS;
+	mb->m_tsoff   = CONNECT_TS;
+
+	/* OJO!!!! Con el network byte order */
+
+	cnt = (struct gvconnect *) mb->m_payload;
+    	cnt->start_data_seq	= sk->so_dseq_out;
+	cnt->speed		= sk->so_speed;
+	cnt->recv_window	= 0;	/* Ojo, es necesario cambiar el recv_window */
+	cnt->mtu		= sk->so_mtu;
+	cnt->speed_type		= SPEED_FAIR;
+	cnt->attempt		= 0;
+    
+	msg = prepare_txmsg(sk,mb,CONNECT,DISCARD_FALSE);
+	if (!msg)
+	    free_mbuff_locking(mb);
+    }
+    return msg;
 }
 
 /*======================================================================================*
@@ -126,6 +147,7 @@ struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type, int
         mb->m_hdr.version		= GAVER_PROTOCOL_VERSION;
         mb->m_hdr.type			= type;
 
+	mb->m_next = NULL;
 	if (type)	/* Data Type is 0x00 */ 
 	    mb->m_hdr.seq	= sk->so_cseq_out++;
 	else

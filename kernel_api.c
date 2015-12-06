@@ -20,6 +20,9 @@
 #include <string.h>
 #include "common.h"
 #include "mbuff.h"
+#include "timers.h"
+#include "mbuff_queue.h"
+#include "kernel_util.h"
 #include "glo.h"
 #include "apitypes.h"
 #include "gaver.h"
@@ -28,8 +31,10 @@
 
 int do_socket_request(struct sock *sk, struct msg_queue *txq)
 {
-    struct gv_req_api msg;	/* Api Request  */
-    struct gv_rep_api rep;	/* Api Response */
+    struct msg *txmsg;		/* Tx Message         */
+    struct timespec ts;		/* Time to expiration */
+    struct gv_req_api msg;	/* Api Request        */
+    struct gv_rep_api rep;	/* Api Response       */
     struct sock *skptr;		/* Pointer to Sock Struct */
 
     memset(&msg, 0,sizeof(GVMSGAPISZ) );
@@ -67,16 +72,36 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 		 * solamtente 255 sockets.
 		 */
 		bind_free_gvport(sk);
-	
+
+	    sk->so_host_addr.s_addr	= msg.un.connect.addr;
+	    sk->so_host_port		= msg.un.connect.port;
+	    sk->so_host_gvport		= msg.un.connect.vport;
+
+	    txmsg = prepare_connect(sk);
 	    /*
-	     * Generar Mensaje y cambiar status
-             *
-	     */
+	     * prepare_connect(): Prepara el mensaje de conexion 
+	     * con el otro host. Si la llamana a este procedimiento
+	     * no falla:
+	     *    1- Se encola en la cola de control.
+	     *    2- Se establece el estado: GV_CONNECT_SENT
+	     *    3- Se registra un temporizador para enviar nuevamente
+	     *       el msenaje
+             */
+	    if (txmsg) {
+		
+		msg_enqueue(txq,txmsg);	 /* En cola para transmitir */
 
-	    /* sk->so_state = GV_CONNECT_SENT; */
+		sk->so_state = GV_CONNECT_SENT; 
 
-	    /* Assign a port is not have 
-	       Error is in active open */
+		ts.tv_sec  = START_TIMEOUT_SEC;
+		ts.tv_nsec = START_TIMEOUT_NSEC;
+
+		/* OJO!!!! No estoy combrobando retorno */
+		register_et(sk,txmsg->mb.mbp, &ts);
+	    }
+	    else {
+		/* OJO!!!! Que hago aca ???? */
+	    }
 
 	break;
 

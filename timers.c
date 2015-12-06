@@ -122,7 +122,7 @@ int  register_et (struct sock *sk, struct mbuff *mb, struct timespec *when)
     double dnow;
     double dwhen;
 
-    et = calloc(sizeof(struct timespec),1);
+    et = calloc(1, sizeof(struct exptimer));
     if (et) {
 	et->et_sk    = sk;
 	et->et_mb    = mb;

@@ -17,9 +17,11 @@
 #include <stdio.h>
 #include <sys/epoll.h>
 #include <sys/types.h>
+#include <pthread.h>
 #include <math.h>
 #include <errno.h>
 #include <unistd.h>
+#include "output.h"
 #include "timers.h"
 #include "kernel_util.h"
 #include "heap.h"
@@ -168,6 +170,8 @@ void *kernel(void *arg)
     /*
      * Start all Threads
      */
+    pthread_create(&thread_table[NETOUT_LAYER_THREAD], NULL, output, NULL);
+	
 
     while(1) /* Kernel main loop */
     {
@@ -260,7 +264,7 @@ void *kernel(void *arg)
 		    if (KEVENT_SOCKET(pkev->events))
 		    {
 			/* Mensaje de api "kernel_api.c" */
-			if(do_socket_request(sk,NULL) == -1)
+			if(do_socket_request(sk,&tx_ctr_queue) == -1)
 			    do_close = 1;
 			else {
 			    /* Hacer Algo */
@@ -277,7 +281,6 @@ void *kernel(void *arg)
 		    }
 		}
 	    }
-
 	    do_collect_mbuff_to_transmit(&so_used, &tx_nor_queue, &tx_ctr_queue);
 
 
@@ -290,6 +293,8 @@ void *kernel(void *arg)
 	 *	- flush all queues
 	 */
 	}
+	if (tx_ctr_queue.size)
+	    itc_writeto(NETOUT_LAYER_THREAD, &tx_ctr_queue, PRIO_CTR_QUEUE);
 	/*
 	 * Flush all Output Queues
 	 */
