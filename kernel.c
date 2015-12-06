@@ -231,12 +231,12 @@ void *kernel(void *arg)
 		    goto panic;
 		}
 
-		if (ieinfo.src == NETOUT_LAYER_THREAD)
+		if (ieinfo.src == NETOUT_LAYER_THREAD) 
 		    /*
 		     * Net Out return a Package
 		     */
 		    itc_readfrom(NETOUT_LAYER_THREAD, &tx_input_queue, 0);
-
+		
 
 		if (ieinfo.src == NETINP_LAYER_THREAD)
 		    /*
@@ -283,7 +283,6 @@ void *kernel(void *arg)
 	    }
 	    do_collect_mbuff_to_transmit(&so_used, &tx_nor_queue, &tx_ctr_queue);
 
-
 	/*
          * Finally: 
 	 *	- Process All Input Queues
@@ -293,10 +292,10 @@ void *kernel(void *arg)
 	 *	- flush all queues
 	 */
 	}
-	if (tx_ctr_queue.size)
+	 if (tx_ctr_queue.size)
 	    itc_writeto(NETOUT_LAYER_THREAD, &tx_ctr_queue, PRIO_CTR_QUEUE);
-	/*
-	 * Flush all Output Queues
+
+	/* Flush all Output Queues
 	 */
     }
 panic:

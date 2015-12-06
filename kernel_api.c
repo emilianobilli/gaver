@@ -36,14 +36,20 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
     struct gv_req_api msg;	/* Api Request        */
     struct gv_rep_api rep;	/* Api Response       */
     struct sock *skptr;		/* Pointer to Sock Struct */
+    ssize_t rlen;
 
     memset(&msg, 0,sizeof(GVMSGAPISZ) );
     memset(&rep, 0,sizeof(GVMSGAPISZ) );
+
     
-    if (read_msg(sk->so_loctrl, &msg, GVMSGAPISZ) == -1)
+    
+    if ((rlen = read_msg(sk->so_loctrl, &msg, GVMSGAPISZ)) == -1)
 	return -1;
 
-    switch (msg.msg_type)
+    if (rlen == 0)
+	return -1;	/* Revisar si es conveniente retornar -1 en esta situacion */
+
+    switch (msg.msg_type) 
     {
 	case MSG_CONNECT:
 	    if (sk->so_state != GV_CLOSE || sk->so_loctrl_state != CTRL_NONE)
@@ -91,7 +97,7 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 		
 		msg_enqueue(txq,txmsg);	 /* En cola para transmitir */
 
-		sk->so_state = GV_CONNECT_SENT; 
+		sk->so_state = GV_CONNECT_SENT;
 
 		ts.tv_sec  = START_TIMEOUT_SEC;
 		ts.tv_nsec = START_TIMEOUT_NSEC;

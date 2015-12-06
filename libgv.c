@@ -99,6 +99,7 @@ int gv_bind_api_msg (int sd, u_int32_t *addr, u_int16_t *port, u_int16_t *vport)
 
     memset(&msg, 0, sizeof(struct gv_req_api));
 
+    
     msg.msg_type = MSG_BIND;
     msg.un.bind.addr  = *addr;
     msg.un.bind.port  = *port;

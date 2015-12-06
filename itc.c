@@ -305,7 +305,7 @@ int itc_wr_msgqueue ( int other, struct msg_queue *q, int prio, int opt )
 		    wropt.msg_mutex = &(netout_kernel_queue.mutex);
 		    wropt.signal = SE_NETOUTTOKER;
 		    
-		    return itc_readmsg(&wropt);
+		    return itc_writemsg(&wropt);
 		}
 	    }
 	    break;
