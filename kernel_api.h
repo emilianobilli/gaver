@@ -23,5 +23,5 @@
 #include "types.h"
 
 EXTERN int do_socket_request(struct sock *sk, struct msg_queue *txq);
-
+EXTERN int do_socket_error_response(struct sock *sk, int reason);
 #endif

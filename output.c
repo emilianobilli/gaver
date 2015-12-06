@@ -285,11 +285,6 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 			    &(mbptr->m_hdr),
 			    mbptr->m_hdrlen,
 			    &(mbptr->m_outside_addr));
-	    if (ret == -1) 
-	    {
-		output_len = ret;
-		break;
-	    }
 	    if (ret == mbptr->m_datalen + mbptr->m_hdrlen) {
 		/*
 		 * Esta comprobacion es absurda porque en UDP
@@ -302,12 +297,21 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 		    free_mbuff_locking(mbptr);
 		    free_msg_locking(msgptr);
 		}
-		else
+		else {
 		    /*
 		     * Si el mensaje no debe descartarse
 		     * hay que enviarselo nuevamente al Kernel
 		     */
+		    msgptr->sent_result = SENT_SUCCESS;
 		    msg_enqueue(retq, msgptr);
+		}
+	    }
+	    else if (ret == 0)
+		msg_enqueue(queue, msgptr);
+	    else if (ret == -1) {
+		msg_enqueue(retq, msgptr);
+		msgptr->sent_result = SENT_ERROR;
+		msgptr->sent_error  = EHOSTUNREACH;
 	    }
 	}
 	else 
@@ -377,6 +381,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 		    mbptr  = msgptr->mb.mbp;
 		    if (mmsg[i].msg_len == mbptr->m_hdrlen + mbptr->m_datalen) 
 		    {
+			msgptr->sent_result = SENT_SUCCESS;
 			/*
 			 * Si los datos enviados concuerdan
 			 *  	- Se incrementa output_len
@@ -394,6 +399,11 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 		    }
 		    else if (mmsg[i].msg_len == 0)
 			msg_enqueue(queue, msgptr);
+		    else if (mmsg[i].msg_len == -1) {
+			msgptr->sent_result = SENT_ERROR;
+			msgptr->sent_error  = EHOSTUNREACH;
+			msg_enqueue(retq, msgptr);
+		    }
 		}	
 	    }
 	    else

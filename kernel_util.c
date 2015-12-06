@@ -21,6 +21,7 @@
 #include "defs.h"
 #include "heap.h"
 #include "util.h"
+#include "kernel_api.h"
 #include "mbuff_queue.h"
 #include <errno.h>
 #include <stdio.h>
@@ -60,6 +61,37 @@ PRIVATE int send_status(int sd, int status, char *reason);
  *======================================================================================*/
 PRIVATE struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type, int discard);
 
+
+/*======================================================================================*
+ * get_destination_port()								*
+ *======================================================================================*/
+PRIVATE u_int16_t get_destination_port(struct mbuff *m);
+
+/*======================================================================================*
+ * get_destination_port_from_msg()							*
+ *======================================================================================*/
+PRIVATE u_int16_t get_source_port_from_msg(struct msg *m);
+
+/*======================================================================================*
+ * get_source_port()									*
+ *======================================================================================*/
+PRIVATE u_int16_t get_source_port(struct mbuff *m);
+
+/*======================================================================================*
+ * get_type_from_msg()									*
+ *======================================================================================*/
+PRIVATE u_int8_t get_type_from_msg(struct msg *m);
+
+/*======================================================================================*
+ * get_type()										*
+ *======================================================================================*/
+PRIVATE u_int8_t get_type(struct mbuff *m);
+
+
+/*======================================================================================*
+ * do_distribute_sent_msg()								*
+ *======================================================================================*/
+PRIVATE void do_distribute_sent_msg (struct sock *sk, struct msg *m);
 
 /*======================================================================================*
  * prepare_syn()									*
@@ -159,6 +191,108 @@ struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type, int
 }
 
 /*======================================================================================*
+ * get_destination_port()								*
+ *======================================================================================*/
+u_int16_t get_destination_port(struct mbuff *m)
+{
+    return m->m_hdr.dst_port;
+}
+/*======================================================================================*
+ * get_destination_port_from_msg()							*
+ *======================================================================================*/
+u_int16_t get_source_port_from_msg(struct msg *m)
+{
+    return get_source_port(m->mb.mbp);
+}
+/*======================================================================================*
+ * get_source_port()									*
+ *======================================================================================*/
+u_int16_t get_source_port(struct mbuff *m)
+{
+    return m->m_hdr.src_port;
+}
+/*======================================================================================*
+ * get_type_from_msg()									*
+ *======================================================================================*/
+u_int8_t get_type_from_msg(struct msg *m)
+{
+    return get_type(m->mb.mbp);
+}
+/*======================================================================================*
+ * get_type()										*
+ *======================================================================================*/
+u_int8_t get_type(struct mbuff *m)
+{
+    return m->m_hdr.type;
+}
+
+/*======================================================================================*
+ * do_distribute_sent_msg()								*
+ *======================================================================================*/
+void do_distribute_sent_msg (struct sock *sk, struct msg *m)
+{
+    if (get_type_from_msg(m))
+        /* Is Control */
+        msg_enqueue(&(sk->so_ctrl_sent),m);
+    else 
+        /* Is Data */
+        msg_enqueue(&(sk->so_data_sent),m);
+
+    return;
+}
+
+/*======================================================================================*
+ * do_process_sent_msg()								*
+ *======================================================================================*/
+void do_process_sent_msg (struct msg_queue *sentq)
+{
+    struct msg *mptr;
+    struct sock *sk;
+
+    while ( (mptr = msg_dequeue(sentq)) != NULL ) 
+    {
+	sk = sk_gvport[get_source_port_from_msg(mptr)];
+	
+	if (sk) {
+	    if (mptr->sent_result == SENT_ERROR) {
+		do_socket_error_response(sk, mptr->sent_error);
+		free_mbuff_locking(mptr->mb.mbp);
+		free_msg_locking(mptr);
+	    }
+	    else 
+		do_distribute_sent_msg(sk,mptr);
+	}    
+    }
+}
+
+void do_process_expired (struct msg_queue *ctrq)
+{
+    struct exptimer *et;
+    struct msg *m;
+
+    /*
+     * Falta establecer que tipo de timers voy a tener y tambien hay que tener 
+     * en cuenta lo que puede suceder de acuerdo a las distintas circunstancias
+     */
+    while ( (et = get_expired(NULL)) != NULL )
+    {
+	m = msg_search(&(et->et_sk->so_ctrl_sent), et->et_mb);
+	if (m) {
+	    if (et->attempts < MAX_ATTEMPTS)
+	    {
+		refresh_et(et, /* Establecer Cuando */);
+		msg_enqueue(ctrq, m);
+	    }
+	    else {
+		do_socket_error_response(sk, /* Que carajo pongo aca ??? */);
+		free_et(et);
+	    }
+	}
+    }
+}
+
+
+/*======================================================================================*
  * new_sk()										*
  *======================================================================================*/
 struct sock *new_sk( int sd )
@@ -205,7 +339,9 @@ struct sock *new_sk( int sd )
 	    /* Global */
 	    free_bps 		-= speed;			/* Update available speed */
 
-	    init_mbuff_queue(&(nsk->so_sentq));
+	    init_msg_queue(&(nsk->so_data_sent));
+	    init_msg_queue(&(nsk->so_ctrl_sent));
+
 	    init_mbuff_queue(&(nsk->so_wmemq));
 	    init_mbuff_queue(&(nsk->so_rmemq));
 
@@ -252,7 +388,7 @@ void do_update_tokens_sock (struct sock *sk, u_int64_t times)
 
     /* At this point the value of so_available_tokens is in the set [0;1) */
     hw = sk->so_host_win;		/* Host Window */
-    sq = sk->so_sentq.size;		/* Sent Queue  */
+    sq = sk->so_data_sent.size;		/* Sent Queue  */
     if ( hw > sq )
         sk->so_avtok += update_token(sk->so_avtok,
 				     sk->so_retok,

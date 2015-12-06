@@ -54,6 +54,9 @@ EXTERN struct msg *prepare_connect (struct sock *sk);
  *======================================================================================*/
 EXTERN struct msg *prepare_accept (struct sock *sk);
 
-
+/*======================================================================================*
+ * do_process_sent_msg()								*
+ *======================================================================================*/
+EXTERN void do_process_sent_msg (struct msg_queue *sentq);
 
 #endif

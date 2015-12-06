@@ -152,6 +152,27 @@ struct msg *msg_dequeue(struct msg_queue *queue)
     }
     return msg;
 }
+
+struct msg *msg_search(struct msg_queue *queue, struct mbuff *mb)
+{
+    struct msg_queue qtmp;
+    struct msg *m, *ret;
+
+    ret = NULL;
+
+    init_msg_queue(&qtmp);
+
+    while ( (m=msg_dequeue(queue)) != NULL )
+    {
+	if (m->mb.mbp == mb)
+	    ret = m;
+	else
+	    msg_enqueue(&qtmp, m);
+    }
+    msgmove(queue, &qtmp);
+    return ret;
+}
+
 void msgmove (struct msg_queue *dst, struct msg_queue *src)
 {
     if (src->head == NULL && src->tail == NULL)

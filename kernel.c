@@ -21,6 +21,7 @@
 #include <math.h>
 #include <errno.h>
 #include <unistd.h>
+#include "timers.h"
 #include "output.h"
 #include "input.h"
 #include "timers.h"
@@ -265,8 +266,9 @@ void *kernel(void *arg)
 		    if (KEVENT_SOCKET(pkev->events))
 		    {
 			/* Mensaje de api "kernel_api.c" */
-			if(do_socket_request(sk,&tx_ctr_queue) == -1)
+			if(do_socket_request(sk,&tx_ctr_queue) == -1) {
 			    do_close = 1;
+			}
 			else {
 			    /* Hacer Algo */
 			}
@@ -282,7 +284,7 @@ void *kernel(void *arg)
 		    }
 		}
 	    }
-	    do_collect_mbuff_to_transmit(&so_used, &tx_nor_queue, &tx_ctr_queue);
+	} /* Check Events */
 
 	/*
          * Finally: 
@@ -292,12 +294,22 @@ void *kernel(void *arg)
 	 *	- Check if a timer expire
 	 *	- flush all queues
 	 */
-	}
+    
+	do_process_sent_msg(&tx_input_queue);
+
+	while ( (et = get_expired(NULL)) != NULL )
+	    
+
+	do_collect_mbuff_to_transmit(&so_used, &tx_nor_queue, &tx_ctr_queue);
+
+	/* Flush all Output Queues */
 	if (tx_ctr_queue.size)
 	    itc_writeto(NETOUT_LAYER_THREAD, &tx_ctr_queue, PRIO_CTR_QUEUE);
-
-	/* Flush all Output Queues
-	 */
+	if (tx_ret_queue.size)
+	    itc_writeto(NETOUT_LAYER_THREAD, &tx_ret_queue, PRIO_RET_QUEUE);
+	if (tx_nor_queue.size)
+	    itc_writeto(NETOUT_LAYER_THREAD, &tx_nor_queue, PRIO_NOR_QUEUE);
+	
     }
 panic:
     PANIC(errno,"kernel",where);

@@ -61,6 +61,9 @@ struct mb_queue {
 #define IO_RET_SUCCESS  0
 #define IO_RET_FAILURE  1
 
+#define SENT_SUCCESS    0
+#define SENT_ERROR      1
+
 struct msg {
     int    msg_type;			/* Request, Reply or Carrier */
     struct {
@@ -72,6 +75,8 @@ struct msg {
 	size_t io_rep_len;
 	size_t io_chunk_size;
     } io;
+    int    sent_result;			/* Sent result at output */
+    int    sent_error;			/* Sent error response   */
     int    discard;			/* If the mbuff or queue needs to be discard */
     union {
 	struct mbuff    *mbp;		/* Pointer to a simple mbuff */

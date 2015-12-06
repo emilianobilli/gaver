@@ -18,6 +18,7 @@
 
 #include <errno.h>
 #include <string.h>
+#include <unistd.h>
 #include "common.h"
 #include "mbuff.h"
 #include "timers.h"
@@ -28,6 +29,25 @@
 #include "gaver.h"
 #include "sock.h"
 
+int do_socket_error_response (struct sock *sk, int reason)
+{
+    struct gv_rep_api rep;
+
+    memset(&rep, 0, sizeof(GVMSGAPISZ) );
+
+    if (sk->so_state == GV_CONNECT_SENT) {
+	rep.status = COMMAND_FAIL;
+        rep.un.fail.error_code = (u_int16_t) reason;
+
+	sk->so_state        = GV_CLOSE;
+	sk->so_loctrl_state = CTRL_NONE;
+
+	write_msg(sk->so_loctrl,&rep,GVMSGAPISZ);
+    
+	close(sk->so_loctrl);
+    }
+    return 0;
+}
 
 int do_socket_request(struct sock *sk, struct msg_queue *txq)
 {

@@ -84,7 +84,10 @@ struct sock {
 
     struct mb_queue so_wmemq;
     struct mb_queue so_rmemq;
-    struct mb_queue so_sentq;		/* In Flyght 		*/
+
+
+    struct msg_queue so_data_sent;		/* Mbuff data sent with carrier */
+    struct msg_queue so_ctrl_sent;		/* Mbuff ctrl sent with carrier */
 
     /*
     struct mb_queue roooq;	Reception Out Of Order 
