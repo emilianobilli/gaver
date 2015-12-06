@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include "output.h"
+#include "input.h"
 #include "timers.h"
 #include "kernel_util.h"
 #include "heap.h"
@@ -171,7 +172,7 @@ void *kernel(void *arg)
      * Start all Threads
      */
     pthread_create(&thread_table[NETOUT_LAYER_THREAD], NULL, output, NULL);
-	
+    pthread_create(&thread_table[NETINP_LAYER_THREAD], NULL, input, NULL);
 
     while(1) /* Kernel main loop */
     {
@@ -292,7 +293,7 @@ void *kernel(void *arg)
 	 *	- flush all queues
 	 */
 	}
-	 if (tx_ctr_queue.size)
+	if (tx_ctr_queue.size)
 	    itc_writeto(NETOUT_LAYER_THREAD, &tx_ctr_queue, PRIO_CTR_QUEUE);
 
 	/* Flush all Output Queues
