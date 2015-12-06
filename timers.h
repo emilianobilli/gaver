@@ -32,7 +32,7 @@ struct exptimer {
 };
 
 #ifndef _TIMERS_CODE
-EXTERN void remove_et (struct sock *sk, struct mbuff *mb);
+EXTERN void remove_et   (struct sock *sk, struct mbuff *mb);
 EXTERN int  register_et	(struct sock *sk, struct mbuff *mb, struct timespec *when);
 EXTERN int  refresh_et	(struct exptimer *et, struct timespec *when);
 EXTERN void free_et	(struct exptimer *et);

@@ -113,6 +113,27 @@ void et_enqueue (struct etqueue *q, struct exptimer *et)
 }
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * remove_et(): 									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+void remove_et (struct sock *sk, struct mbuff *mb)
+{
+    struct etqueue  tmp;
+    struct exptimer *et;
+    init_etq(&tmp);
+
+    while ( (et = et_dequeue(&etq)) ) {
+	if (et->et_sk == sk && et->et_mb == mb) {
+	    free(et);
+	}
+	else
+	    et_enqueue(&etq, et);
+    }
+    etq.size = tmp.size;
+    etq.head = tmp.head;
+    etq.tail = tmp.tail;
+}
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
  * register_et(): 									    *
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 int  register_et (struct sock *sk, struct mbuff *mb, struct timespec *when)
