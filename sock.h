@@ -60,6 +60,8 @@ struct sock {
 
 
     int		so_mtu;			/* Mtu for the socket	*/
+    int 	so_conn_attempts;	
+
     u_int64_t   so_speed;
 
     double      so_resyn;
@@ -80,7 +82,7 @@ struct sock {
     size_t rmem_size;			/* Read  buffer size    */
     
 
-    struct mbuff *so_cnt_req;		/* Connection Req	*/
+    struct mbuff *so_conn_req;		/* Connection Req	*/
 
     struct mb_queue so_wmemq;
     struct mb_queue so_rmemq;

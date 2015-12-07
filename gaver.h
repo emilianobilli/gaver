@@ -91,7 +91,7 @@ struct gvconnect {
     u_int32_t recv_window;
     u_int16_t mtu;
     u_int8_t  speed_type;
-    u_int8_t  attempt;
+    u_int8_t  _res;
     u_int64_t tx_ts_sec;
     u_int64_t tx_ts_nsec;
 };
@@ -105,7 +105,7 @@ struct gvaccept {
     u_int32_t recv_window;
     u_int16_t mtu;
     u_int8_t  speed_type;
-    u_int8_t  attempt;
+    u_int8_t  _res;
     u_int64_t peer_ts_sec;
     u_int64_t peer_ts_nsec;
     u_int64_t rx_ts_sec;

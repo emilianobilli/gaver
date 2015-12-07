@@ -25,8 +25,10 @@
 
 #define START_HEAP		100000	/* Start heap nodes */
 
-#define START_TIMEOUT_SEC	120	/* Measured in seconds */
+#define START_TIMEOUT_SEC	2	/* Measured in seconds */
 #define START_TIMEOUT_NSEC	0	
+
+#define MAX_CONN_ATTEMPTS	5
 
 #define START_DATASEQ		1000
 #define START_CTRLSEQ		2000

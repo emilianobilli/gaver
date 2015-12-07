@@ -295,7 +295,7 @@ void *kernel(void *arg)
 	 *	- flush all queues
 	 */
 	do_process_sent_msg(&tx_input_queue);
-
+	do_process_expired(&tx_ctr_queue);
 	do_collect_mbuff_to_transmit(&so_used, &tx_nor_queue, &tx_ctr_queue);
 
 	/* Flush all Output Queues */

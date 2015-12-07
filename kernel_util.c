@@ -21,6 +21,8 @@
 #include "defs.h"
 #include "heap.h"
 #include "util.h"
+#include "gaver.h"
+#include "timers.h"
 #include "kernel_api.h"
 #include "mbuff_queue.h"
 #include <errno.h>
@@ -61,6 +63,10 @@ PRIVATE int send_status(int sd, int status, char *reason);
  *======================================================================================*/
 PRIVATE struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type, int discard);
 
+/*======================================================================================*
+ * do_process_input()									*
+ *======================================================================================*/
+PRIVATE void do_process_input (struct sock *sk, struct mbuff *mbuff);
 
 /*======================================================================================*
  * get_destination_port()								*
@@ -128,7 +134,8 @@ struct msg *prepare_connect (struct sock *sk)
 	cnt->recv_window	= 0;	/* Ojo, es necesario cambiar el recv_window */
 	cnt->mtu		= sk->so_mtu;
 	cnt->speed_type		= SPEED_FAIR;
-	cnt->attempt		= 0;
+
+	sk->so_conn_attempts	= 1;
     
 	msg = prepare_txmsg(sk,mb,CONNECT,DISCARD_FALSE);
 	if (!msg)
@@ -198,7 +205,7 @@ u_int16_t get_destination_port(struct mbuff *m)
     return m->m_hdr.dst_port;
 }
 /*======================================================================================*
- * get_destination_port_from_msg()							*
+ * get_source_port_from_msg()							*
  *======================================================================================*/
 u_int16_t get_source_port_from_msg(struct msg *m)
 {
@@ -264,33 +271,140 @@ void do_process_sent_msg (struct msg_queue *sentq)
 	}    
     }
 }
-/*
+
+
+/*======================================================================================*
+ * do_process_input_bulk()								*
+ *======================================================================================*/
+void do_process_input_bulk (struct msg_queue *inputq)
+{
+    struct sock  *sk;
+    struct msg   *m;
+    struct mbuff *mb;
+    u_int16_t dst_port;
+
+    while ( (m = msg_dequeue(inputq)) != NULL )
+    {
+	mb = m->mb.mbp;
+	free_msg_locking(m);
+	dst_port = get_destination_port(mb);
+
+	sk = sk_gvport[dst_port];	/* Global Table */
+	if (sk) 
+	    do_process_input(sk,mb);
+	else	
+	    /* DROP */
+	    free_mbuff_locking(mb);
+    }
+    return;
+}
+
+/*======================================================================================*
+ * do_process_input()									*
+ *======================================================================================*/
+void do_process_input (struct sock *sk, struct mbuff *mbuff)
+{
+    u_int8_t msg_type;
+
+
+    msg_type = get_type(mbuff);
+
+    switch (sk->so_state)
+    {
+	case GV_ESTABLISHED:
+	    if (msg_type == CONNECT ||
+		msg_type == ACCEPT  )
+		goto drop;
+	    else {
+
+	    }
+	    break;
+	case GV_CONNECT_RCVD:
+	case GV_CONNECT_SENT:
+	    if (msg_type == ACCEPT)
+	    {
+
+	    }
+	    else
+		goto drop;
+	    break;
+	case GV_CLOSE:
+	    goto drop;
+	    break;
+	case GV_LISTEN:
+	    if (msg_type == CONNECT)
+	    {
+		sk->so_state 		= GV_CONNECT_RCVD;
+		sk->so_conn_req		= mbuff;
+	    }
+	    else
+		goto drop;
+	    break;
+	case GV_FINISH_SENT:
+	case GV_CLOSE_WAIT:
+	    break;
+
+	default:
+	    goto drop;
+	    break;
+    }
+    return;
+drop:
+    free_mbuff_locking(mbuff);
+    return;
+}
+
+
+
+/*======================================================================================*
+ * do_process_expired()									*
+ *======================================================================================*/
 void do_process_expired (struct msg_queue *ctrq)
 {
+    struct sock     *sk;
     struct exptimer *et;
-    struct msg *m;
-
+    struct msg      *m;
+    struct timespec  ts;
     /*
      * Falta establecer que tipo de timers voy a tener y tambien hay que tener 
      * en cuenta lo que puede suceder de acuerdo a las distintas circunstancias
-    
+     */
     while ( (et = get_expired(NULL)) != NULL )
     {
-	m = msg_search(&(et->et_sk->so_ctrl_sent), et->et_mb);
-	if (m) {
-	    if (et->attempts < MAX_ATTEMPTS)
+	
+	sk = et->et_sk;
+	
+	m = msg_search(&(sk->so_ctrl_sent), et->et_mb);
+	if (!m) {
+	    free_et(et);
+	    continue;
+	}
+
+	if (sk->so_state == GV_CONNECT_SENT) 
+	{
+	    if (get_type(et->et_mb) == CONNECT)  
 	    {
-		refresh_et(et);
-		msg_enqueue(ctrq, m);
+	    	if (sk->so_conn_attempts < MAX_CONN_ATTEMPTS)
+	        {
+		    sk->so_conn_attempts++;
+		    ts.tv_sec  = START_TIMEOUT_SEC; 
+		    ts.tv_nsec = START_TIMEOUT_NSEC;
+		    refresh_et(et, &ts);
+		    msg_enqueue(ctrq, m);
+		}
+		else {
+		    do_socket_error_response(sk, ETIMEDOUT);
+		    free_et(et);
+		}
 	    }
 	    else {
-		do_socket_error_response(sk);
+		do_socket_error_response(sk, EBADE);
 		free_et(et);
 	    }
 	}
     }
 }
-*/
+
 
 /*======================================================================================*
  * new_sk()										*
@@ -328,13 +442,15 @@ struct sock *new_sk( int sd )
 
 	    nsk->so_resyn	 = 0;
 	    nsk->so_avtok	 = 0;
+
+	    nsk->so_conn_attempts= 0;
 	    
     	    nsk->so_retok	 = getreftime(speed, mtu);	/* Cantidad de tokens a actualizar */
 
 	    nsk->so_mtu		 = mtu;				/* Global MTU */
 	    nsk->so_speed	 = speed;			/* Configured Speed */
 
-	    nsk->so_cnt_req	 = NULL;			/* Connection Request */
+	    nsk->so_conn_req	 = NULL;			/* Connection Request */
 	    
 	    /* Global */
 	    free_bps 		-= speed;			/* Update available speed */
