@@ -264,7 +264,7 @@ void do_process_sent_msg (struct msg_queue *sentq)
 	}    
     }
 }
-
+/*
 void do_process_expired (struct msg_queue *ctrq)
 {
     struct exptimer *et;
@@ -273,24 +273,24 @@ void do_process_expired (struct msg_queue *ctrq)
     /*
      * Falta establecer que tipo de timers voy a tener y tambien hay que tener 
      * en cuenta lo que puede suceder de acuerdo a las distintas circunstancias
-     */
+    
     while ( (et = get_expired(NULL)) != NULL )
     {
 	m = msg_search(&(et->et_sk->so_ctrl_sent), et->et_mb);
 	if (m) {
 	    if (et->attempts < MAX_ATTEMPTS)
 	    {
-		refresh_et(et, /* Establecer Cuando */);
+		refresh_et(et);
 		msg_enqueue(ctrq, m);
 	    }
 	    else {
-		do_socket_error_response(sk, /* Que carajo pongo aca ??? */);
+		do_socket_error_response(sk);
 		free_et(et);
 	    }
 	}
     }
 }
-
+*/
 
 /*======================================================================================*
  * new_sk()										*

@@ -20,6 +20,7 @@ OBJ:= -c -Wall -ggdb
 OBJ_LIB:= -c -Wall -fPIC
 LINK:= -lrt -lm -lpthread
 SHARED:= -shared 
+USER:=$(shell whoami)
 
 all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o gvd.o configk.o sock.o common.o kernel_api.o kernel.o timers.o dump.o kernel_util.o libgv.so
 	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o configk.o sock.o gvd.o common.o kernel_api.o kernel.o timers.o dump.o kernel_util.o -o gvd $(LINK)
@@ -94,8 +95,16 @@ main.o:
 
 
 install: all
-	-cp gvd /opt/gaver/bin
-	-cp ./script/config-parser.sh /opt/gaver/bin
+	-sudo mkdir /opt/gaver
+	-sudo chown $(USER) /opt/gaver
+	-mkdir /opt/gaver/bin
+	-mkdir /opt/gaver/etc
+	-mkdir /opt/gaver/dev
+	-mkdir /opt/gaver/run
+	cp gvd /opt/gaver/bin
+	cp ./script/config-parser.sh /opt/gaver/bin
+	cp ./script/gaverd.sh /opt/gaver/bin
+	cp ./script/gvd.ini /opt/gaver/etc
 	-sudo mkdir /usr/include/gaver/
 	sudo cp apitypes.h /usr/include/gaver/
 	sudo cp gv_err.h   /usr/include/gaver/
