@@ -12,9 +12,21 @@
 #
 # Load the module to parse the config file 
 #
+if [ ! -f /opt/gaver/bin/config-parser.sh ]
+then
+    echo "Config Parser Not Found, please check the instalation";
+    exit 0;
+fi
+
 source /opt/gaver/bin/config-parser.sh;
 
 CONFIG_FILE="/opt/gaver/etc/gvd.ini"
+
+if [ ! -f $CONFIG_FILE ]
+then
+    echo "Config File Not Found ($CONFIG_FILE)";
+    exit 0;
+fi
 
 config_parser $CONFIG_FILE;
 # Parse Config file
