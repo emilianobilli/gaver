@@ -99,6 +99,13 @@ PRIVATE u_int8_t get_type(struct mbuff *m);
  *======================================================================================*/
 PRIVATE void do_distribute_sent_msg (struct sock *sk, struct msg *m);
 
+
+/*======================================================================================*
+ * do_check_source()									*
+ *======================================================================================*/
+PRIVATE int do_check_source (struct sock *sk, struct mbuff *mbuff);
+
+
 /*======================================================================================*
  * prepare_syn()									*
  *======================================================================================*/
@@ -131,7 +138,7 @@ struct msg *prepare_connect (struct sock *sk)
 	cnt = (struct gvconnect *) mb->m_payload;
     	cnt->start_data_seq	= sk->so_dseq_out;
 	cnt->speed		= sk->so_speed;
-	cnt->recv_window	= 0;	/* Ojo, es necesario cambiar el recv_window */
+	cnt->recv_window	= 0;	/* Ojo!!!, es necesario cambiar el recv_window */
 	cnt->mtu		= sk->so_mtu;
 	cnt->speed_type		= SPEED_FAIR;
 
@@ -299,13 +306,28 @@ void do_process_input_bulk (struct msg_queue *inputq)
     return;
 }
 
+
+/*======================================================================================*
+ * do_check_source()									*
+ *======================================================================================*/
+int do_check_source (struct sock *sk, struct mbuff *mbuff)
+{
+    struct sockaddr_in *addr = &(mbuff->m_outside_addr);
+    u_int16_t gv_port = get_source_port(mbuff);
+    
+    if (sk->so_host_addr.s_addr == addr->sin_addr.s_addr &&
+	sk->so_host_port == addr->sin_port &&
+	sk->so_host_gvport == gv_port )
+	return 1;
+    return 0;
+}
+
 /*======================================================================================*
  * do_process_input()									*
  *======================================================================================*/
 void do_process_input (struct sock *sk, struct mbuff *mbuff)
 {
     u_int8_t msg_type;
-
 
     msg_type = get_type(mbuff);
 
@@ -316,12 +338,14 @@ void do_process_input (struct sock *sk, struct mbuff *mbuff)
 		msg_type == ACCEPT  )
 		goto drop;
 	    else {
-
+		if (!do_check_source(sk,mbuff))
+		    goto drop;
 	    }
 	    break;
 	case GV_CONNECT_RCVD:
 	case GV_CONNECT_SENT:
-	    if (msg_type == ACCEPT)
+	    if (msg_type == ACCEPT && 
+		do_check_source(sk,mbuff))
 	    {
 
 	    }
@@ -592,6 +616,9 @@ void do_collect_mbuff_from_sk (struct sock *sk, struct msg_queue *tx, struct msg
 	}
     }
     while (avtok > 0 && !end) {
+	/*
+	 * OJO Con las retransmisiones
+	 */
 	mbp = mbuff_dequeue(&(sk->so_wmemq));
 	if (mbp) {
 	    mptr = prepare_txmsg(sk,mbp,DATA, DISCARD_FALSE);		/* Fill all fields only         */

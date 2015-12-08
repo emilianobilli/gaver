@@ -19,7 +19,7 @@
 #define _TYPES_H
 
 
-#define EXTERN extern
+#define EXTERN  extern
 #define PRIVATE static
 
 typedef signed char s_int8_t;

@@ -64,10 +64,7 @@ struct msg *alloc_msg_locking(void)
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 void free_mbuff(struct mbuff *m)
 {
-    /*
-     * Falta borrar estructura
-     */
-
+    memset(m,0,sizeof(struct mbuff));
     mbuff_enqueue(&heap_mbuff, m);	
     return;
 }
@@ -88,10 +85,7 @@ void free_mbuff_locking(struct mbuff *m)
  *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 void free_msg(struct msg *p)
 {
-    /*
-     * Falta borrar estructura
-     */
-
+    memset(p,0, sizeof(struct msg));
     msg_enqueue(&heap_msg, p);
     return;
 }
