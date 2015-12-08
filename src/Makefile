@@ -102,9 +102,9 @@ install: all
 	-mkdir /opt/gaver/dev
 	-mkdir /opt/gaver/run
 	cp gvd /opt/gaver/bin
-	cp ./script/config-parser.sh /opt/gaver/bin
-	cp ./script/gaverd.sh /opt/gaver/bin
-	cp ./script/gvd.ini /opt/gaver/etc
+	cp ../script/config-parser.sh /opt/gaver/bin
+	cp ../script/gaverd.sh /opt/gaver/bin
+	cp ../script/gvd.ini /opt/gaver/etc
 	-sudo mkdir /usr/include/gaver/
 	sudo cp apitypes.h /usr/include/gaver/
 	sudo cp gv_err.h   /usr/include/gaver/
