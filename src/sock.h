@@ -31,7 +31,7 @@ enum {
     CTRL_NONE = 1,
     CTRL_CONNECT_REQUEST,
     CTRL_WAITING_CONNECT,
-    CTRL_WAITING_ACCEPT_REPLY,
+    CTRL_ACCEPT_SENT,
     CTRL_ESTABLISHED
 };
 
@@ -83,6 +83,16 @@ struct sock {
     
 
     struct mbuff *so_conn_req;		/* Connection Req	*/
+
+    struct {
+	in_addr   addr;
+        u_int16_t port;
+        u_int16_t gvport;
+        int	  mtu;
+        u_int64_t speed;
+        u_int64_t dseq_exp;
+        u_int64_t cseq_exp;
+    } accept_not_commited;    
 
     struct mb_queue so_wmemq;
     struct mb_queue so_rmemq;

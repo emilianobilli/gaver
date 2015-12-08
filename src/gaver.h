@@ -113,6 +113,8 @@ struct gvaccept {
     u_int64_t tx_ts_sec;
     u_int64_t tx_ts_nsec;
 };
+#define ACCEPT_TS offsetof(struct gvaccept,tx_ts_sec)
+
 
 /*
  * GaVer Finish Payload

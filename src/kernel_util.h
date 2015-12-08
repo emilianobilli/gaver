@@ -50,9 +50,9 @@ EXTERN struct msg *prepare_connect (struct sock *sk);
 
 
 /*======================================================================================*
- * prepare_accept()									*
+ * do_accept_connection()								*
  *======================================================================================*/
-EXTERN struct msg *prepare_accept (struct sock *sk);
+EXTERN struct msg *do_accept_connection (struct sock *sk, struct mbuff *conn_req);
 
 /*======================================================================================*
  * do_process_sent_msg()								*
@@ -68,6 +68,6 @@ EXTERN void do_process_expired (struct msg_queue *ctrq);
 /*======================================================================================*
  * do_process_input_bulk()								*
  *======================================================================================*/
-EXTERN void do_process_input_bulk (struct msg_queue *inputq);
+EXTERN void do_process_input_bulk (struct msg_queue *inputq, struct msg_queue *ctrq);
 
 #endif

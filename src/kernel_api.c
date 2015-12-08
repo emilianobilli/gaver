@@ -186,7 +186,7 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 	case MSG_ACCEPT:
 	    /* Accept is in passive open */
     
-	    if (sk->so_state == GV_LISTEN) 
+	    if (sk->so_state == GV_LISTEN) { 
 		/*
 		 * En esta etapa, la capa superior pide 
 		 * aceptar una conexion, pero todavia no llego
@@ -195,7 +195,7 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 		 * se bloquea
 		 */
 		sk->so_loctrl_state = CTRL_WAITING_CONNECT;
-
+	    }
 	    else if (sk->so_state == GV_CONNECT_RCVD)
 	    {
 		/*
@@ -203,7 +203,17 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 		 * pero todavia la capa superior no habia aceptado.
 		 * Al aceptar el mensaje, se debe enviar un accept
 		 */
-		sk->so_loctrl_state = CTRL_WAITING_ACCEPT_REPLY;    
+		txmsg = do_accept_connection(sk,sk->so_conn_req);
+		if (txmsg) {
+		    msg_enqueue(txq, txmsg);
+		    ts.tv_sec  = START_TIMEOUT_SEC;
+		    ts.tv_nsec = START_TIMEOUT_NSEC;
+
+		    /* OJO!!!! No estoy combrobando retorno */
+		    register_et(sk,txmsg->mb.mbp, &ts);
+		    sk->so_loctrl_state = CTRL_ACCEPT_SENT;
+		}
+
 	    }
 	    else
 	    {

@@ -66,7 +66,7 @@ PRIVATE struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t t
 /*======================================================================================*
  * do_process_input()									*
  *======================================================================================*/
-PRIVATE void do_process_input (struct sock *sk, struct mbuff *mbuff);
+PRIVATE void do_process_input (struct sock *sk, struct mbuff *mbuff, struct msg_queue *ctrq);
 
 /*======================================================================================*
  * get_destination_port()								*
@@ -95,6 +95,17 @@ PRIVATE u_int8_t get_type(struct mbuff *m);
 
 
 /*======================================================================================*
+ * get_seq()										*
+ *======================================================================================*/
+PRIVATE u_int64_t get_seq(struct mbuff *m);
+
+
+/*======================================================================================*
+ * prepare_accept()									*
+ *======================================================================================*/
+PRIVATE struct msg *prepare_accept (struct sock *sk, struct mbuff *conn_req);
+
+/*======================================================================================*
  * do_distribute_sent_msg()								*
  *======================================================================================*/
 PRIVATE void do_distribute_sent_msg (struct sock *sk, struct msg *m);
@@ -105,6 +116,15 @@ PRIVATE void do_distribute_sent_msg (struct sock *sk, struct msg *m);
  *======================================================================================*/
 PRIVATE int do_check_source (struct sock *sk, struct mbuff *mbuff);
 
+
+
+/*======================================================================================*
+ * get_seq()										*
+ *======================================================================================*/
+PRIVATE u_int64_t get_seq(struct mbuff *m)
+{
+    return m->m_hdr.seq;
+}
 
 /*======================================================================================*
  * prepare_syn()									*
@@ -128,6 +148,7 @@ struct msg *prepare_connect (struct sock *sk)
     struct mbuff     *mb;
     mb = alloc_mbuff_locking();
 
+    msg = NULL;
     if (mb) {
 	mb->m_datalen = sizeof(struct gvconnect);
 	mb->m_need_ts = DO_TS;
@@ -151,15 +172,70 @@ struct msg *prepare_connect (struct sock *sk)
     return msg;
 }
 
+
+/*======================================================================================*
+ * do_accept_connection()								*
+ *======================================================================================*/
+struct msg *do_accept_connection (struct sock *sk, struct mbuff *conn_req)
+{
+    struct sockaddr_in *addr;
+    struct gvconnect   *conn;
+
+    conn = (struct gvconnect *)   &(conn_req->m_payload);
+    addr = (struct sockaddr_in *) &(conn_req->m_outside_addr);
+
+    sk->so_host_addr.s_addr = addr->sin_addr.s_addr;
+    sk->so_host_port        = addr->sin_port;
+    sk->so_host_gvport      = get_source_port(conn_req); 
+    
+    sk->so_mtu   = (conn->mtu   < sk->so_mtu)   ? conn->mtu   : sk->so_mtu;
+    sk->so_speed = (conn->speed < sk->so_speed) ? conn->speed : sk->so_speed;
+    sk->so_dseq_exp = conn->start_data_seq;
+    sk->so_cseq_exp = get_seq(conn_req) + 1;
+
+    return prepare_accept(sk, conn_req);
+}
+
+
 /*======================================================================================*
  * prepare_accept()									*
  *======================================================================================*/
-struct msg *prepare_accept (struct sock *sk)
+struct msg *prepare_accept (struct sock *sk, struct mbuff *conn_req)
 {
-    struct mbuff *mb;
+    struct mbuff     *mb;
+    struct gvaccept  *acc;
+    struct gvconnect *conn;
+    struct msg	     *msg;
+
+
     mb = alloc_mbuff_locking();
 
-    return prepare_txmsg(sk,mb,0,0);
+    msg = NULL;
+    if (mb) {
+	mb->m_datalen = sizeof(struct gvaccept);
+	mb->m_need_ts = DO_TS;
+	mb->m_tsoff   = ACCEPT_TS;
+
+	/* OJO!!!! Con el network byte order */
+	acc  = (struct gvaccept  *) &(mb->m_payload);
+	conn = (struct gvconnect *) &(conn_req->m_payload);
+	acc->start_data_seq 	= sk->so_dseq_out;
+	acc->speed		= sk->so_speed;
+	acc->recv_window	= 0;	/* Ojo!!!, es necesario cambiar el recv_window */
+	acc->mtu		= sk->so_mtu;
+	acc->speed_type		= SPEED_FAIR;
+	acc->peer_ts_sec	= conn->tx_ts_sec;
+	acc->peer_ts_nsec	= conn->tx_ts_nsec;
+	acc->rx_ts_sec		= conn_req->m_input_ts[0];
+	acc->rx_ts_nsec		= conn_req->m_input_ts[1];
+
+	msg = prepare_txmsg(sk,mb,ACCEPT,DISCARD_FALSE);
+
+	if (!msg) {
+	    free_mbuff_locking(mb);
+	}
+    }
+    return msg;
 }
 
 
@@ -180,7 +256,7 @@ struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type, int
 	/*
          *	Fill the outside Addr
 	 */
-	mb->m_outside_addr.sin_family 	=	 AF_INET;
+	mb->m_outside_addr.sin_family 		= AF_INET;
         mb->m_outside_addr.sin_port		= sk->so_host_port;
         mb->m_outside_addr.sin_addr.s_addr	= sk->so_host_addr.s_addr; 
 
@@ -283,7 +359,7 @@ void do_process_sent_msg (struct msg_queue *sentq)
 /*======================================================================================*
  * do_process_input_bulk()								*
  *======================================================================================*/
-void do_process_input_bulk (struct msg_queue *inputq)
+void do_process_input_bulk (struct msg_queue *inputq, struct msg_queue *ctrq)
 {
     struct sock  *sk;
     struct msg   *m;
@@ -298,7 +374,7 @@ void do_process_input_bulk (struct msg_queue *inputq)
 
 	sk = sk_gvport[dst_port];	/* Global Table */
 	if (sk) 
-	    do_process_input(sk,mb);
+	    do_process_input(sk,mb, ctrq);
 	else	
 	    /* DROP */
 	    free_mbuff_locking(mb);
@@ -325,9 +401,11 @@ int do_check_source (struct sock *sk, struct mbuff *mbuff)
 /*======================================================================================*
  * do_process_input()									*
  *======================================================================================*/
-void do_process_input (struct sock *sk, struct mbuff *mbuff)
+void do_process_input (struct sock *sk, struct mbuff *mbuff, struct msg_queue *ctrq)
 {
     u_int8_t msg_type;
+    struct msg *ctr_msg;
+    struct timespec ts;
 
     msg_type = get_type(mbuff);
 
@@ -343,6 +421,9 @@ void do_process_input (struct sock *sk, struct mbuff *mbuff)
 	    }
 	    break;
 	case GV_CONNECT_RCVD:
+	    if (msg_type == CONNECT)
+		goto drop;
+
 	case GV_CONNECT_SENT:
 	    if (msg_type == ACCEPT && 
 		do_check_source(sk,mbuff))
@@ -360,6 +441,27 @@ void do_process_input (struct sock *sk, struct mbuff *mbuff)
 	    {
 		sk->so_state 		= GV_CONNECT_RCVD;
 		sk->so_conn_req		= mbuff;
+	    
+		if (sk->so_loctrl_state == CTRL_WAITING_CONNECT) {
+		    ctr_msg = do_accept_connection(sk,mbuff);
+		    if (ctr_msg) {
+			msg_enqueue(ctrq, ctr_msg);
+			ts.tv_sec  = START_TIMEOUT_SEC;
+			ts.tv_nsec = START_TIMEOUT_NSEC;
+
+			/* OJO!!!! No estoy combrobando retorno */
+			register_et(sk,ctr_msg->mb.mbp, &ts);
+			sk->so_loctrl_state = CTRL_ACCEPT_SENT;
+		    }
+		    else {
+			sk->so_state    = GV_LISTEN;
+			sk->so_conn_req = NULL;
+			goto drop;
+		    }
+		}
+		else {
+		    /* En que otro estado puede estar el socket?? */
+		}
 	    }
 	    else
 		goto drop;
