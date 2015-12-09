@@ -85,6 +85,35 @@ struct msg {
     struct msg          *p_next;
 };
 
+
+/*
+struct msg {
+    int    msg_type;		
+    union {
+	struct {
+	    int io_opt;
+	    int io_socket;
+	    int io_ret;
+	    int io_errno;
+	    size_t io_req_len;
+	    size_t io_rep_len;
+	    size_t io_chunk_size;
+	} io;
+	struct {
+	    int sent_result;			
+	    int sent_error;			
+	    int discard;			
+	    u_int64_t seq;
+	} carrier;
+    } type;
+    union {
+	struct mbuff    *mbp;		
+	struct mb_queue  mbq;		
+    } mb;				
+    struct msg          *p_next;
+};
+*/
+
 struct msg_queue {
     size_t     size;
     struct msg *head;

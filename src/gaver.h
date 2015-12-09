@@ -33,23 +33,45 @@ struct gvhdr {
     u_int8_t  version;
     u_int8_t  type;
     u_int64_t seq;		/* Data/Ctrl seq */
+    u_int64_t ack;		/* Data/Ctrl Ack */
 };
 
 
-#define DATA		0x00
-#define SYN		0x01
-#define ACK		0x02
-#define NACK		0x04
-#define CONNECT		0x08
-#define FINISH		0x10
-#define ACCEPT		0x20
-#define CTRL_ACK	0x40
-
-
+#define DATA		0x00	/* 0000 0000 */
+#define SYN		0x01	/* 0000 0001 */
+#define ACK		0x02	/* 0000 0010 */
+#define NACK		0x04	/* 0000 0100 */
+#define CONNECT		0x08	/* 0000 1000 */
+#define FINISH		0x10	/* 0001 0000 */
+#define ACCEPT		0x20    /* 0010 0000 */
+#define CTRL_ACK	0x40    /* 0100 0000 */
 
 #define SYN_ACK       (SYN | ACK)
 #define SYN_ACK_NACK  (SYN | ACK | NACK)
 
+
+struct gvts {
+    u_int64_t peer_ts_sec;
+    u_int64_t peer_ts_nsec;
+    u_int64_t rx_ts_sec;
+    u_int64_t rx_ts_nsec;
+    u_int64_t tx_ts_sec;
+    u_int64_t tx_ts_nsec;
+};
+
+
+/*
+ * Es la misma informacion para CONNECT que para ACCEPT
+ *
+struct gvconn {
+    u_int64_t data_seq;
+    u_int64_t speed;
+    u_int32_t recv_window;
+    u_int16_t mtu;
+    u_int8_t  speed_type;
+    u_int8_t  _res;
+};
+*/
 
 struct gvctrl_ack {
     u_int64_t ctrl_seq_ack;
@@ -100,6 +122,7 @@ struct gvconnect {
  * GaVer Accept Payload
  */
 struct gvaccept {
+    u_int64_t conn_seq;
     u_int64_t start_data_seq;
     u_int64_t speed;
     u_int32_t recv_window;

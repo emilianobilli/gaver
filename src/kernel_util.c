@@ -220,6 +220,7 @@ struct msg *prepare_accept (struct sock *sk, struct mbuff *conn_req)
 	acc  = (struct gvaccept  *) &(mb->m_payload);
 	conn = (struct gvconnect *) &(conn_req->m_payload);
 	acc->start_data_seq 	= sk->so_dseq_out;
+	acc->conn_seq		= get_seq(conn_req);    
 	acc->speed		= sk->so_speed;
 	acc->recv_window	= 0;	/* Ojo!!!, es necesario cambiar el recv_window */
 	acc->mtu		= sk->so_mtu;
@@ -398,6 +399,54 @@ int do_check_source (struct sock *sk, struct mbuff *mbuff)
     return 0;
 }
 
+
+int check_seq (void *void_seq, struct mbuff *mbuff)
+{
+    u_int64_t *seq = void_seq;
+
+    if (get_seq(mbuff) == *seq)
+	return 1;
+
+    return 0;
+}
+
+int do_check_ctrl_ack_seq(struct sock *sk, struct mbuff *mbuff)
+{
+    struct gvaccept *acc;
+    struct msg *msg;
+
+
+    u_int8_t msg_type = get_type(mbuff);
+
+    if (msg_type == CTRL_ACK) {
+
+    }
+    else if (msg_type == ACCEPT) {
+	/*
+	 * Si llegue un mensaje de tipo accept se supone que es porque
+	 * se mando un mensaje de tipo CONNECT, y el socket
+	 * deberia estar si o si en el estado GV_CONNECT_SENT
+         * ademas la cola
+	 * de mensaje de control (sk->so_ctrl_sent) solamente deberia
+	 * estar el mensaje CONNECT
+	 */
+	if (sk->so_state != GV_CONNECT_SENT)
+	    return 0;
+	
+	acc = (struct gvaccept *) &(mbuff->m_payload);
+
+	msg = msg_search_custom(&(sk->so_ctrl_sent), &(acc->conn_seq), check_seq);
+	if (msg) {
+	    remove_et(sk,msg->mb.mbp);
+	    free_mbuff_locking(msg->mb.mbp);
+	    free_msg_locking(msg);
+	    return 1;
+	}
+    }
+    return 0;
+}	
+
+
 /*======================================================================================*
  * do_process_input()									*
  *======================================================================================*/
@@ -425,8 +474,9 @@ void do_process_input (struct sock *sk, struct mbuff *mbuff, struct msg_queue *c
 		goto drop;
 
 	case GV_CONNECT_SENT:
-	    if (msg_type == ACCEPT && 
-		do_check_source(sk,mbuff))
+	    if (msg_type == ACCEPT 	  && 
+		do_check_source(sk,mbuff) &&
+		do_check_ctrl_ack_seq(sk,mbuff))
 	    {
 
 	    }
