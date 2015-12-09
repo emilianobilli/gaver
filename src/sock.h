@@ -24,22 +24,6 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * CONTROL SOCKET STATE									    *
- *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-enum {
-    CTRL_NONE = 1,
-    CTRL_CONNECT_REQUEST,
-    CTRL_WAITING_CONNECT,
-    CTRL_ACCEPT_SENT,
-    CTRL_ESTABLISHED
-};
-
-#define DATA_IO_NONE		0x00	/* 0000 */
-#define DATA_IO_WAITING_MEM	0x04	/* 0100 */
-#define DATA_IO_READ_PENDING	0x01	/* 0001 */
-#define DATA_IO_WRITE_PENDING	0x02	/* 0010 */
-#define DATA_IO_RW_PENDING	0x03	/* 0011 = IO_READ_PENDING | IO_WRITE_PENDING */
 
 #define MAX_SOCKETS	  256
 #define NO_GVPORT         0x0000

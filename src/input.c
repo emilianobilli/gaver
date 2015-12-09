@@ -154,6 +154,9 @@ void *input (void *arg)
 	         * Lo envia al kernel
 	         */
 	        msgptr->msg_type = MSG_MBUFF_CARRIER;
+
+		/* OJO!!!! Agregar la secuenciaaa */
+
 		msg_enqueue(&rxq, msgptr);
 	        itc_writeto(KERNEL_LAYER_THREAD,
 			    &rxq,

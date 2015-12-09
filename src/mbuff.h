@@ -65,29 +65,6 @@ struct mb_queue {
 #define SENT_ERROR      1
 
 struct msg {
-    int    msg_type;			/* Request, Reply or Carrier */
-    struct {
-	int io_opt;
-	int io_socket;
-	int io_ret;
-	int io_errno;
-	size_t io_req_len;
-	size_t io_rep_len;
-	size_t io_chunk_size;
-    } io;
-    int    sent_result;			/* Sent result at output */
-    int    sent_error;			/* Sent error response   */
-    int    discard;			/* If the mbuff or queue needs to be discard */
-    union {
-	struct mbuff    *mbp;		/* Pointer to a simple mbuff */
-	struct mb_queue  mbq;		/* Queue of mbuff            */
-    } mb;				/* Queue of mbuff or a simple mbuff */
-    struct msg          *p_next;
-};
-
-
-/*
-struct msg {
     int    msg_type;		
     union {
 	struct {
@@ -112,7 +89,7 @@ struct msg {
     } mb;				
     struct msg          *p_next;
 };
-*/
+
 
 struct msg_queue {
     size_t     size;

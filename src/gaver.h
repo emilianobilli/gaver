@@ -23,6 +23,19 @@
 
 #define GAVER_PROTOCOL_VERSION 1
 
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * CONTROL SOCKET STATE									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+enum {
+    CTRL_NONE = 1,
+    CTRL_CONNECT_REQUEST,
+    CTRL_WAITING_CONNECT,
+    CTRL_ACCEPT_SENT,
+    CTRL_ESTABLISHED
+};
+
+
 /*
  * GaVer Header
  */

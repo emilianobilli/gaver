@@ -24,6 +24,7 @@
 #include "gaver.h"
 #include "timers.h"
 #include "kernel_api.h"
+#include "kernel_defs.h"
 #include "mbuff_queue.h"
 #include <errno.h>
 #include <stdio.h>
@@ -251,7 +252,7 @@ struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type, int
     if (mptr) {
     
 	mptr->msg_type = MSG_MBUFF_CARRIER;
-	mptr->discard  = discard;
+	mptr->type.carrier.discard  = discard;
 	mptr->mb.mbp   = mb;
 
 	/*
@@ -345,8 +346,8 @@ void do_process_sent_msg (struct msg_queue *sentq)
 	sk = sk_gvport[get_source_port_from_msg(mptr)];
 	
 	if (sk) {
-	    if (mptr->sent_result == SENT_ERROR) {
-		do_socket_error_response(sk, mptr->sent_error);
+	    if (mptr->type.carrier.sent_result == SENT_ERROR) {
+		do_socket_error_response(sk, mptr->type.carrier.sent_error);
 		free_mbuff_locking(mptr->mb.mbp);
 		free_msg_locking(mptr);
 	    }

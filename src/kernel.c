@@ -26,6 +26,7 @@
 #include "input.h"
 #include "timers.h"
 #include "kernel_util.h"
+#include "kernel_defs.h"
 #include "heap.h"
 #include "sockopt.h"
 #include "util.h"

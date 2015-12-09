@@ -14,15 +14,15 @@
     You should have received a copy of the GNU General Public License
     along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef _KERNEL_DEFS_H
+#define _KERNEL_DEFS_H
 
-#ifndef _KERNEL_API_H
-#define _KERNEL_API_H
-
-#include "mbuff.h"
-#include "sock.h"
 #include "types.h"
 
+#define DATA_IO_NONE		0x00	/* 0000 */
+#define DATA_IO_WAITING_MEM	0x04	/* 0100 */
+#define DATA_IO_READ_PENDING	0x01	/* 0001 */
+#define DATA_IO_WRITE_PENDING	0x02	/* 0010 */
+#define DATA_IO_RW_PENDING	0x03	/* 0011 = IO_READ_PENDING | IO_WRITE_PENDING */
 
-EXTERN int do_socket_request(struct sock *sk, struct msg_queue *txq);
-EXTERN int do_socket_error_response(struct sock *sk, int reason);
 #endif

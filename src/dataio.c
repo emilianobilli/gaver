@@ -54,8 +54,8 @@ int fill_fdset (struct msg_queue *queue, fd_set *set)
 
     while( (mptr = msg_dequeue(queue))!= NULL )
     {
-	FD_SET(mptr->io.io_socket, set);
-	max = ( max > mptr->io.io_socket )? max : mptr->io.io_socket;
+	FD_SET(mptr->type.io.io_socket, set);
+	max = ( max > mptr->type.io.io_socket )? max : mptr->type.io.io_socket;
 	msg_enqueue(&tmp, mptr);
     }
     msgmove(queue, &tmp);
@@ -118,32 +118,32 @@ void *dataio (void *arg)
 
 	while ((mptr = msg_dequeue(&wpenq)) != NULL)
 	{
-	    if (FD_ISSET(mptr->io.io_socket, &wset)) {
-		io_ret = senddata(mptr->io.io_socket,
+	    if (FD_ISSET(mptr->type.io.io_socket, &wset)) {
+		io_ret = senddata(mptr->type.io.io_socket,
 				 &mptr->mb.mbq,
 				 &no_sent, DISCARD_TRUE);
 		
 		if (io_ret > 0 && no_sent.size == 0) {
-		    mptr->io.io_opt = IO_OPT_WRITE;
-		    mptr->io.io_ret = IO_RET_SUCCESS;
-		    mptr->io.io_errno   = 0;
-		    mptr->io.io_rep_len += io_ret;
+		    mptr->type.io.io_opt = IO_OPT_WRITE;
+		    mptr->type.io.io_ret = IO_RET_SUCCESS;
+		    mptr->type.io.io_errno   = 0;
+		    mptr->type.io.io_rep_len += io_ret;
 
 		    mptr->msg_type = MSG_IO_REPLY;
 
 		    msg_enqueue(&to_krn, mptr);
 		}
 		else if ( io_ret == -1 ) {
-		    mptr->io.io_opt = IO_OPT_WRITE;
-		    mptr->io.io_ret = IO_RET_FAILURE;
-		    mptr->io.io_errno = errno;
+		    mptr->type.io.io_opt = IO_OPT_WRITE;
+		    mptr->type.io.io_ret = IO_RET_FAILURE;
+		    mptr->type.io.io_errno = errno;
 		
 		    mptr->msg_type = MSG_IO_REPLY;
 		    mbuffmove(&(mptr->mb.mbq), &no_sent);
 		    msg_enqueue(&to_krn, mptr);
 		}
 		else {
-		    mptr->io.io_rep_len += io_ret;
+		    mptr->type.io.io_rep_len += io_ret;
 		    mbuffmove(&(mptr->mb.mbq), &no_sent);
 		    msg_enqueue(&tmp, mptr);
 		}
@@ -157,25 +157,25 @@ void *dataio (void *arg)
 
 	while ((mptr = msg_dequeue(&rpenq)) != NULL)
 	{
-	    if (FD_ISSET(mptr->io.io_socket, &rset)) {
-		io_ret = recvdata(mptr->io.io_socket,
+	    if (FD_ISSET(mptr->type.io.io_socket, &rset)) {
+		io_ret = recvdata(mptr->type.io.io_socket,
 				 &(mptr->mb.mbq),
-				 mptr->io.io_req_len, mptr->io.io_chunk_size);
+				 mptr->type.io.io_req_len, mptr->type.io.io_chunk_size);
 		
 		if (io_ret > 0) {
-		    mptr->io.io_opt = IO_OPT_READ;
-		    mptr->io.io_ret = IO_RET_SUCCESS;
-		    mptr->io.io_errno   = 0;
-		    mptr->io.io_rep_len = io_ret;
+		    mptr->type.io.io_opt = IO_OPT_READ;
+		    mptr->type.io.io_ret = IO_RET_SUCCESS;
+		    mptr->type.io.io_errno   = 0;
+		    mptr->type.io.io_rep_len = io_ret;
 
 		    mptr->msg_type = MSG_IO_REPLY;
 
 		    msg_enqueue(&to_krn, mptr);
 		}
 		else if ( io_ret == -1 ) {
-		    mptr->io.io_opt = IO_OPT_READ;
-		    mptr->io.io_ret = IO_RET_FAILURE;
-		    mptr->io.io_errno = errno;
+		    mptr->type.io.io_opt = IO_OPT_READ;
+		    mptr->type.io.io_ret = IO_RET_FAILURE;
+		    mptr->type.io.io_errno = errno;
 		    mptr->msg_type = MSG_IO_REPLY;
 		    msg_enqueue(&to_krn, mptr);
 		}
@@ -217,12 +217,12 @@ void *dataio (void *arg)
 		if (mptr->msg_type != MSG_IO_REQUEST)
 		    /* Drop silently */
 		    continue;
-		mptr->io.io_ret     = 0;
-		mptr->io.io_errno   = 0;
-		mptr->io.io_rep_len = 0;
-		if (mptr->io.io_opt == IO_OPT_READ)
+		mptr->type.io.io_ret     = 0;
+		mptr->type.io.io_errno   = 0;
+		mptr->type.io.io_rep_len = 0;
+		if (mptr->type.io.io_opt == IO_OPT_READ)
 		    msg_enqueue(&rpenq, mptr);
-		if (mptr->io.io_opt == IO_OPT_WRITE)
+		if (mptr->type.io.io_opt == IO_OPT_WRITE)
 		    msg_enqueue(&wpenq, mptr);
 	    }
 	}

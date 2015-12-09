@@ -268,7 +268,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 		 * Aca debe llegar un mensage de portadora
 		 * si llega otra cosa se descarta silenciosamente
 		 */
-		if (msgptr->discard == DISCARD_TRUE)
+		if (msgptr->type.carrier.discard == DISCARD_TRUE)
 		    free_mbuff_locking(mbptr);
 		free_msg_locking(msgptr);
 		continue;
@@ -292,7 +292,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 		 */
 		output_len += ret;
 		
-		if (msgptr->discard == DISCARD_TRUE)
+		if (msgptr->type.carrier.discard == DISCARD_TRUE)
 		{
 		    free_mbuff_locking(mbptr);
 		    free_msg_locking(msgptr);
@@ -302,7 +302,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 		     * Si el mensaje no debe descartarse
 		     * hay que enviarselo nuevamente al Kernel
 		     */
-		    msgptr->sent_result = SENT_SUCCESS;
+		    msgptr->type.carrier.sent_result = SENT_SUCCESS;
 		    msg_enqueue(retq, msgptr);
 		}
 	    }
@@ -310,8 +310,8 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 		msg_enqueue(queue, msgptr);
 	    else if (ret == -1) {
 		msg_enqueue(retq, msgptr);
-		msgptr->sent_result = SENT_ERROR;
-		msgptr->sent_error  = EHOSTUNREACH;
+		msgptr->type.carrier.sent_result = SENT_ERROR;
+		msgptr->type.carrier.sent_error  = EHOSTUNREACH;
 	    }
 	}
 	else 
@@ -339,7 +339,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 		 * Aca debe llegar un mensage de portadora
 		 * si llega otra cosa se descarta silenciosamente
 		 */
-		    if (msgptr->discard == DISCARD_TRUE)
+		    if (msgptr->type.carrier.discard == DISCARD_TRUE)
 			free_mbuff_locking(mbptr);
 		    free_msg_locking(msgptr);
 		    i--;
@@ -381,7 +381,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 		    mbptr  = msgptr->mb.mbp;
 		    if (mmsg[i].msg_len == mbptr->m_hdrlen + mbptr->m_datalen) 
 		    {
-			msgptr->sent_result = SENT_SUCCESS;
+			msgptr->type.carrier.sent_result = SENT_SUCCESS;
 			/*
 			 * Si los datos enviados concuerdan
 			 *  	- Se incrementa output_len
@@ -389,7 +389,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 			 *	- Se libera mbuff si corresponde
 			 */
 			output_len += mmsg[i].msg_len;
-			if (msgptr->discard == DISCARD_TRUE)
+			if (msgptr->type.carrier.discard == DISCARD_TRUE)
 			{
 			    free_mbuff_locking(mbptr);
 			    free_msg_locking(msgptr);
@@ -400,8 +400,8 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 		    else if (mmsg[i].msg_len == 0)
 			msg_enqueue(queue, msgptr);
 		    else if (mmsg[i].msg_len == -1) {
-			msgptr->sent_result = SENT_ERROR;
-			msgptr->sent_error  = EHOSTUNREACH;
+			msgptr->type.carrier.sent_result = SENT_ERROR;
+			msgptr->type.carrier.sent_error  = EHOSTUNREACH;
 			msg_enqueue(retq, msgptr);
 		    }
 		}	
