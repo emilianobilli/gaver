@@ -34,7 +34,6 @@ struct mbuff {
     struct sockaddr_in 	m_outside_addr;
     struct gvhdr	m_hdr;
     int 		m_need_ts;		/* Need Timestamp in outgoing  */
-    off_t		m_tsoff;		/* Timestamp offset */
     u_int64_t		m_input_ts[2];		/* Input TS         */
     size_t		m_hdrlen;
     size_t		m_datalen;
@@ -81,6 +80,7 @@ struct msg {
 	    int sent_error;			
 	    int discard;			
 	    u_int64_t seq;
+	    u_int8_t  type;
 	} carrier;
     } type;
     union {

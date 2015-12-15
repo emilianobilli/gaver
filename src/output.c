@@ -277,7 +277,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 		/*
 		 * Put the timestamp OJO CON EL NETWORK BYTE ORDERRR!!!!!!!!!!
 		 */
-		timestamp((u_int64_t *)&(mbptr->m_payload[mbptr->m_tsoff]), NULL);
+		timestamp((u_int64_t *)&(mbptr->m_hdr.txts_sec), NULL);
 	
 	    ret = sendmbuff(ifudp, 
 			    mbptr->m_payload, 
@@ -351,7 +351,7 @@ ssize_t flushqueue (int ifudp, struct msg_queue *queue, struct msg_queue *retq)
 		    /*
 		     * Put Timestamp
 		     */
-		    timestamp((u_int64_t *)&(mbptr->m_payload[mbptr->m_tsoff]), NULL);
+		    timestamp((u_int64_t *)&(mbptr->m_hdr.txts_sec), NULL);
 
 		io[i*2].iov_base		= &(mbptr->m_hdr);
 		io[i*2].iov_len			= mbptr->m_hdrlen;

@@ -135,42 +135,7 @@ struct msg *prepare_syn (struct sock *sk)
     struct mbuff *mb;
     mb = alloc_mbuff_locking();
 
-    return prepare_txmsg(sk,mb,0,0);
-}
-
-
-/*======================================================================================*
- * prepare_connect()									*
- *======================================================================================*/
-struct msg *prepare_connect (struct sock *sk)
-{
-    struct msg	     *msg;
-    struct gvconnect *cnt;
-    struct mbuff     *mb;
-    mb = alloc_mbuff_locking();
-
-    msg = NULL;
-    if (mb) {
-	mb->m_datalen = sizeof(struct gvconnect);
-	mb->m_need_ts = DO_TS;
-	mb->m_tsoff   = CONNECT_TS;
-
-	/* OJO!!!! Con el network byte order */
-
-	cnt = (struct gvconnect *) mb->m_payload;
-    	cnt->start_data_seq	= sk->so_dseq_out;
-	cnt->speed		= sk->so_speed;
-	cnt->recv_window	= 0;	/* Ojo!!!, es necesario cambiar el recv_window */
-	cnt->mtu		= sk->so_mtu;
-	cnt->speed_type		= SPEED_FAIR;
-
-	sk->so_conn_attempts	= 1;
-    
-	msg = prepare_txmsg(sk,mb,CONNECT,DISCARD_FALSE);
-	if (!msg)
-	    free_mbuff_locking(mb);
-    }
-    return msg;
+    return NULL;
 }
 
 
@@ -180,106 +145,21 @@ struct msg *prepare_connect (struct sock *sk)
 struct msg *do_accept_connection (struct sock *sk, struct mbuff *conn_req)
 {
     struct sockaddr_in *addr;
-    struct gvconnect   *conn;
+    struct gvconn      *connect;
 
-    conn = (struct gvconnect *)   &(conn_req->m_payload);
+    connect = (struct gvconn   *)   &(conn_req->m_payload);
     addr = (struct sockaddr_in *) &(conn_req->m_outside_addr);
 
     sk->so_host_addr.s_addr = addr->sin_addr.s_addr;
     sk->so_host_port        = addr->sin_port;
     sk->so_host_gvport      = get_source_port(conn_req); 
     
-    sk->so_mtu   = (conn->mtu   < sk->so_mtu)   ? conn->mtu   : sk->so_mtu;
-    sk->so_speed = (conn->speed < sk->so_speed) ? conn->speed : sk->so_speed;
+    sk->so_commited_mtu   = (connect->mtu   < sk->so_mtu)   ? connect->mtu   : sk->so_mtu;
+    sk->so_commited_speed = (connect->speed < sk->so_speed) ? connect->speed : sk->so_speed;
     sk->so_dseq_exp = conn->start_data_seq;
     sk->so_cseq_exp = get_seq(conn_req) + 1;
 
     return prepare_accept(sk, conn_req);
-}
-
-
-/*======================================================================================*
- * prepare_accept()									*
- *======================================================================================*/
-struct msg *prepare_accept (struct sock *sk, struct mbuff *conn_req)
-{
-    struct mbuff     *mb;
-    struct gvaccept  *acc;
-    struct gvconnect *conn;
-    struct msg	     *msg;
-
-
-    mb = alloc_mbuff_locking();
-
-    msg = NULL;
-    if (mb) {
-	mb->m_datalen = sizeof(struct gvaccept);
-	mb->m_need_ts = DO_TS;
-	mb->m_tsoff   = ACCEPT_TS;
-
-	/* OJO!!!! Con el network byte order */
-	acc  = (struct gvaccept  *) &(mb->m_payload);
-	conn = (struct gvconnect *) &(conn_req->m_payload);
-	acc->start_data_seq 	= sk->so_dseq_out;
-	acc->conn_seq		= get_seq(conn_req);    
-	acc->speed		= sk->so_speed;
-	acc->recv_window	= 0;	/* Ojo!!!, es necesario cambiar el recv_window */
-	acc->mtu		= sk->so_mtu;
-	acc->speed_type		= SPEED_FAIR;
-	acc->peer_ts_sec	= conn->tx_ts_sec;
-	acc->peer_ts_nsec	= conn->tx_ts_nsec;
-	acc->rx_ts_sec		= conn_req->m_input_ts[0];
-	acc->rx_ts_nsec		= conn_req->m_input_ts[1];
-
-	msg = prepare_txmsg(sk,mb,ACCEPT,DISCARD_FALSE);
-
-	if (!msg) {
-	    free_mbuff_locking(mb);
-	}
-    }
-    return msg;
-}
-
-
-/*======================================================================================*
- * prepare_txmb()									*
- *======================================================================================*/
-struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type, int discard)
-{
-    struct msg *mptr;
-
-    mptr = alloc_msg_locking();
-    if (mptr) {
-    
-	mptr->msg_type = MSG_MBUFF_CARRIER;
-	mptr->type.carrier.discard  = discard;
-	mptr->mb.mbp   = mb;
-
-	/*
-         *	Fill the outside Addr
-	 */
-	mb->m_outside_addr.sin_family 		= AF_INET;
-        mb->m_outside_addr.sin_port		= sk->so_host_port;
-        mb->m_outside_addr.sin_addr.s_addr	= sk->so_host_addr.s_addr; 
-
-	/*
-	 * Fill Gaver Header
-         */
-	mb->m_hdr.src_port		= sk->so_local_gvport; 				
-        mb->m_hdr.dst_port		= sk->so_host_gvport;
-        mb->m_hdr.payload_len		= mb->m_datalen;
-        mb->m_hdr.version		= GAVER_PROTOCOL_VERSION;
-        mb->m_hdr.type			= type;
-
-	mb->m_next = NULL;
-	if (type)	/* Data Type is 0x00 */ 
-	    mb->m_hdr.seq	= sk->so_cseq_out++;
-	else
-	    mb->m_hdr.seq	= sk->so_dseq_out++;
-    
-	mb->m_hdrlen = sizeof(struct gvhdr);
-    }
-    return mptr;
 }
 
 /*======================================================================================*
@@ -686,7 +566,7 @@ void do_update_tokens_sock (struct sock *sk, u_int64_t times)
         sk->so_avtok += update_token(sk->so_avtok,
 				     sk->so_retok,
 				     sk->so_capwin,
-				      hw-sq) * (double) times;
+				     hw-sq) * (double) times;
     else
 	/* The other alternative is that the value is 0 */
         sk->so_avtok = 0;

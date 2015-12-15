@@ -42,11 +42,13 @@ struct sock {
     u_int16_t	so_local_gvport;
     int		so_state;
 
-
-    int		so_mtu;			/* Mtu for the socket	*/
     int 	so_conn_attempts;	
 
-    u_int64_t   so_speed;
+    int 	so_commited_mtu;	/* Real Mtu in ESTABLISHED State   */
+    int		so_commited_speed;	/* Real Speed in ESTABLISHED State */
+
+    int		so_mtu;			/* Mtu for the socket	*/
+    u_int64_t   so_speed;		/* Speed for the socket */
 
     double      so_resyn;
     double	so_retok;
