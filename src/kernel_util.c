@@ -188,7 +188,7 @@ u_int16_t get_source_port(struct mbuff *m)
  *======================================================================================*/
 u_int8_t get_type_from_msg(struct msg *m)
 {
-    return get_type(m->mb.mbp);
+    return m->type.carrier.type;
 }
 /*======================================================================================*
  * get_type()										*
@@ -224,7 +224,6 @@ void do_process_sent_msg (struct msg_queue *sentq)
     while ( (mptr = msg_dequeue(sentq)) != NULL ) 
     {
 	sk = sk_gvport[get_source_port_from_msg(mptr)];
-	
 	if (sk) {
 	    if (mptr->type.carrier.sent_result == SENT_ERROR) {
 		do_socket_error_response(sk, mptr->type.carrier.sent_error);
@@ -353,6 +352,7 @@ void do_process_input (struct sock *sk, struct mbuff *mbuff, struct msg_queue *c
 	case GV_CONNECT_RCVD:
 	    if (msg_type == CONNECT)
 		goto drop;
+
 
 	case GV_CONNECT_SENT:
 	    if (msg_type == ACCEPT 	  && 

@@ -122,7 +122,12 @@ void remove_et (struct sock *sk, struct mbuff *mb)
     init_etq(&tmp);
 
     while ( (et = et_dequeue(&etq)) ) {
-	if (et->et_sk == sk && et->et_mb == mb) {
+	/*
+	 * Esto sirve para desregistrar un timer o en su defecto
+	 * todos los timers asociados a un Socket
+         */
+	if ( (et->et_sk == sk && et->et_mb == mb) ||
+	     (et->et_sk == sk && mb == NULL) {
 	    free(et);
 	}
 	else

@@ -154,6 +154,8 @@ void *input (void *arg)
 	         * Lo envia al kernel
 	         */
 	        msgptr->msg_type = MSG_MBUFF_CARRIER;
+		msgptr->type.carrier.type = get_type(msgptr->mb.mbp);
+		msgptr->type.carrier.seq  = get_seq (msgptr->mb.mbp);
 
 		/* OJO!!!! Agregar la secuenciaaa */
 
