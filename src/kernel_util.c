@@ -315,6 +315,9 @@ void do_process_input (struct sock *sk, struct mbuff *mbuff, struct msg_queue *c
 		if (msg_type & CTRL_ACK) {
 		    do_rx_ctrl_ack(sk,mbuff);
 		    offset = sizeof(struct gvctrlack);
+		    /*
+		     * Ojo, hay que chequear que se haga el ctrl_ack primero
+		     */
 		}
 		if (msg_type & ACCEPT ) 
 		{
