@@ -24,18 +24,6 @@
 #define GAVER_PROTOCOL_VERSION 1
 
 
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
- * CONTROL SOCKET STATE									    *
- *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-enum {
-    CTRL_NONE = 1,
-    CTRL_CONNECT_REQUEST,
-    CTRL_WAITING_CONNECT,
-    CTRL_ACCEPT_SENT,
-    CTRL_ESTABLISHED
-};
-
-
 /*
  * GaVer Header
  */
@@ -101,44 +89,6 @@ struct gvsyn {
 #define SPEED_FAIR	0x00
 #define SPEED_FIX	0x01
 
-
-/*
- * GaVer Connect Payload
- */
-
-
-struct gvconnect {
-    u_int64_t start_data_seq;
-    u_int64_t speed;
-    u_int32_t recv_window;
-    u_int16_t mtu;
-    u_int8_t  speed_type;
-    u_int8_t  _res;
-    u_int64_t tx_ts_sec;
-    u_int64_t tx_ts_nsec;
-};
-#define CONNECT_TS offsetof(struct gvconnect,tx_ts_sec)
-/*
- * GaVer Accept Payload
- */
-struct gvaccept {
-    u_int64_t conn_seq;
-    u_int64_t start_data_seq;
-    u_int64_t speed;
-    u_int32_t recv_window;
-    u_int16_t mtu;
-    u_int8_t  speed_type;
-    u_int8_t  _res;
-    u_int64_t peer_ts_sec;
-    u_int64_t peer_ts_nsec;
-    u_int64_t rx_ts_sec;
-    u_int64_t rx_ts_nsec;
-    u_int64_t tx_ts_sec;
-    u_int64_t tx_ts_nsec;
-};
-#define ACCEPT_TS offsetof(struct gvaccept,tx_ts_sec)
-
-
 /*
  * GaVer Finish Payload
  */
@@ -155,6 +105,7 @@ enum {
     GV_ESTABLISHED = 1,
     GV_CONNECT_RCVD,
     GV_CONNECT_SENT,
+    GV_ACCEPT_SENT,
     GV_CLOSE,
     GV_LISTEN,
     GV_FINISH_SENT,

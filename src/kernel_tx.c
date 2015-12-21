@@ -3,19 +3,37 @@
 #include "gaver.h"
 #include "sock.h"
 #include <sys/types.h>
+#include <string.h>
 #include <sys/socket.h>
 
-
-
-/*======================================================================================*
- * prepare_txmsg()									*
- *======================================================================================*/
-struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type, u_int64_t seq, int discard);
+#define _KERNEL_TX_CODE
+#include "kernel_tx.h"
 
 /*======================================================================================*
- * prepare_txmsg_from_mbuff()								*
+ * clone_msg_carrier()									*
  *======================================================================================*/
-struct msg *prepare_txmsg_from_mbuff (struct mbuff *rx, struct mbuff *mb, u_int8_t type, u_int64_t seq, int discard);
+struct msg *clone_msg_carrier (struct msg *m)
+{
+    struct mbuff *mbuff;
+    struct msg   *msg = NULL;
+
+    if (m->msg_type == MSG_MBUFF_CARRIER) {
+	mbuff = alloc_mbuff_locking();
+        if (mbuff) {
+	    memcpy(mbuff, m->mb.mbp, sizeof(struct mbuff));
+	    msg = alloc_msg_locking();
+	    if (msg) {
+		memcpy(msg,m, sizeof(struct msg));
+		msg->type.carrier.discard = DISCARD_TRUE;
+		msg->mb.mbp = mbuff;	    
+	    }
+	    else 
+		free_mbuff_locking(mbuff);
+
+	}
+    }
+    return msg;
+}
 
 
 /*======================================================================================*
@@ -103,6 +121,13 @@ struct msg *prepare_accept (struct sock *sk, struct mbuff *creq, int ctrl_ack)
     return msg;
 }
 
+/*======================================================================================*
+ * prepare_syn()									*
+ *======================================================================================*/
+struct msg *prepare_syn(struct sock *sk)
+{
+    return NULL;
+}
 
 
 /*======================================================================================*

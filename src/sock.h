@@ -20,6 +20,7 @@
 
 #include "mbuff.h"
 #include "types.h"
+#include "apitypes.h"
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -36,6 +37,9 @@ struct sock {
     int 	so_lodata_state;	/* DATAIO_READ_PENDING | DATAIO_WRITE_PENDING */
     int 	so_loctrl;
     int 	so_loctrl_state;
+
+    char	so_data_path[SUN_PATH_SIZE];
+
     in_addr	so_host_addr;
     u_int16_t	so_host_port;
     u_int16_t   so_host_gvport;

@@ -127,11 +127,11 @@ void remove_et (struct sock *sk, struct mbuff *mb)
 	 * todos los timers asociados a un Socket
          */
 	if ( (et->et_sk == sk && et->et_mb == mb) ||
-	     (et->et_sk == sk && mb == NULL) {
+	     (et->et_sk == sk && mb == NULL)) {
 	    free(et);
 	}
 	else
-	    et_enqueue(&etq, et);
+	    et_enqueue(&tmp, et);
     }
     etq.size = tmp.size;
     etq.head = tmp.head;

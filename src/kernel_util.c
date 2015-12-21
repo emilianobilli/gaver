@@ -24,6 +24,7 @@
 #include "gaver.h"
 #include "timers.h"
 #include "kernel_api.h"
+#include "apitypes.h"
 #include "kernel_defs.h"
 #include "mbuff_queue.h"
 #include <errno.h>
@@ -32,7 +33,9 @@
 #include <unistd.h>
 #include <math.h>
 #include "glo.h"
-
+#define _KERNEL_UTIL_CODE
+#include "kernel_util.h"
+#include "kernel_tx.h"
 /*
  * This is the JSON message when the connection is established with the api
  */
@@ -60,51 +63,9 @@ PRIVATE ssize_t sendall (int sd, void *buff, size_t len);
 PRIVATE int send_status(int sd, int status, char *reason);
 
 /*======================================================================================*
- * prepare_txmb()									*
- *======================================================================================*/
-PRIVATE struct msg *prepare_txmsg (struct sock *sk, struct mbuff *mb, u_int8_t type, int discard);
-
-/*======================================================================================*
  * do_process_input()									*
  *======================================================================================*/
 PRIVATE void do_process_input (struct sock *sk, struct mbuff *mbuff, struct msg_queue *ctrq);
-
-/*======================================================================================*
- * get_destination_port()								*
- *======================================================================================*/
-PRIVATE u_int16_t get_destination_port(struct mbuff *m);
-
-/*======================================================================================*
- * get_destination_port_from_msg()							*
- *======================================================================================*/
-PRIVATE u_int16_t get_source_port_from_msg(struct msg *m);
-
-/*======================================================================================*
- * get_source_port()									*
- *======================================================================================*/
-PRIVATE u_int16_t get_source_port(struct mbuff *m);
-
-/*======================================================================================*
- * get_type_from_msg()									*
- *======================================================================================*/
-PRIVATE u_int8_t get_type_from_msg(struct msg *m);
-
-/*======================================================================================*
- * get_type()										*
- *======================================================================================*/
-PRIVATE u_int8_t get_type(struct mbuff *m);
-
-
-/*======================================================================================*
- * get_seq()										*
- *======================================================================================*/
-PRIVATE u_int64_t get_seq(struct mbuff *m);
-
-
-/*======================================================================================*
- * prepare_accept()									*
- *======================================================================================*/
-PRIVATE struct msg *prepare_accept (struct sock *sk, struct mbuff *conn_req);
 
 /*======================================================================================*
  * do_distribute_sent_msg()								*
@@ -122,33 +83,28 @@ PRIVATE int do_check_source (struct sock *sk, struct mbuff *mbuff);
 /*======================================================================================*
  * get_seq()										*
  *======================================================================================*/
-PRIVATE u_int64_t get_seq(struct mbuff *m)
+u_int64_t get_seq(struct mbuff *m)
 {
     return m->m_hdr.seq;
 }
 
-/*======================================================================================*
- * prepare_syn()									*
- *======================================================================================*/
-struct msg *prepare_syn (struct sock *sk)
+u_int64_t get_ctrl_ack_seq(struct mbuff *m)
 {
-    struct mbuff *mb;
-    mb = alloc_mbuff_locking();
+    struct gvctrlack *ctrl_ack = (struct gvctrlack *) m->m_payload;
 
-    return NULL;
+    return ctrl_ack->ctrl_seq_ack;
 }
-
 
 /*======================================================================================*
  * do_accept_connection()								*
  *======================================================================================*/
-struct msg *do_accept_connection (struct sock *sk, struct mbuff *conn_req)
+struct msg *do_accept_connection (struct sock *sk, struct mbuff *conn_req, int ctrl_ack)
 {
     struct sockaddr_in *addr;
     struct gvconn      *connect;
 
     connect = (struct gvconn   *)   &(conn_req->m_payload);
-    addr = (struct sockaddr_in *) &(conn_req->m_outside_addr);
+    addr = (struct sockaddr_in *)   &(conn_req->m_outside_addr);
 
     sk->so_host_addr.s_addr = addr->sin_addr.s_addr;
     sk->so_host_port        = addr->sin_port;
@@ -156,11 +112,29 @@ struct msg *do_accept_connection (struct sock *sk, struct mbuff *conn_req)
     
     sk->so_commited_mtu   = (connect->mtu   < sk->so_mtu)   ? connect->mtu   : sk->so_mtu;
     sk->so_commited_speed = (connect->speed < sk->so_speed) ? connect->speed : sk->so_speed;
-    sk->so_dseq_exp = conn->start_data_seq;
+    sk->so_dseq_exp = connect->data_seq;
     sk->so_cseq_exp = get_seq(conn_req) + 1;
+    sk->so_retok    = getreftime(sk->so_commited_speed, sk->so_commited_mtu);
+    sk->so_conn_attempts++;
 
-    return prepare_accept(sk, conn_req);
+    return prepare_accept(sk, conn_req, ctrl_ack);
 }
+
+void do_commit_connection (struct sock *sk, struct mbuff *m, off_t offset)
+{
+    struct gvconn *accept;
+
+    accept = (struct gvconn   *)   &(m->m_payload)[offset];
+
+    sk->so_commited_mtu   = accept->mtu;
+    sk->so_commited_speed = accept->speed;
+    sk->so_dseq_exp = accept->data_seq;
+    sk->so_cseq_exp = get_seq(m) + 1;
+    sk->so_retok   = getreftime(sk->so_commited_speed, sk->so_commited_mtu);
+
+    return;
+}
+
 
 /*======================================================================================*
  * get_destination_port()								*
@@ -273,8 +247,8 @@ int do_check_source (struct sock *sk, struct mbuff *mbuff)
     u_int16_t gv_port = get_source_port(mbuff);
     
     if (sk->so_host_addr.s_addr == addr->sin_addr.s_addr &&
-	sk->so_host_port == addr->sin_port &&
-	sk->so_host_gvport == gv_port )
+	sk->so_host_port        == addr->sin_port &&
+	sk->so_host_gvport      == gv_port )
 	return 1;
     return 0;
 }
@@ -290,32 +264,19 @@ int check_seq (void *void_seq, struct mbuff *mbuff)
     return 0;
 }
 
-int do_check_ctrl_ack_seq(struct sock *sk, struct mbuff *mbuff)
+
+/*======================================================================================*
+ * do_rx_ctrl_ack()									*
+ *======================================================================================*/
+int do_rx_ctrl_ack(struct sock *sk, struct mbuff *mbuff)
 {
-    struct gvaccept *acc;
     struct msg *msg;
 
+    u_int64_t seq      = get_ctrl_ack_seq(mbuff);
+    u_int8_t  msg_type = get_type(mbuff);
 
-    u_int8_t msg_type = get_type(mbuff);
-
-    if (msg_type == CTRL_ACK) {
-
-    }
-    else if (msg_type == ACCEPT) {
-	/*
-	 * Si llegue un mensaje de tipo accept se supone que es porque
-	 * se mando un mensaje de tipo CONNECT, y el socket
-	 * deberia estar si o si en el estado GV_CONNECT_SENT
-         * ademas la cola
-	 * de mensaje de control (sk->so_ctrl_sent) solamente deberia
-	 * estar el mensaje CONNECT
-	 */
-	if (sk->so_state != GV_CONNECT_SENT)
-	    return 0;
-	
-	acc = (struct gvaccept *) &(mbuff->m_payload);
-
-	msg = msg_search_custom(&(sk->so_ctrl_sent), &(acc->conn_seq), check_seq);
+    if (msg_type & CTRL_ACK) {
+	msg = msg_search_custom(&(sk->so_ctrl_sent), &seq, check_seq);
 	if (msg) {
 	    remove_et(sk,msg->mb.mbp);
 	    free_mbuff_locking(msg->mb.mbp);
@@ -335,67 +296,88 @@ void do_process_input (struct sock *sk, struct mbuff *mbuff, struct msg_queue *c
     u_int8_t msg_type;
     struct msg *ctr_msg;
     struct timespec ts;
+    off_t  offset;
 
     msg_type = get_type(mbuff);
 
     switch (sk->so_state)
     {
 	case GV_ESTABLISHED:
-	    if (msg_type == CONNECT ||
-		msg_type == ACCEPT  )
-		goto drop;
-	    else {
-		if (!do_check_source(sk,mbuff))
-		    goto drop;
-	    }
 	    break;
 	case GV_CONNECT_RCVD:
 	    if (msg_type == CONNECT)
 		goto drop;
 
-
-	case GV_CONNECT_SENT:
-	    if (msg_type == ACCEPT 	  && 
-		do_check_source(sk,mbuff) &&
-		do_check_ctrl_ack_seq(sk,mbuff))
-	    {
-
-	    }
-	    else
-		goto drop;
 	    break;
+    	case GV_CONNECT_SENT:
+	    offset = 0;
+	    if (do_check_source(sk,mbuff)) {
+		if (msg_type & CTRL_ACK) {
+		    do_rx_ctrl_ack(sk,mbuff);
+		    offset = sizeof(struct gvctrlack);
+		}
+		if (msg_type & ACCEPT ) 
+		{
+		    do_commit_connection(sk,mbuff,offset);
+		    ctr_msg = prepare_ctrl_ack(sk,mbuff);
+		    if (ctr_msg) {
+			msg_enqueue(ctrq, ctr_msg);
+		    }    
+		    sk->so_state = GV_ESTABLISHED;
+		    do_socket_establish_connection(sk);
+		}
+	    }
+	    break;
+
+
 	case GV_CLOSE:
 	    goto drop;
 	    break;
+
 	case GV_LISTEN:
-	    if (msg_type == CONNECT)
+	    if (msg_type & CONNECT)
 	    {
 		sk->so_state 		= GV_CONNECT_RCVD;
 		sk->so_conn_req		= mbuff;
 	    
-		if (sk->so_loctrl_state == CTRL_WAITING_CONNECT) {
-		    ctr_msg = do_accept_connection(sk,mbuff);
+		if (sk->so_loctrl_state == CTRL_ACCEPT_REQUEST) {
+		    ctr_msg = do_accept_connection(sk,mbuff,1);
 		    if (ctr_msg) {
 			msg_enqueue(ctrq, ctr_msg);
 			ts.tv_sec  = START_TIMEOUT_SEC;
 			ts.tv_nsec = START_TIMEOUT_NSEC;
-
 			/* OJO!!!! No estoy combrobando retorno */
 			register_et(sk,ctr_msg->mb.mbp, &ts);
-			sk->so_loctrl_state = CTRL_ACCEPT_SENT;
+			sk->so_conn_req	    = NULL;
+			sk->so_state	    = GV_ACCEPT_SENT;
 		    }
 		    else {
 			sk->so_state    = GV_LISTEN;
 			sk->so_conn_req = NULL;
-			goto drop;
 		    }
 		}
 		else {
-		    /* En que otro estado puede estar el socket?? */
+		    /* Si llega a esta punto quiere decir que se recibio
+		     * un mensaje CONNECT pero de momento la API no 
+		     * ejecuto un ACCEPT, lo que se debe hacer es acusar que se recibio
+		     * el mensaje
+		     */
+		    ctr_msg = prepare_ctrl_ack(NULL,mbuff);
+		    if (ctr_msg) {
+			msg_enqueue(ctrq, ctr_msg);
+			goto fin;
+		    }    
 		}
 	    }
-	    else
-		goto drop;
+	    break;
+
+	case GV_ACCEPT_SENT:
+	    if ( (msg_type & CTRL_ACK)  &&
+		do_check_source(sk,mbuff) )
+		if (do_rx_ctrl_ack(sk,mbuff)) {
+		    sk->so_state = GV_ESTABLISHED;
+		    do_socket_establish_connection(sk);
+		}
 	    break;
 	case GV_FINISH_SENT:
 	case GV_CLOSE_WAIT:
@@ -405,9 +387,10 @@ void do_process_input (struct sock *sk, struct mbuff *mbuff, struct msg_queue *c
 	    goto drop;
 	    break;
     }
-    return;
+
 drop:
     free_mbuff_locking(mbuff);
+fin:
     return;
 }
 
@@ -428,7 +411,6 @@ void do_process_expired (struct msg_queue *ctrq)
      */
     while ( (et = get_expired(NULL)) != NULL )
     {
-	
 	sk = et->et_sk;
 	
 	m = msg_search(&(sk->so_ctrl_sent), et->et_mb);
@@ -437,7 +419,7 @@ void do_process_expired (struct msg_queue *ctrq)
 	    continue;
 	}
 
-	if (sk->so_state == GV_CONNECT_SENT) 
+	if (sk->so_state == GV_CONNECT_SENT && sk->so_loctrl_state == CTRL_CONNECT_REQUEST ) 
 	{
 	    if (get_type(et->et_mb) == CONNECT)  
 	    {
@@ -447,7 +429,11 @@ void do_process_expired (struct msg_queue *ctrq)
 		    ts.tv_sec  = START_TIMEOUT_SEC; 
 		    ts.tv_nsec = START_TIMEOUT_NSEC;
 		    refresh_et(et, &ts);
-		    msg_enqueue(ctrq, m);
+		    /*
+		     * Ojo cambiar todo este algoritmo
+		     */
+		    msg_enqueue(ctrq, clone_msg_carrier(m));
+		    msg_enqueue(&(sk->so_ctrl_sent),m);
 		}
 		else {
 		    do_socket_error_response(sk, ETIMEDOUT);
@@ -457,6 +443,31 @@ void do_process_expired (struct msg_queue *ctrq)
 	    else {
 		do_socket_error_response(sk, EBADE);
 		free_et(et);
+	    }
+	}
+	if (sk->so_state == GV_ACCEPT_SENT && sk->so_loctrl_state == CTRL_ACCEPT_REQUEST )
+	{
+	    if (get_type(et->et_mb) & ACCEPT)
+	    {
+		if (sk->so_conn_attempts < MAX_CONN_ATTEMPTS)
+	        {
+		    sk->so_conn_attempts++;
+		    ts.tv_sec  = START_TIMEOUT_SEC; 
+		    ts.tv_nsec = START_TIMEOUT_NSEC;
+		    refresh_et(et, &ts);
+		    /*
+		     * Ojo cambiar todo este algoritmo
+		     */
+		    msg_enqueue(ctrq, clone_msg_carrier(m));
+		    msg_enqueue(&(sk->so_ctrl_sent),m);
+		}
+		else {
+		    /*
+		     * OJO!!! En este caso que se debe hacer
+		     */	
+		    do_socket_error_response(sk, ETIMEDOUT);
+		    free_et(et);
+		}
 	    }
 	}
     }
@@ -497,6 +508,8 @@ struct sock *new_sk( int sd )
 	    nsk->so_dseq_out	 = START_DATASEQ;
 	    nsk->so_cseq_out	 = START_CTRLSEQ;
 
+	    memset(nsk->so_data_path, 0, SUN_PATH_SIZE);
+
 	    nsk->so_resyn	 = 0;
 	    nsk->so_avtok	 = 0;
 
@@ -504,6 +517,8 @@ struct sock *new_sk( int sd )
 	    
     	    nsk->so_retok	 = getreftime(speed, mtu);	/* Cantidad de tokens a actualizar */
 
+	    nsk->so_commited_mtu = 0;
+	    nsk->so_commited_speed = 0;
 	    nsk->so_mtu		 = mtu;				/* Global MTU */
 	    nsk->so_speed	 = speed;			/* Configured Speed */
 
@@ -654,8 +669,9 @@ void do_collect_mbuff_from_sk (struct sock *sk, struct msg_queue *tx, struct msg
 	 */
 	mbp = mbuff_dequeue(&(sk->so_wmemq));
 	if (mbp) {
-	    mptr = prepare_txmsg(sk,mbp,DATA, DISCARD_FALSE);		/* Fill all fields only         */
+	    mptr = prepare_txmsg(sk,mbp,DATA, sk->so_dseq_out,DISCARD_FALSE);		/* Fill all fields only         */
 	    if (mptr) {
+		sk->so_dseq_out++;
 		msg_enqueue(tx, mptr);				/* Finaly enqueue to transmit   */
 		sk->so_avtok = sk->so_avtok - one;		/* Update Sock available tokens */
 		avtok--;

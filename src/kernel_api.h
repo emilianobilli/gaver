@@ -22,7 +22,26 @@
 #include "sock.h"
 #include "types.h"
 
+#ifdef _KERNEL_API_CODE
+#undef EXTERN
+#define EXTERN
+#endif
 
 EXTERN int do_socket_request(struct sock *sk, struct msg_queue *txq);
 EXTERN int do_socket_error_response(struct sock *sk, int reason);
+EXTERN int do_socket_establish_connection(struct sock *sk);
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+ * CONTROL SOCKET STATE									    *
+ *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+enum {
+    CTRL_NONE = 1,
+    CTRL_CONNECT_REQUEST,
+    CTRL_ACCEPT_REQUEST,
+    CTRL_ACCEPT_SENT,
+    CTRL_ESTABLISHED
+};
+
+
+
 #endif

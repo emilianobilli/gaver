@@ -171,6 +171,7 @@ struct msg *msg_search_custom(struct msg_queue *queue, void *data, int(*check)(v
     return ret;
 }
 
+
 struct msg *msg_search(struct msg_queue *queue, struct mbuff *mb)
 {
     struct msg_queue qtmp;

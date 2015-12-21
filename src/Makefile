@@ -22,8 +22,8 @@ LINK:= -lrt -lm -lpthread
 SHARED:= -shared 
 USER:=$(shell whoami)
 
-all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o gvd.o configk.o sock.o common.o kernel_api.o kernel.o timers.o dump.o kernel_util.o libgv.so
-	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o configk.o sock.o gvd.o common.o kernel_api.o kernel.o timers.o dump.o kernel_util.o -o gvd $(LINK)
+all: itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o gvd.o configk.o sock.o common.o kernel_api.o kernel.o timers.o dump.o kernel_util.o kernel_tx.o libgv.so
+	$(CC) itc.o heap.o mbuff_queue.o sockopt.o table.o output.o util.o input.o dataio.o start.o configk.o sock.o gvd.o common.o kernel_api.o kernel.o timers.o dump.o kernel_util.o kernel_tx.o -o gvd $(LINK)
 
 libgv.so: libgv.o gv_err.o common.o
 	$(CC) $(SHARED) libgv.o common.o gv_err.o -o libgv.so
@@ -45,6 +45,9 @@ kernel_api.o: kernel_api.c kernel_api.h
 
 kernel.o: kernel.c kernel.h
 	$(CC) $(OBJ) kernel.c
+
+kernel_tx.o: kernel_tx.c kernel_tx.h
+	$(CC) $(OBJ) kernel_tx.c
 
 mbuff_queue.o: mbuff_queue.c mbuff_queue.h mbuff.h
 	$(CC) $(OBJ) mbuff_queue.c

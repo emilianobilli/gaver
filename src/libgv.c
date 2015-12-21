@@ -142,6 +142,7 @@ int gv_connect_api_msg (int sd, u_int32_t addr, u_int16_t port, u_int16_t vport,
     msg.un.connect.addr  = addr;
     msg.un.connect.port  = port;
     msg.un.connect.vport = vport;
+
     strcpy((char *)msg.un.connect.sun_path, sun_path);
 
     if (write_msg(sd, &msg,GVMSGAPISZ ) == -1)

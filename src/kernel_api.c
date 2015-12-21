@@ -24,10 +24,15 @@
 #include "timers.h"
 #include "mbuff_queue.h"
 #include "kernel_util.h"
+#include "kernel_tx.h"
+#include "sockopt.h"
 #include "glo.h"
 #include "apitypes.h"
 #include "gaver.h"
 #include "sock.h"
+#define _KERNEL_API_CODE
+#include "kernel_api.h"
+
 
 int do_socket_error_response (struct sock *sk, int reason)
 {
@@ -48,6 +53,31 @@ int do_socket_error_response (struct sock *sk, int reason)
     }
     return 0;
 }
+
+
+int do_socket_establish_connection(struct sock *sk)
+{
+    struct gv_rep_api rep;
+
+    memset(&rep, 0, sizeof(GVMSGAPISZ) );
+
+    if (sk->so_state == GV_ESTABLISHED && 
+       (sk->so_loctrl_state == CTRL_CONNECT_REQUEST || sk->so_loctrl_state == CTRL_ACCEPT_REQUEST))
+    {
+	rep.status = COMMAND_SUCCESS;
+	rep.un.success.addr  = sk->so_host_addr.s_addr;
+	rep.un.success.port  = sk->so_host_port;
+	rep.un.success.vport = sk->so_host_gvport;
+    
+	write_msg(sk->so_loctrl,&rep,GVMSGAPISZ);
+    
+	sk->so_lodata = unix_socket_client(sk->so_data_path);
+
+	/* OJO!!!! No estoy  comprobando retorno de la conexion, que pasas si no se establece la coneccion */
+    }
+    return 0;
+}
+
 
 int do_socket_request(struct sock *sk, struct msg_queue *txq)
 {
@@ -102,6 +132,7 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 	    sk->so_host_addr.s_addr	= msg.un.connect.addr;
 	    sk->so_host_port		= msg.un.connect.port;
 	    sk->so_host_gvport		= msg.un.connect.vport;
+	    strcpy(sk->so_data_path, (char *)msg.un.connect.sun_path);
 
 	    txmsg = prepare_connect(sk);
 	    /*
@@ -117,8 +148,8 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 		
 		msg_enqueue(txq,txmsg);	 /* En cola para transmitir */
 
-		sk->so_state = GV_CONNECT_SENT;
-
+		sk->so_state 		= GV_CONNECT_SENT;
+		sk->so_loctrl_state 	= CTRL_CONNECT_REQUEST;
 		ts.tv_sec  = START_TIMEOUT_SEC;
 		ts.tv_nsec = START_TIMEOUT_NSEC;
 
@@ -194,7 +225,8 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 	         * consiguiente el proceso de la capa superior 
 		 * se bloquea
 		 */
-		sk->so_loctrl_state = CTRL_WAITING_CONNECT;
+		strcpy(sk->so_data_path, (char *) msg.un.accept.sun_path);
+		sk->so_loctrl_state = CTRL_ACCEPT_REQUEST;
 	    }
 	    else if (sk->so_state == GV_CONNECT_RCVD)
 	    {
@@ -203,7 +235,7 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 		 * pero todavia la capa superior no habia aceptado.
 		 * Al aceptar el mensaje, se debe enviar un accept
 		 */
-		txmsg = do_accept_connection(sk,sk->so_conn_req);
+		txmsg = do_accept_connection(sk,sk->so_conn_req, 0 /* Ctrl Ack */);
 		if (txmsg) {
 		    msg_enqueue(txq, txmsg);
 		    ts.tv_sec  = START_TIMEOUT_SEC;
@@ -211,7 +243,10 @@ int do_socket_request(struct sock *sk, struct msg_queue *txq)
 
 		    /* OJO!!!! No estoy combrobando retorno */
 		    register_et(sk,txmsg->mb.mbp, &ts);
-		    sk->so_loctrl_state = CTRL_ACCEPT_SENT;
+		    strcpy(sk->so_data_path, (char *)msg.un.accept.sun_path);
+		    sk->so_state	= GV_ACCEPT_SENT;
+		    sk->so_loctrl_state = CTRL_ACCEPT_REQUEST;
+		    sk->so_conn_req	= NULL;
 		}
 
 	    }
